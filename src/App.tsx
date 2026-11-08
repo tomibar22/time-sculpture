@@ -1,6 +1,7 @@
 import { Announcer, ToastHost } from './components/Feedback';
 import { Help } from './components/Help';
 import { ItemList } from './components/ItemList';
+import { LibraryMenu } from './components/LibraryMenu';
 import { Options } from './components/Options';
 import { PiecesPanel } from './components/PiecesPanel';
 import { SelectionBar } from './components/SelectionBar';
@@ -22,6 +23,7 @@ export function App() {
             <h1>Time Sculpture</h1>
             <div className="header-actions">
               <ThemeToggle />
+              <LibraryMenu />
             </div>
           </div>
           <p>

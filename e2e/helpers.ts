@@ -14,7 +14,9 @@ export interface ScoreBox {
 }
 
 export async function score(page: Page, beats = 4): Promise<ScoreBox> {
-  const box = (await page.getByTestId('score').boundingBox())!;
+  const el = page.getByTestId('score');
+  await el.evaluate((n) => n.scrollIntoView({ block: 'center' }));
+  const box = (await el.boundingBox())!;
   return { x: box.x, y: box.y, w: box.width, beats };
 }
 
