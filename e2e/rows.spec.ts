@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, P, ready, openSetup, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -8,6 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('two cycles per row puts the whole phrase on one row', async ({ page }) => {
+  await openSetup(page);
   await page.getByRole('button', { name: 'More bars per row' }).click();
   await expect(page.getByTestId('per-row-value')).toHaveText('2');
   const s = await score(page);
@@ -21,6 +22,7 @@ test('two cycles per row puts the whole phrase on one row', async ({ page }) => 
 });
 
 test('Enter breaks the line at the caret, even in the middle of a beat', async ({ page }) => {
+  await openSetup(page);
   const s = await score(page);
   const h0 = (await page.getByTestId('score').boundingBox())!.height;
   // caret on the line between the two 3s: pulse 5 = beat 2, +1/4
@@ -43,18 +45,21 @@ test('Enter breaks the line at the caret, even in the middle of a beat', async (
 });
 
 test('line breaks are saved with the piece', async ({ page }) => {
+  await openSetup(page);
   const s = await score(page);
   await tap(page, at(s, P(5)));
   await page.keyboard.press('Enter');
   await page.waitForTimeout(700);
   await page.reload();
   await ready(page);
+  await openSetup(page);
   await expect(page.getByRole('button', { name: /Join rows \(1\)/ })).toBeVisible();
   await page.getByRole('button', { name: /Join rows/ }).click();
   await expect(page.getByRole('button', { name: /Join rows/ })).toHaveCount(0);
 });
 
 test('Fit rows stretches a row cut short by a break to the full width', async ({ page }) => {
+  await openSetup(page);
   const s = await score(page);
   await tap(page, at(s, P(5)));
   await page.keyboard.press('Enter');

@@ -45,121 +45,134 @@ export function SelectionBar() {
 
   return (
     <div className="selbar" role="toolbar" aria-label="Selected groups">
-      <span className="selname" data-testid="selname">
-        {sel.length === 0 ? (
-          'Tap groups to select'
-        ) : sel.length === 1 && first ? (
-          <>
-            {first.kind === 'rest' ? 'Silence' : 'Group'} <b>{first.n}</b>{' '}
-            <span className="dim">· {idx[0]! < si ? 'start' : 'ending'}</span>
-          </>
-        ) : (
-          <>
-            <b>{sel.length}</b> selected <span className="dim">· {total} pulses</span>
-          </>
-        )}
-      </span>
-      <button
-        type="button"
-        aria-pressed={multi}
-        title="Tap groups to add them to the selection"
-        onClick={() => toggleMulti()}
-      >
-        Select several
-      </button>
-      <button
-        type="button"
-        aria-label="Move left"
-        disabled={!sel.length || idx[0] === 0}
-        onClick={() => moveSelection(-1)}
-      >
-        ←
-      </button>
-      <button
-        type="button"
-        aria-label="Move right"
-        disabled={!sel.length || idx[idx.length - 1] === items.length - 1}
-        onClick={() => moveSelection(1)}
-      >
-        →
-      </button>
-      {contiguous && (
-        <button type="button" onClick={mergeSelection}>
-          Merge
+      <div className="selbar-head">
+        <span className="selname" data-testid="selname">
+          {sel.length === 0 ? (
+            'Tap groups to select'
+          ) : sel.length === 1 && first ? (
+            <>
+              {first.kind === 'rest' ? 'Silence' : 'Group'} <b>{first.n}</b>{' '}
+              <span className="dim">· {idx[0]! < si ? 'start' : 'ending'}</span>
+            </>
+          ) : (
+            <>
+              <b>{sel.length}</b> selected <span className="dim">· {total} pulses</span>
+            </>
+          )}
+        </span>
+        <button
+          type="button"
+          className="selbar-done"
+          aria-label="Done, clear the selection"
+          onClick={clearSelection}
+        >
+          Done
         </button>
-      )}
-      <button type="button" disabled={!sel.some((x) => x.n >= 2)} onClick={splitSelection}>
-        Split
-      </button>
-      <button type="button" disabled={!sel.length} onClick={toggleSelectionKind}>
-        {allRest ? 'Sound' : 'Silence'}
-      </button>
-      <button type="button" disabled={!sel.length || total > free} onClick={duplicateSelection}>
-        Duplicate
-      </button>
-      <button type="button" disabled={!sel.length} onClick={removeSelection}>
-        Remove
-      </button>
-      <span className="selbar-sep" aria-hidden="true" />
-      <button
-        type="button"
-        disabled={!contiguous && sel.length !== 1}
-        onClick={() => openFill('browse')}
-      >
-        Refill…
-      </button>
-      <button
-        type="button"
-        disabled={!sel.length}
-        title="Copy (⌘C)"
-        onClick={() => copyButton(false)}
-      >
-        Copy
-      </button>
-      <button
-        type="button"
-        disabled={!sel.length}
-        title="Cut (⌘X)"
-        onClick={() => copyButton(true)}
-      >
-        Cut
-      </button>
-      {clip.length > 0 && (
+      </div>
+      <div className="selbar-actions">
+        <button
+          type="button"
+          aria-pressed={multi}
+          title="Tap groups to add them to the selection"
+          onClick={() => toggleMulti()}
+        >
+          Select several
+        </button>
+        <button
+          type="button"
+          aria-label="Move left"
+          disabled={!sel.length || idx[0] === 0}
+          onClick={() => moveSelection(-1)}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          aria-label="Move right"
+          disabled={!sel.length || idx[idx.length - 1] === items.length - 1}
+          onClick={() => moveSelection(1)}
+        >
+          →
+        </button>
+        {contiguous && (
+          <button type="button" onClick={mergeSelection}>
+            Merge
+          </button>
+        )}
+        <button type="button" disabled={!sel.some((x) => x.n >= 2)} onClick={splitSelection}>
+          Split
+        </button>
+        <button type="button" disabled={!sel.length} onClick={toggleSelectionKind}>
+          {allRest ? 'Sound' : 'Silence'}
+        </button>
+        <button type="button" disabled={!sel.length || total > free} onClick={duplicateSelection}>
+          Duplicate
+        </button>
+        <button type="button" disabled={!sel.length} onClick={removeSelection}>
+          Remove
+        </button>
+        <span className="selbar-sep" aria-hidden="true" />
+        <button
+          type="button"
+          disabled={!contiguous && sel.length !== 1}
+          onClick={() => openFill('browse')}
+        >
+          Refill…
+        </button>
         <button
           type="button"
           disabled={!sel.length}
-          title={`Paste ${E.formatGroups(clip)} over the selection (⌘V)`}
-          onClick={() => paste()}
+          title="Copy (⌘C)"
+          onClick={() => copyButton(false)}
         >
-          Paste
+          Copy
         </button>
-      )}
-      {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
-        <button type="button" title="Retrograde: reverse the order (⇧R)" onClick={reverseSelection}>
-          Reverse
+        <button
+          type="button"
+          disabled={!sel.length}
+          title="Cut (⌘X)"
+          onClick={() => copyButton(true)}
+        >
+          Cut
         </button>
-      )}
-      <button
-        type="button"
-        aria-label="−1 pulse"
-        title="Shorter by one pulse (−)"
-        disabled={!sel.length || sel.some((x) => x.n < 2)}
-        onClick={() => resizeSelection(-1)}
-      >
-        −1
-      </button>
-      <button
-        type="button"
-        aria-label="+1 pulse"
-        title="Longer by one pulse (+)"
-        disabled={!sel.length || free < sel.length}
-        onClick={() => resizeSelection(1)}
-      >
-        +1
-      </button>
-      <button type="button" aria-label="Clear selection" onClick={clearSelection}>
-        Done
-      </button>
+        {clip.length > 0 && (
+          <button
+            type="button"
+            disabled={!sel.length}
+            title={`Paste ${E.formatGroups(clip)} over the selection (⌘V)`}
+            onClick={() => paste()}
+          >
+            Paste
+          </button>
+        )}
+        {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
+          <button
+            type="button"
+            title="Retrograde: reverse the order (⇧R)"
+            onClick={reverseSelection}
+          >
+            Reverse
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label="−1 pulse"
+          title="Shorter by one pulse (−)"
+          disabled={!sel.length || sel.some((x) => x.n < 2)}
+          onClick={() => resizeSelection(-1)}
+        >
+          −1
+        </button>
+        <button
+          type="button"
+          aria-label="+1 pulse"
+          title="Longer by one pulse (+)"
+          disabled={!sel.length || free < sel.length}
+          onClick={() => resizeSelection(1)}
+        >
+          +1
+        </button>
+      </div>
     </div>
   );
 }
@@ -185,100 +198,118 @@ function CaretBar() {
   if (range) {
     return (
       <div className="selbar caretbar" role="toolbar" aria-label="Selected range">
-        <span className="selname" data-testid="caretname">
-          <b>{range.b - range.a}</b> pulses{' '}
-          <span className="dim">· from {describePulse(range.a)}</span>
-        </span>
-        <button type="button" aria-label="Select one pulse less" onClick={() => extendRange(-1)}>
-          ⇤
-        </button>
-        <button type="button" aria-label="Select one pulse more" onClick={() => extendRange(1)}>
-          ⇥
-        </button>
-        <button type="button" onClick={() => openFill('random')}>
-          Fill randomly
-        </button>
-        <button type="button" onClick={() => openFill('browse')}>
-          Browse fills
-        </button>
-        <button type="button" onClick={() => deleteAtCaret(-1)}>
-          Silence
-        </button>
-        <button type="button" onClick={() => copyButton(false)}>
-          Copy
-        </button>
-        <button type="button" onClick={() => copyButton(true)}>
-          Cut
-        </button>
-        {clip.length > 0 && (
-          <button type="button" onClick={() => paste()}>
-            Paste
+        <div className="selbar-head">
+          <span className="selname" data-testid="caretname">
+            <b>{range.b - range.a}</b> pulses{' '}
+            <span className="dim">· from {describePulse(range.a)}</span>
+          </span>
+          <button
+            type="button"
+            className="selbar-done"
+            aria-label="Done, clear the selection"
+            onClick={escape}
+          >
+            Done
           </button>
-        )}
-        <button type="button" aria-label="Done, clear the selection" onClick={escape}>
-          Done
-        </button>
+        </div>
+        <div className="selbar-actions">
+          <button type="button" aria-label="Select one pulse less" onClick={() => extendRange(-1)}>
+            ⇤
+          </button>
+          <button type="button" aria-label="Select one pulse more" onClick={() => extendRange(1)}>
+            ⇥
+          </button>
+          <button type="button" onClick={() => openFill('random')}>
+            Fill randomly
+          </button>
+          <button type="button" onClick={() => openFill('browse')}>
+            Browse fills
+          </button>
+          <button type="button" onClick={() => deleteAtCaret(-1)}>
+            Silence
+          </button>
+          <button type="button" onClick={() => copyButton(false)}>
+            Copy
+          </button>
+          <button type="button" onClick={() => copyButton(true)}>
+            Cut
+          </button>
+          {clip.length > 0 && (
+            <button type="button" onClick={() => paste()}>
+              Paste
+            </button>
+          )}
+        </div>
       </div>
     );
   }
   return (
     <div className="selbar caretbar" role="toolbar" aria-label="Caret">
-      <span className="selname" data-testid="caretname">
-        Caret <span className="dim">· {describePulse(caret!)}</span>
-      </span>
-      {!keypad && (
-        <>
-          <button type="button" aria-label="Caret left" onClick={() => moveCaret(-1)}>
-            ←
-          </button>
-          <button type="button" aria-label="Caret right" onClick={() => moveCaret(1)}>
-            →
-          </button>
-        </>
-      )}
-      {isBeatLine && (
+      <div className="selbar-head">
+        <span className="selname" data-testid="caretname">
+          Caret <span className="dim">· {describePulse(caret!)}</span>
+        </span>
         <button
           type="button"
-          title="Metric modulation from here (T)"
-          onClick={() => openModulation(caret!)}
+          className="selbar-done"
+          aria-label="Done, remove the caret"
+          onClick={escape}
         >
-          {sectionHere ? 'Modulation…' : 'Modulate…'}
+          Done
         </button>
-      )}
-      <button
-        type="button"
-        title="Mark the start of a phrase here (P)"
-        onClick={() => togglePhraseMark(caret!)}
-      >
-        {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
-      </button>
-      <button
-        type="button"
-        title="Start a new row here (Enter)"
-        onClick={() => toggleLineBreak(caret!)}
-      >
-        {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
-      </button>
-      <button
-        type="button"
-        aria-label="Select from the caret, one pulse more"
-        onClick={() => extendRange(1)}
-      >
-        Select ⇥
-      </button>
-      {clip.length > 0 && (
-        <button type="button" title="Paste here (⌘V)" onClick={() => paste()}>
-          Paste {E.formatGroups(clip)}
+      </div>
+      <div className="selbar-actions">
+        {!keypad && (
+          <>
+            <button type="button" aria-label="Caret left" onClick={() => moveCaret(-1)}>
+              ←
+            </button>
+            <button type="button" aria-label="Caret right" onClick={() => moveCaret(1)}>
+              →
+            </button>
+          </>
+        )}
+        {isBeatLine && (
+          <button
+            type="button"
+            title="Metric modulation from here (T)"
+            onClick={() => openModulation(caret!)}
+          >
+            {sectionHere ? 'Modulation…' : 'Modulate…'}
+          </button>
+        )}
+        <button
+          type="button"
+          title="Mark the start of a phrase here (P)"
+          onClick={() => togglePhraseMark(caret!)}
+        >
+          {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
         </button>
-      )}
+        <button
+          type="button"
+          title="Start a new row here (Enter)"
+          onClick={() => toggleLineBreak(caret!)}
+        >
+          {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
+        </button>
+        <button
+          type="button"
+          aria-label="Select from the caret, one pulse more"
+          onClick={() => extendRange(1)}
+        >
+          Select ⇥
+        </button>
+        {clip.length > 0 && (
+          <button type="button" title="Paste here (⌘V)" onClick={() => paste()}>
+            Paste {E.formatGroups(clip)}
+          </button>
+        )}
+      </div>
       <span className="hint">
         {keypad
           ? 'Numbers from the pad below are written here. ⇧ arrows select a range.'
           : 'Type a number to write here; ⇧ arrows select a range (123 opens the number pad)'}
       </span>
-      <button type="button" aria-label="Done, remove the caret" onClick={escape}>
-        Done
-      </button>
     </div>
   );
 }

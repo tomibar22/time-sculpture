@@ -3,9 +3,12 @@ import { barBeat } from '../engine';
 import { togglePlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
-import { PlayIcon, StopIcon } from './Icons';
+import { redo, undo } from '../state/actions';
+import { PlayIcon, RedoIcon, StopIcon, UndoIcon } from './Icons';
 import { Keypad } from './Keypad';
 import { FillPanel } from './FillPanel';
+import { SelectionBar } from './SelectionBar';
+import { PHONE, useMedia } from './useMedia';
 
 function Readout() {
   const meter = useDocStore((s) => s.doc.meter);
@@ -17,14 +20,19 @@ function Readout() {
   });
   if (!label)
     return (
-      <div className="now">
+      <div className="now idle">
         <b>{meter.beatsPerCycle}</b> beats · {meter.cycles} bar{meter.cycles > 1 ? 's' : ''}
       </div>
     );
   const [cyc, beat, d] = label.split('|');
   return (
     <div className="now" aria-hidden="true">
-      bar {cyc} · beat <b>{beat}</b> · {d}:1
+      <span className="now-long">
+        bar {cyc} · beat <b>{beat}</b> · {d}:1
+      </span>
+      <span className="now-short">
+        {cyc}·<b>{beat}</b>
+      </span>
     </div>
   );
 }
@@ -32,6 +40,7 @@ function Readout() {
 /** The bottom dock: the number pad (when shown) above the transport. */
 export function Dock() {
   const keypad = useUiStore((s) => s.keypad);
+  const phone = useMedia(PHONE);
   const ref = useRef<HTMLDivElement>(null);
   // let the page and the toasts keep clear of the dock, whatever its height
   useEffect(() => {
@@ -46,6 +55,7 @@ export function Dock() {
     <div className="dock" ref={ref}>
       <div className="dock-inner">
         <FillPanel />
+        {phone && <SelectionBar />}
         {keypad && <Keypad />}
         <Transport />
       </div>
@@ -58,6 +68,8 @@ function Transport() {
   const tempo = useUiStore((s) => s.tempo);
   const keypad = useUiStore((s) => s.keypad);
   const set = useUiStore((s) => s.set);
+  const canUndo = useDocStore((s) => s.past.length > 0);
+  const canRedo = useDocStore((s) => s.future.length > 0);
   return (
     <div className="transport" role="region" aria-label="Transport">
       <div className="tinner">
@@ -83,6 +95,28 @@ function Transport() {
           />
           <span className="mono">{tempo}</span>
         </label>
+        <div className="undo-redo">
+          <button
+            type="button"
+            className="icon ghost"
+            aria-label="Undo"
+            title="Undo (Z)"
+            disabled={!canUndo}
+            onClick={undo}
+          >
+            <UndoIcon />
+          </button>
+          <button
+            type="button"
+            className="icon ghost"
+            aria-label="Redo"
+            title="Redo (Y)"
+            disabled={!canRedo}
+            onClick={redo}
+          >
+            <RedoIcon />
+          </button>
+        </div>
         <button
           type="button"
           className="icon ghost pad-toggle"

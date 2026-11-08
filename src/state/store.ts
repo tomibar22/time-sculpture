@@ -92,6 +92,8 @@ export interface UiState {
   playing: boolean;
   /** The docked number pad (shown by default on touch screens). */
   keypad: boolean;
+  /** Phones: the meter / brush / drag settings are folded into one line until opened. */
+  setupOpen: boolean;
   /** Tile sizes the fill panel may use. */
   fillSizes: number[];
   /** The fill panel: closed, or open on the random or browse tab. */
@@ -143,6 +145,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillSort: 'onbeat',
   modDialog: null,
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
+  setupOpen: false,
   playhead: null,
   theme: 'system',
   preview: null,

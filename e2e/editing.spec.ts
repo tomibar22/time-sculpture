@@ -120,7 +120,7 @@ test('touch: the number pad and the Paste button work at the caret', async ({ pa
   const s2 = await score(page); // the tray click scrolled the page
   await tap(page, at(s2, P(3.5)));
   await page.getByRole('button', { name: 'Copy', exact: true }).click();
-  await page.getByRole('button', { name: 'Clear selection' }).click();
+  await page.getByRole('button', { name: 'Done, clear the selection' }).click();
   await page.getByRole('button', { name: 'Paste 3' }).click();
   await expectSeq(page, '(2) 3 3 3 4 2 │ 3 (1) 3 2 4');
 });

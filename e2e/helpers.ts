@@ -16,7 +16,7 @@ export interface ScoreBox {
 
 export async function score(page: Page, beats = 4): Promise<ScoreBox> {
   const el = page.getByTestId('score');
-  await el.evaluate((n) => n.scrollIntoView({ block: 'center' }));
+  await el.evaluate((n) => n.scrollIntoView({ block: 'start', behavior: 'instant' }));
   const box = (await el.boundingBox())!;
   return { x: box.x, y: box.y, w: box.width, beats };
 }
@@ -72,6 +72,13 @@ export async function showPad(page: Page) {
   const toggle = page.getByRole('button', { name: /^123/ });
   if ((await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click();
   await expect(page.getByTestId('key-1')).toBeVisible();
+}
+
+/** Unfold the meter / brush / drag settings (folded into one line on phones). */
+export async function openSetup(page: Page) {
+  const toggle = page.locator('.setup-toggle');
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) !== 'true')
+    await toggle.click();
 }
 
 /** Clear the composition (from the Library dialog). */

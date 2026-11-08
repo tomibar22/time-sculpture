@@ -6,6 +6,7 @@ import { ModulationDialog } from './components/ModulationDialog';
 import { Options } from './components/Options';
 import { SelectionBar } from './components/SelectionBar';
 import { Status } from './components/Status';
+import { PHONE, useMedia } from './components/useMedia';
 import { ThemeToggle, useApplyTheme } from './components/ThemeToggle';
 import { Toolbar } from './components/Toolbar';
 import { Dock } from './components/Transport';
@@ -15,6 +16,8 @@ import { Score } from './score/Score';
 export function App() {
   useKeyboard();
   useApplyTheme();
+  // phones dock the selection bar above the number pad, by the thumb (see Dock)
+  const phone = useMedia(PHONE);
   return (
     <>
       <main className="wrap">
@@ -36,7 +39,7 @@ export function App() {
           <Toolbar />
           <Score />
           <ItemList />
-          <SelectionBar />
+          {!phone && <SelectionBar />}
           <Status />
         </section>
 

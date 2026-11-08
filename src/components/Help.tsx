@@ -37,7 +37,8 @@ export function Help() {
             The dotted band under each row shows the pulses of every beat (a ratio badge marks beats
             that differ). Pick 1:1 to 8:1, then tap or drag along the band, or select groups and
             press B. Groups keep their moments in time and snap to the nearest new pulse; you can
-            undo.
+            undo. On a phone, the ratios (with beats, bars and drag mode) are in the line above the
+            score: tap it to open them.
           </dd>
           <dt>Write</dt>
           <dd>

@@ -1052,3 +1052,170 @@ button.switch[aria-checked='true'] .switch-knob {
   flex-wrap: wrap;
   gap: 4px 10px;
 }
+
+/* ---------------------------------------------------------------- setup fold, dock bars */
+.setup-toggle {
+  display: none;
+}
+.setup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.selbar-head,
+.selbar-actions {
+  display: contents;
+}
+.now-short {
+  display: none;
+}
+.selbar-done {
+  order: 1; /* wide screens: last, as before; phones put it on the name line */
+}
+.undo-redo {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.status .open-state {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0;
+}
+.status .open-state .warn {
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  button.link-btn {
+    min-height: var(--touch);
+  }
+}
+
+/* phones: the score comes first; settings fold away; actions sit by the thumb */
+@media (max-width: 560px) {
+  .title-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-header h1 {
+    font-size: 1.45rem;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .app-header p,
+  .theme-tag {
+    display: none;
+  }
+  .header-actions {
+    min-width: 0;
+  }
+  .lib-btn {
+    max-width: 52vw;
+  }
+  .panel {
+    gap: 14px;
+  }
+  .setup-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    font-weight: 400;
+    padding: 8px 12px;
+  }
+  .setup-toggle svg {
+    flex-shrink: 0;
+    color: var(--muted);
+    transition: transform 0.15s;
+  }
+  .setup-toggle[aria-expanded='true'] svg {
+    transform: rotate(180deg);
+  }
+  .setup-sum {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .setup-sum .dim {
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .setup-body:not(.open) {
+    display: none;
+  }
+
+  /* the selection / caret bar in the dock: a name line, then one row that scrolls sideways */
+  .dock .selbar {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 4px 6px 6px;
+  }
+  .dock .selbar-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+  }
+  .dock .selbar-head .selname {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dock .selbar-done {
+    min-height: 36px;
+    color: var(--sel);
+  }
+  .dock .selbar-actions {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin: 0 -6px;
+    padding: 0 6px;
+  }
+  .dock .selbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .dock .selbar-actions > * {
+    flex-shrink: 0;
+  }
+  .dock .caretbar .hint {
+    display: none;
+  }
+
+  .tinner {
+    gap: 8px;
+  }
+  .now.idle,
+  .now-long {
+    display: none;
+  }
+  .now-short {
+    display: inline;
+  }
+  .now {
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+  }
+  .tempo {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 6px;
+  }
+  .tempo input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 56px;
+  }
+  .pad-toggle {
+    padding: 0 8px;
+  }
+}

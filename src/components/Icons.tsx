@@ -43,3 +43,8 @@ export const ThemeIcon = () => (
     <path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" />
   </svg>
 );
+export const ChevronIcon = () => (
+  <svg {...base}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);

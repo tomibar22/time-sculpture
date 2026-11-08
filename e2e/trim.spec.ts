@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, drag, expectSeq, P, score, tap, ready } from './helpers';
+import { at, DEFAULT_SEQ, drag, expectSeq, P, openSetup, score, tap, ready } from './helpers';
 
 // Default: (2) 3 3 2 │ 3 (1) 3 2 4 — the first 3 spans pulses 2–5.
 
@@ -42,6 +42,7 @@ test('⌥ arrows trim the end, ⌥⇧ arrows the start', async ({ page }) => {
 });
 
 test('B paints the brush on the beats under the selection', async ({ page }) => {
+  await openSetup(page);
   await page.getByRole('button', { name: '3:1', exact: true }).click();
   const s = await score(page);
   await tap(page, at(s, P(3.5)));

@@ -24,6 +24,7 @@ import {
   hitTrimGrip,
   itemAt,
   L,
+  rowOf,
   rowTop,
   slotAt,
   xOf,
@@ -163,6 +164,46 @@ export function Score() {
       cancelAnimationFrame(frame.current);
     };
   }, [request]);
+
+  /* keep the caret, range or selection in view above the dock (on phones the dock is tall) */
+  useEffect(() => {
+    let raf = 0;
+    const keepInView = () => {
+      const g = geo.current;
+      const cv = canvasRef.current;
+      if (!g || !cv || gesture.current) return;
+      const s = ui();
+      const span =
+        s.range ??
+        (s.caret !== null
+          ? { a: s.caret, b: s.caret }
+          : E.spanOf(useDocStore.getState().doc, s.selection));
+      if (!span) return;
+      const t = (k: number) => g.grid.times[E.clamp(k, 0, g.grid.TS)]!;
+      const r0 = rowOf(g, t(span.a));
+      const r1 = Math.max(r0, rowOf(g, t(Math.max(span.a, span.b - 1))));
+      const box = cv.getBoundingClientRect();
+      const top = box.top + rowTop(g, r0) - 8;
+      const bottom = box.top + rowTop(g, r1) + L.numH + L.gap1 + L.tileH + 8; // the tiles
+      const dock = document.querySelector<HTMLElement>('.dock');
+      const limit = window.innerHeight - (dock?.offsetHeight ?? 0) - 8;
+      let dy = bottom > limit ? bottom - limit : 0;
+      if (top - dy < 8) dy = top - 8; // when it cannot all fit, its first row wins
+      if (Math.abs(dy) < 2) return;
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollBy({ top: dy, behavior: still ? 'auto' : 'smooth' });
+    };
+    const unsub = useUiStore.subscribe((s, p) => {
+      if (s.caret === p.caret && s.range === p.range && s.selection === p.selection) return;
+      cancelAnimationFrame(raf);
+      // after React has re-rendered the dock and the score has been laid out
+      raf = requestAnimationFrame(() => (raf = requestAnimationFrame(keepInView)));
+    });
+    return () => {
+      unsub();
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const point = (e: React.PointerEvent) => {
     const r = canvasRef.current!.getBoundingClientRect();

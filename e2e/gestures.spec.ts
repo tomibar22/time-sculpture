@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, drag, expectSeq, laneAt, P, score, showPad, tap, ready } from './helpers';
+import {
+  at,
+  DEFAULT_SEQ,
+  drag,
+  expectSeq,
+  laneAt,
+  P,
+  openSetup,
+  score,
+  showPad,
+  tap,
+  ready,
+} from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -44,6 +56,7 @@ test('slide by pulse: the next sound is shortened, silence fills behind', async 
 });
 
 test('slide by beat with the arrow keys', async ({ page }) => {
+  await openSetup(page);
   await page.getByRole('button', { name: 'Beat', exact: true }).click();
   const s = await score(page);
   await tap(page, at(s, P(3.5)));
@@ -52,6 +65,7 @@ test('slide by beat with the arrow keys', async ({ page }) => {
 });
 
 test('reorder in Place mode', async ({ page }) => {
+  await openSetup(page);
   await page.getByRole('button', { name: 'Place', exact: true }).click();
   const s = await score(page);
   await drag(page, at(s, P(1)), at(s, P(31.5)));
@@ -83,6 +97,7 @@ test('long-press enters multi-select, then taps add', async ({ page }) => {
 });
 
 test('paint a subdivision on the lane', async ({ page }) => {
+  await openSetup(page);
   await page.getByRole('button', { name: '3:1', exact: true }).click();
   const s = await score(page);
   await tap(page, laneAt(s, 0));
@@ -104,6 +119,7 @@ test('keyboard: split, silence, remove, escape', async ({ page }) => {
 });
 
 test('meter steppers', async ({ page }) => {
+  await openSetup(page);
   await page.getByRole('button', { name: 'More beats per bar' }).click();
   await expect(page.getByTestId('beats-value')).toHaveText('5');
   await expect(page.getByTestId('status')).toContainText('40 pulses');

@@ -228,6 +228,13 @@ G3 by size), rests silent.
   phrase line, tempo or legend (removed at the user's request).
 
 - Mobile-first, max content width 800 px, 16 px gutters + safe areas, generous gaps (24 px).
+- **Phone layout (≤ 560 px, `PHONE` in `components/useMedia.ts`)**: compact one-line header (intro
+  paragraph hidden); the meter / brush / drag settings fold into one summary line
+  (`.setup-toggle`, `ui.setupOpen`, closed by default; always open on wider screens); the
+  selection / caret bar renders in the dock above the number pad (name line + one sideways-scrolling
+  action row) instead of under the score. Undo/redo live in the transport on every size. The score
+  scrolls the caret / range / selection into view above the dock (`keepInView` in `Score.tsx`).
+  e2e: `openSetup(page)` unfolds the settings; `score()` scrolls the score to the top.
 - Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
 - Writing is by digits (keyboard, or the docked number pad: 1–9, ⌫, Sound/Silence, caret ←/→;
   toggled by **123** in the transport, on by default for coarse pointers). Without a caret,
