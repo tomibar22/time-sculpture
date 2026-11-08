@@ -115,6 +115,10 @@ G3 by size), rests silent.
 
 ## Testing notes
 
+- Accessible names must contain the visible text (WCAG 2.5.3): prefer visible text +
+  `sr-only` spans or `title` over an `aria-label` that differs from what is shown.
+- Lighthouse baseline: 100/100/100/100 mobile and desktop; keep it there.
+
 - e2e coordinates come from `e2e/helpers.ts`, which mirrors `src/score/geometry.ts` constants —
   update both together. Each Playwright test gets fresh storage.
 

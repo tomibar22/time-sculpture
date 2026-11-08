@@ -106,7 +106,7 @@ export function Toolbar() {
         <div
           className="segs ratios"
           role="group"
-          aria-labelledby="lbl-sub"
+          aria-label="Subdivision brush, pulses per beat"
           aria-describedby="sub-hint"
         >
           {Array.from({ length: MAX_SUBDIVISION }, (_, i) => i + 1).map((d) => (
@@ -114,7 +114,7 @@ export function Toolbar() {
               key={d}
               type="button"
               aria-pressed={brush === d}
-              aria-label={`${d} pulses per beat`}
+              title={`${d} pulses per beat`}
               onClick={() => {
                 set({ brush: d });
                 sfx.snap();

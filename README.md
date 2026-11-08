@@ -34,6 +34,22 @@ npm run e2e
   first time on a new machine, run `npx playwright install chromium`.
 - `npm run typecheck` and `npm run lint` are the other CI checks.
 
+## Check quality (Lighthouse)
+
+Run against the production build:
+
+```bash
+npm run build && npx vite preview --port 4174
+```
+
+```bash
+npx lighthouse http://localhost:4174/ --view
+```
+
+Last run (mobile and desktop): performance 100, accessibility 100, best practices 100, SEO 100.
+Lighthouse 12+ no longer has a PWA category; installability was checked with Chrome's
+`Page.getInstallabilityErrors` (no errors), and the app reloads and works offline.
+
 ## Deploy (Vercel)
 
 1. In Vercel, choose **Add New → Project** and import `tomibar22/time-sculpture`.

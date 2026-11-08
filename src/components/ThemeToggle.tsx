@@ -26,7 +26,7 @@ export function ThemeToggle() {
     <button
       type="button"
       className="icon ghost"
-      aria-label={`${LABEL[theme]}. Change theme`}
+      aria-label={`Theme ${theme === 'system' ? 'auto' : theme}`}
       title={LABEL[theme]}
       onClick={() => set({ theme: ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length]! })}
     >

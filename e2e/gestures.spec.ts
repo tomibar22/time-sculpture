@@ -81,7 +81,7 @@ test('long-press enters multi-select, then taps add', async ({ page }) => {
 });
 
 test('paint a subdivision on the lane', async ({ page }) => {
-  await page.getByRole('button', { name: '3 pulses per beat' }).click();
+  await page.getByRole('button', { name: '3:1', exact: true }).click();
   const s = await score(page);
   await tap(page, laneAt(s, 0));
   await expect(page.getByTestId('status')).toContainText('3:1 4:1');

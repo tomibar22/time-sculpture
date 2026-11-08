@@ -77,7 +77,6 @@ function Piece({
       type="button"
       className={`piece ${state !== 'fits' ? state : ''} ${rest ? 'rest' : ''}`}
       style={style}
-      aria-label={`Add ${rest ? 'a silence of ' : ''}${size} pulses at the ${anchor}${state === 'dead' ? '; the space could not be filled after this' : state === 'big' ? '; does not fit' : ''}`}
       aria-disabled={state === 'big'}
       data-testid={`piece-${size}`}
       onPointerDown={onPointerDown}
@@ -96,8 +95,12 @@ function Piece({
         e.preventDefault();
       }}
     >
-      {size}
-      <small>{STATE_LABEL[state]}</small>
+      <span>{size}</span> <small>{STATE_LABEL[state]}</small>
+      <span className="sr-only">
+        : add {rest ? 'a silence of ' : ''}
+        {size} pulses at the {anchor}
+        {state === 'dead' ? '; the space could not be filled after this' : ''}
+      </span>
     </button>
   );
 }
