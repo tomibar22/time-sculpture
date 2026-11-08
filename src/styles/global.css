@@ -331,9 +331,9 @@ canvas.score:focus-visible {
 }
 .piece.rest,
 .drag-ghost.rest {
-  background: repeating-linear-gradient(135deg, var(--soft) 0 6px, var(--line) 6px 8px);
+  background: transparent;
   color: var(--fg);
-  box-shadow: inset 0 0 0 1.5px var(--faint);
+  box-shadow: inset 0 0 0 1.5px var(--line);
 }
 .drag-ghost {
   position: fixed;
@@ -466,8 +466,8 @@ canvas.score:focus-visible {
   background: #4b5fd3;
 }
 .lg.rst {
-  background: repeating-linear-gradient(135deg, var(--soft) 0 3px, var(--faint) 3px 4px);
-  box-shadow: inset 0 0 0 1px var(--faint);
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 .lg.opn {
   box-shadow: inset 0 0 0 1.5px var(--faint);
@@ -773,4 +773,55 @@ button.danger {
   font-size: 0.82rem;
   color: var(--muted);
   padding: 0 6px;
+}
+
+/* ---------------------------------------------------------------- rows */
+.rows-btn {
+  position: relative;
+}
+.rows-btn .dot {
+  position: absolute;
+  top: 10px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.rows-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.rows-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rows-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rows-name .dim {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+@media (max-width: 560px) {
+  .toolbar {
+    gap: 12px 14px;
+    align-items: flex-end;
+  }
+  .toolbar > .field:has(.stepper) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .toolbar .rows-btn {
+    padding: 0 8px;
+  }
 }

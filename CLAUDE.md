@@ -121,12 +121,24 @@ G3 by size), rests silent.
   Home/End and ⌘←/→ caret to the ends; Backspace/Delete beside the caret; +/− resize; ⇧R
   reverse; ⇧Space play from the caret.
 
+### Score layout (src/score/rows.ts)
+
+- Rows show whole cycles: `ui.perRow` (default 1) plus optional custom `ui.rows` (cycles per
+  row from the top), normalised by `normalizeRows`. Saved with the piece (not undoable).
+- Beat width is the same in every row (set by the widest row), so beats align vertically;
+  shorter rows end early. Each cycle is labelled at its downbeat ("cycle N" / "cN").
+
+### Silence
+
+- Rests are still items (selectable, movable, shown as "(n)" in the status) but are drawn as
+  empty time: no tile, no number, unless selected, lifted or focused.
+
 ## Persistence
 
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
   `current`. Autosave 400 ms after any change, and on `pagehide`.
 - File format v1 (`src/persistence/serialize.ts`): items as `"3"` sound, `"r3"` rest, `"|"` space,
-  plus meter, tray and tempo. Imports are validated with `checkInvariants`.
+  plus meter, tray, tempo and the row layout (`perRow`, `rows`; optional, default 1 / []). Imports are validated with `checkInvariants`.
 - Share links: `#s=` + `z` + base64url(deflate-raw(JSON)), or `j` + base64url(JSON) without
   CompressionStream. Opening one saves it to the library as "<name> (shared)".
 

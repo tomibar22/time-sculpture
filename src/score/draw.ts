@@ -2,7 +2,17 @@ import { commonSubdivision, isSpace, startOf } from '../engine';
 import type { Doc, ItemId } from '../engine';
 import { inkFor, sizeColor } from './colors';
 import type { Palette } from './colors';
-import { boundaries, L, laneY, rowTop, segments, tileY, xOf } from './geometry';
+import {
+  boundaries,
+  L,
+  laneY,
+  rowEndX,
+  rowStartingAt,
+  rowTop,
+  segments,
+  tileY,
+  xOf,
+} from './geometry';
 import type { Geo } from './geometry';
 
 export interface DrawState {
@@ -40,30 +50,37 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   c.clearRect(0, 0, g.w, g.h);
 
   /* ---------------- rows: numbers, subdivision lane, tile bed, guides, ruler */
-  for (let r = 0; r < g.C; r++) {
+  const B = g.B;
+  const showNumbers = g.bw >= 15;
+  for (let r = 0; r < g.R; r++) {
+    const row = g.rows[r]!;
     const top = rowTop(g, r);
     const ly = laneY(g, r);
     const ty = tileY(g, r);
-    for (let b = 0; b < g.B; b++) {
-      const gb = r * g.B + b;
-      const x = L.margin + b * g.bw;
-      c.textBaseline = 'alphabetic';
-      c.textAlign = 'left';
-      c.fillStyle = b === 0 ? P.land : P.muted;
-      c.font = `${b === 0 ? 700 : 500} 13px ${MONO}`;
-      c.fillText(String(b + 1), x + 4, top + 14);
-      if (b === 0 && g.C > 1) {
-        c.fillStyle = P.muted;
-        c.font = `500 12px ${MONO}`;
-        c.textAlign = 'right';
-        c.fillText(`cycle ${r + 1}`, g.w - L.margin, top + 14);
+    for (let lb = 0; lb < row.nb; lb++) {
+      const gb = row.b0 + lb;
+      const inCycle = gb % B;
+      const x = L.margin + lb * g.bw;
+      if (inCycle === 0 || showNumbers) {
+        c.textBaseline = 'alphabetic';
+        c.textAlign = 'left';
+        c.fillStyle = inCycle === 0 ? P.land : P.muted;
+        c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
+        c.fillText(String(inCycle + 1), x + (g.bw >= 24 ? 4 : 2), top + 14);
+        // name each cycle where it begins (only when the piece has more than one)
+        if (inCycle === 0 && doc.meter.cycles > 1 && g.bw >= 30) {
+          const cyc = gb / B + 1;
+          c.fillStyle = P.muted;
+          c.font = `500 ${g.bw >= 70 ? 12 : 11}px ${MONO}`;
+          c.fillText(g.bw >= 70 ? `cycle ${cyc}` : `c${cyc}`, x + (g.bw >= 24 ? 16 : 12), top + 14);
+        }
       }
       const painting = !!s.painting && s.painting.beats.has(gb);
       const d = painting ? s.painting!.d : sd[gb]!;
       const odd = d !== common;
       c.fillStyle = painting || odd ? P.accent : P.soft;
       c.globalAlpha = painting ? 0.35 : odd ? 0.14 : 1;
-      rr(c, x + 2, ly, g.bw - 4, L.laneH, 8);
+      rr(c, x + 1.5, ly, g.bw - 3, L.laneH, Math.min(8, g.bw / 4));
       c.fill();
       c.globalAlpha = 1;
       const dotR = Math.min(2.4, g.bw / d / 4 + 0.6);
@@ -87,28 +104,31 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       }
     }
     c.fillStyle = P.soft;
-    rr(c, L.margin, ty, g.B * g.bw, L.tileH, 12);
+    rr(c, L.margin, ty, row.nb * g.bw, L.tileH, 12);
     c.fill();
-    for (let b = 0; b < g.B; b++) {
-      const d = sd[r * g.B + b]!;
-      const x = L.margin + b * g.bw;
+    for (let lb = 0; lb < row.nb; lb++) {
+      const gb = row.b0 + lb;
+      const d = sd[gb]!;
+      const x = L.margin + lb * g.bw;
       c.fillStyle = P.line;
       for (let j = 1; j < d; j++) c.fillRect(x + (j * g.bw) / d - 0.5, ty + 8, 1, L.tileH - 16);
-      if (b > 0) {
-        c.fillStyle = P.faint;
-        c.globalAlpha = 0.6;
-        c.fillRect(x - 0.6, ty + 3, 1.2, L.tileH - 6);
+      if (lb > 0) {
+        const down = gb % B === 0;
+        c.fillStyle = down ? P.land : P.faint;
+        c.globalAlpha = down ? 0.55 : 0.6;
+        c.fillRect(x - (down ? 0.9 : 0.6), ty + 3, down ? 1.8 : 1.2, L.tileH - 6);
         c.globalAlpha = 1;
       }
     }
     const ry = ty + L.tileH + 4;
-    for (let b = 0; b <= g.B; b++) {
-      const x = L.margin + b * g.bw;
-      const down = b % g.B === 0;
+    for (let lb = 0; lb <= row.nb; lb++) {
+      const gb = row.b0 + lb;
+      const x = L.margin + lb * g.bw;
+      const down = gb % B === 0;
       c.fillStyle = down ? P.land : P.muted;
       c.fillRect(x - (down ? 1 : 0.7), ry, down ? 2 : 1.4, down ? 10 : 7);
-      if (b < g.B) {
-        const d = sd[r * g.B + b]!;
+      if (lb < row.nb) {
+        const d = sd[gb]!;
         c.fillStyle = P.faint;
         for (let j = 1; j < d; j++) c.fillRect(x + (j * g.bw) / d - 0.5, ry, 1, 4);
       }
@@ -124,16 +144,16 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       const dy = lifted ? -5 : 0;
       for (const seg of segments(g, a, x.n)) {
         const p0 = xOf(g, seg.t0);
-        const p1x = L.margin + (seg.t1 - seg.r * g.B) * g.bw;
+        const p1x = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.bw;
         const ty = tileY(g, seg.r) + dy;
         const X = p0.x + (seg.first ? 2 : 0);
         const W = p1x - p0.x - (seg.first ? 2 : 0) - (seg.last ? 2 : 0);
-        if (lifted) {
+        if (lifted && x.kind !== 'rest') {
           c.save();
           c.shadowColor = 'rgba(0,0,0,.28)';
           c.shadowBlur = 14;
           c.shadowOffsetY = 6;
-          c.fillStyle = isSpace(x) || x.kind === 'rest' ? P.card : sizeColor(x.n);
+          c.fillStyle = isSpace(x) ? P.card : sizeColor(x.n);
           rr(c, X, ty + 2, W, L.tileH - 4, 9);
           c.fill();
           c.restore();
@@ -155,24 +175,14 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           continue;
         }
         if (x.kind === 'rest') {
-          c.save();
-          rr(c, X, ty + 3, W, L.tileH - 6, 9);
-          c.fillStyle = P.card;
-          c.fill();
-          c.clip();
-          c.strokeStyle = P.faint;
-          c.lineWidth = 1.2;
-          for (let k = -L.tileH; k < W; k += 7) {
-            c.beginPath();
-            c.moveTo(X + k, ty + L.tileH);
-            c.lineTo(X + k + L.tileH, ty);
-            c.stroke();
+          // Silence is simply empty time: nothing is drawn unless it is being handled.
+          if (selected || lifted || s.focusedId === x.id) {
+            c.fillStyle = P.sel;
+            c.globalAlpha = 0.08;
+            rr(c, X, ty + 3, W, L.tileH - 6, 9);
+            c.fill();
+            c.globalAlpha = 1;
           }
-          c.restore();
-          c.strokeStyle = P.faint;
-          c.lineWidth = 1.5;
-          rr(c, X, ty + 3, W, L.tileH - 6, 9);
-          c.stroke();
         } else {
           const col = sizeColor(x.n);
           c.fillStyle = col;
@@ -210,8 +220,9 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.stroke();
           c.globalAlpha = 1;
         }
-        if (W > 15) {
-          c.fillStyle = x.kind === 'rest' ? P.fg : inkFor(sizeColor(x.n));
+        const showRestNumber = selected || lifted || s.focusedId === x.id;
+        if (W > 15 && (x.kind !== 'rest' || showRestNumber)) {
+          c.fillStyle = x.kind === 'rest' ? P.muted : inkFor(sizeColor(x.n));
           c.globalAlpha = seg.first ? 1 : 0.6;
           c.font = `600 ${W > 26 ? 16 : 12}px ${MONO}`;
           c.textAlign = 'left';
@@ -261,8 +272,8 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   const caretAt = (index: number, attachLeft: boolean) => {
     const t =
       g.grid.times[Math.min(startOf(doc.items, Math.min(index, doc.items.length)), g.grid.TS)]!;
-    const onRowEdge = t > 0 && t < g.grid.NB && Math.abs(t / g.B - Math.round(t / g.B)) < 1e-9;
-    if (attachLeft && onRowEdge) return { x: L.margin + g.B * g.bw, r: Math.round(t / g.B) - 1 };
+    const startsRow = rowStartingAt(g, t);
+    if (attachLeft && startsRow > 0) return { x: rowEndX(g, startsRow - 1), r: startsRow - 1 };
     return xOf(g, Math.min(t, g.grid.NB - 1e-6));
   };
   if (s.dropCaret !== null) {

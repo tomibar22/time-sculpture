@@ -67,7 +67,7 @@ export function Help() {
           </span>
           <span>
             <i className="lg rst" />
-            silence you placed
+            silence (just empty time)
           </span>
           <span>
             <i className="lg opn" />
