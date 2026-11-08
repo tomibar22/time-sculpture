@@ -19,7 +19,7 @@ export function cursorAt(doc: Doc, index: number): Cursor {
     after: index <= 0 ? null : (doc.items[Math.min(index, doc.items.length) - 1]?.id ?? null),
   };
 }
-import { DEFAULT_TEMPO, DEFAULT_TRAY, defaultDoc } from './defaults';
+import { DEFAULT_TEMPO, defaultDoc } from './defaults';
 
 export type MoveMode = 'pulse' | 'beat' | 'place';
 export type Theme = 'system' | 'light' | 'dark';
@@ -99,16 +99,16 @@ export interface UiState {
   multi: boolean;
   moveMode: MoveMode;
   brush: number;
-  addAt: 'start' | 'end';
+  /** What the number pad types: sounds, or silences. */
   addKind: GroupKind;
-  tray: number[];
   /** Cycles per row by default, and custom per-row counts (see score/rows.ts). */
   perRow: number;
   rows: number[];
-  snap: boolean;
   ticks: boolean;
   tempo: number;
   playing: boolean;
+  /** The docked number pad (shown by default on touch screens). */
+  keypad: boolean;
   /** Playhead in beats while playing. */
   playhead: number | null;
   theme: Theme;
@@ -116,8 +116,6 @@ export interface UiState {
   preview: Doc | null;
   /** Ids of the lifted block during a move drag. */
   lifted: ItemId[];
-  /** Drop caret (item index) while dragging a tray piece over the score. */
-  dropCaret: number | null;
   /**
    * Text-editor caret between items. Anchored to the item it follows (null = the very beginning),
    * so it survives edits elsewhere. `{ after: 'space' }` is the start of the ending.
@@ -144,20 +142,17 @@ export const useUiStore = create<UiState>((set) => ({
   multi: false,
   moveMode: 'pulse',
   brush: 4,
-  addAt: 'end',
   addKind: 'sound',
-  tray: DEFAULT_TRAY,
   perRow: 1,
   rows: [],
-  snap: false,
   ticks: true,
   tempo: DEFAULT_TEMPO,
   playing: false,
+  keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   playhead: null,
   theme: 'system',
   preview: null,
   lifted: [],
-  dropCaret: null,
   cursor: null,
   clipboard: [],
   flash: { ids: [], until: 0 },

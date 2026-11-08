@@ -156,6 +156,7 @@ function CursorBar() {
   const cursor = useUiStore((s) => s.cursor);
   const clip = useUiStore((s) => s.clipboard);
   const set = useUiStore((s) => s.set);
+  const keypad = useUiStore((s) => s.keypad);
   const index = cursorIndex(doc, cursor);
   if (index === null) return null;
   return (
@@ -163,28 +164,36 @@ function CursorBar() {
       <span className="selname" data-testid="caretname">
         Caret <span className="dim">· {describeCursor(index)}</span>
       </span>
-      <button
-        type="button"
-        aria-label="Caret left"
-        disabled={index === 0}
-        onClick={() => moveCursor(-1)}
-      >
-        ←
-      </button>
-      <button
-        type="button"
-        aria-label="Caret right"
-        disabled={index === doc.items.length}
-        onClick={() => moveCursor(1)}
-      >
-        →
-      </button>
+      {!keypad && (
+        <>
+          <button
+            type="button"
+            aria-label="Caret left"
+            disabled={index === 0}
+            onClick={() => moveCursor(-1)}
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            aria-label="Caret right"
+            disabled={index === doc.items.length}
+            onClick={() => moveCursor(1)}
+          >
+            →
+          </button>
+        </>
+      )}
       {clip.length > 0 && (
         <button type="button" title="Paste here (⌘V)" onClick={() => paste()}>
           Paste {E.formatGroups(clip)}
         </button>
       )}
-      <span className="hint">Tap a piece or type a number to insert here</span>
+      <span className="hint">
+        {keypad
+          ? 'Numbers from the pad below are written here'
+          : 'Type a number to write a group here (123 opens the number pad)'}
+      </span>
       <button
         type="button"
         aria-label="Done, remove the caret"

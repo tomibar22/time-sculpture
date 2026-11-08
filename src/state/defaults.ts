@@ -1,7 +1,6 @@
 import { docFrom, makeMeter } from '../engine';
 import type { Doc } from '../engine';
 
-export const DEFAULT_TRAY = [2, 3, 4, 5, 7];
 export const DEFAULT_TEMPO = 72;
 export const MIN_TEMPO = 40;
 export const MAX_TEMPO = 160;

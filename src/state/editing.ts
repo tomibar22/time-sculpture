@@ -165,7 +165,8 @@ function insertOrReplace(groups: GroupSpec[], label: string): ItemId[] | null {
   } else {
     const c = cursorIndex(d, s.cursor);
     const si = E.spaceIndex(d.items);
-    const at = c ?? (s.addAt === 'start' ? si : si + 1);
+    // no caret yet: write at the end of the start, like typing on from the left
+    const at = c ?? si;
     r = E.insertGroups(d, at, groups);
   }
   const sound = () => (groups[0]?.kind === 'rest' ? sfx.remove() : sfx.add(groups[0]?.n ?? 3));

@@ -4,6 +4,7 @@ import {
   createPiece,
   duplicatePiece,
   exportFile,
+  exportPdf,
   importFile,
   listPieces,
   openPiece,
@@ -12,7 +13,7 @@ import {
   saveNow,
   shareLink,
 } from '../persistence/session';
-import { toast } from '../state/actions';
+import { clearAll, toast } from '../state/actions';
 import { useUiStore } from '../state/store';
 import { MenuIcon } from './Icons';
 
@@ -92,6 +93,21 @@ export function LibraryMenu() {
               <button type="submit">Rename</button>
             </div>
           </form>
+          <div className="lib-save">
+            <h3>Save as a file</h3>
+            <div className="lib-actions">
+              <button type="button" className="primary" onClick={() => void after(exportPdf)}>
+                PDF score
+              </button>
+              <button type="button" onClick={() => void after(exportFile, false)}>
+                JSON
+              </button>
+            </div>
+            <p className="lib-note">
+              The PDF is a clean sheet to play or study from. The JSON file is the composition
+              itself: open it here again, or read it in other programs.
+            </p>
+          </div>
           <div className="lib-actions">
             <button
               type="button"
@@ -103,11 +119,8 @@ export function LibraryMenu() {
             <button type="button" onClick={() => void after(duplicatePiece)}>
               Duplicate
             </button>
-            <button type="button" onClick={() => void after(exportFile, false)}>
-              Export file
-            </button>
             <button type="button" onClick={() => fileInput.current?.click()}>
-              Import file
+              Open a file
             </button>
             <button
               type="button"
@@ -173,6 +186,11 @@ export function LibraryMenu() {
               </li>
             ))}
           </ul>
+          <div className="lib-actions">
+            <button type="button" className="ghost" onClick={() => void after(clearAll)}>
+              Clear this composition
+            </button>
+          </div>
         </div>
       </dialog>
     </>

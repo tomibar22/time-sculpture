@@ -19,7 +19,6 @@ import type { Palette } from './colors';
 import { drawScore } from './draw';
 import { geometry, hit, hitBoundary, hitTrimGrip, itemAt, slotAt } from './geometry';
 import type { Boundary, Geo } from './geometry';
-import { scoreRegistry } from './registry';
 import { normalizeRows } from './rows';
 
 const LONG_PRESS_MS = 450;
@@ -103,12 +102,10 @@ export function Score() {
         doc,
         selection: new Set(s.selection),
         lifted: new Set(s.lifted),
-        tray: new Set(s.tray),
         painting: gs?.kind === 'lane' ? { beats: gs.beats, d: s.brush } : null,
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
         showHandles: gs?.kind !== 'slide' && gs?.kind !== 'place',
-        dropCaret: s.dropCaret,
         cursor: cursorIndex(doc, s.cursor),
         playhead: s.playhead,
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
@@ -147,18 +144,11 @@ export function Score() {
     const mo = new MutationObserver(retheme);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     void document.fonts?.ready.then(request);
-    scoreRegistry.slotAt = (cx, cy) => {
-      const r = cv.getBoundingClientRect();
-      const g = geo.current;
-      if (!g || cx < r.left || cx > r.right || cy < r.top - 20 || cy > r.bottom + 20) return null;
-      return E.clamp(slotAt(g, cx - r.left, cy - r.top), 0, g.grid.TS);
-    };
     return () => {
       unsubs.forEach((u) => u());
       ro.disconnect();
       mq.removeEventListener('change', retheme);
       mo.disconnect();
-      scoreRegistry.slotAt = null;
       cancelAnimationFrame(frame.current);
     };
   }, [request]);
@@ -276,23 +266,15 @@ export function Score() {
 
     if (gs.kind === 'boundary') {
       const { base, b } = gs;
-      const { tray, snap } = ui();
       const k = slotAt(g, x, y);
       const s0 = E.startOf(base.items, b.i);
       const item = base.items[b.i]!;
       let result: OpResult;
       if (b.kind === 'line') {
         const total = item.n + base.items[b.i + 1]!.n;
-        let n: number | null = k - s0;
-        if (snap) n = E.snapPair(total, E.clamp(n, 1, total - 1), tray);
-        if (n === null) return;
-        result = E.reshapeLine(base, item.id, n);
+        result = E.reshapeLine(base, item.id, E.clamp(k - s0, 1, total - 1));
       } else {
-        const max = item.n + E.freePulses(base);
-        let n: number | null = b.kind === 'edgeR' ? k - s0 : s0 + item.n - k;
-        if (snap) n = E.snapSize(E.clamp(n, 1, max), max, tray);
-        if (n === null) return;
-        result = E.stretchEdge(base, item.id, n);
+        result = E.stretchEdge(base, item.id, b.kind === 'edgeR' ? k - s0 : s0 + item.n - k);
       }
       const prev = gs.result?.report.ok ? gs.result.doc : base;
       const nextDoc = result.report.ok ? result.doc : base;

@@ -3,12 +3,11 @@ import { Help } from './components/Help';
 import { ItemList } from './components/ItemList';
 import { LibraryMenu } from './components/LibraryMenu';
 import { Options } from './components/Options';
-import { PiecesPanel } from './components/PiecesPanel';
 import { SelectionBar } from './components/SelectionBar';
 import { Status } from './components/Status';
 import { ThemeToggle, useApplyTheme } from './components/ThemeToggle';
 import { Toolbar } from './components/Toolbar';
-import { Transport } from './components/Transport';
+import { Dock } from './components/Transport';
 import { useKeyboard } from './components/useKeyboard';
 import { Score } from './score/Score';
 
@@ -40,11 +39,10 @@ export function App() {
           <Status />
         </section>
 
-        <PiecesPanel />
         <Options />
         <Help />
       </main>
-      <Transport />
+      <Dock />
       <ToastHost />
       <Announcer />
     </>

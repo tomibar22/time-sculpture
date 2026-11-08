@@ -43,8 +43,10 @@ export function Help() {
           <dd>
             Tap a line between groups, or the open space, to place a caret, like in a text editor.
             Type a number (1–9) to insert a group of that length there (Shift+number inserts a
-            silence), or tap a piece in the tray. Typing over selected groups replaces them.
-            Backspace and Delete remove the group before or after the caret.
+            silence). Without a caret, numbers are written at the end of the start. On a phone, the
+            number pad (123, next to the tempo) does the same, with a Sound / Silence switch and ⌫.
+            Typing over selected groups replaces them. Backspace and Delete remove the group before
+            or after the caret.
           </dd>
           <dt>Copy &amp; paste</dt>
           <dd>

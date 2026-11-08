@@ -3,7 +3,7 @@ import type { Doc, ItemId, OpResult, Report } from '../engine';
 import { startPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import { blankDoc } from './defaults';
-import { cursorAt, cursorIndex, nextToastId, useDocStore, useUiStore } from './store';
+import { cursorAt, nextToastId, useDocStore, useUiStore } from './store';
 import type { Toast } from './store';
 
 /* ------------------------------------------------------------------ feedback */
@@ -181,45 +181,6 @@ function describeSelection(): void {
 }
 
 /* ------------------------------------------------------------------ adding and fills */
-
-/**
- * Add a tray piece. `index` = dropped at a place. Otherwise, if a caret is placed (and nothing is
- * selected) it is inserted at the caret and the caret moves after it, like typing; else it goes to
- * the Add-at side.
- */
-export function addPiece(size: number, index?: number): void {
-  const { addAt, addKind, cursor, selection } = uiState();
-  const d = doc();
-  const caret = index === undefined && !selection.length ? cursorIndex(d, cursor) : null;
-  const at = index ?? caret;
-  const r = E.add(d, size, addKind, at !== null ? { index: at } : addAt);
-  const label = `${addAt === 'start' && at === null ? '⇤' : ''}${addKind === 'rest' ? `(${size})` : `+${size}`}${addAt === 'end' && at === null ? '⇥' : ''}`;
-  const ok = run(r, {
-    label,
-    select: caret !== null ? 'none' : [...r.report.created],
-    sound: () => (addKind === 'rest' ? sfx.remove() : sfx.add(size)),
-  });
-  if (!ok) return;
-  if (caret !== null) setUi({ cursor: { after: r.report.created[0]! } });
-  const free = E.freePulses(r.doc);
-  announce(`${addKind === 'rest' ? 'Silence of ' : ''}${size} added, ${free} open`);
-  if (free > 0 && E.countWays(free, uiState().tray) === 0n)
-    toast(
-      `${free} open can't be filled with tray sizes. Stretch a group, or fill it with silence.`,
-    );
-}
-
-export function fillWithPieces(): void {
-  const r = E.fillWithPieces(doc(), uiState().tray);
-  if (r.report.reason === 'no-room') return toast('No open space left');
-  if (
-    run(r, {
-      label: `fill ${r.report.created.map((id) => E.findItem(r.doc, id)?.n).join(' ')}`,
-      select: [...r.report.created],
-    })
-  )
-    announce(`Filled with ${plural(r.report.created.length, 'piece')}`);
-}
 
 export function fillWithSilence(): void {
   const r = E.fillWithSilence(doc());
@@ -428,13 +389,4 @@ export function paintSubdivision(beats: number[], d = uiState().brush): void {
 
 export function applySubdivisionEverywhere(): void {
   paintSubdivision([...Array(doc().meter.subdivision.length).keys()]);
-}
-
-/* ------------------------------------------------------------------ settings */
-
-export function toggleTraySize(n: number): void {
-  const tray = uiState().tray;
-  if (tray.includes(n)) {
-    if (tray.length > 1) setUi({ tray: tray.filter((x) => x !== n) });
-  } else setUi({ tray: [...tray, n].sort((a, b) => a - b) });
 }

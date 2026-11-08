@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { togglePlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
 import { PlayIcon, StopIcon } from './Icons';
+import { Keypad } from './Keypad';
 
 function Readout() {
   const meter = useDocStore((s) => s.doc.meter);
@@ -24,9 +26,33 @@ function Readout() {
   );
 }
 
-export function Transport() {
+/** The bottom dock: the number pad (when shown) above the transport. */
+export function Dock() {
+  const keypad = useUiStore((s) => s.keypad);
+  const ref = useRef<HTMLDivElement>(null);
+  // let the page and the toasts keep clear of the dock, whatever its height
+  useEffect(() => {
+    const el = ref.current!;
+    const ro = new ResizeObserver(() =>
+      document.documentElement.style.setProperty('--dock-h', `${el.offsetHeight}px`),
+    );
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div className="dock" ref={ref}>
+      <div className="dock-inner">
+        {keypad && <Keypad />}
+        <Transport />
+      </div>
+    </div>
+  );
+}
+
+function Transport() {
   const playing = useUiStore((s) => s.playing);
   const tempo = useUiStore((s) => s.tempo);
+  const keypad = useUiStore((s) => s.keypad);
   const set = useUiStore((s) => s.set);
   return (
     <div className="transport" role="region" aria-label="Transport">
@@ -53,6 +79,15 @@ export function Transport() {
           />
           <span className="mono">{tempo}</span>
         </label>
+        <button
+          type="button"
+          className="icon ghost pad-toggle"
+          aria-pressed={keypad}
+          title="Show or hide the number pad"
+          onClick={() => set({ keypad: !keypad })}
+        >
+          123<span className="sr-only"> number pad</span>
+        </button>
       </div>
     </div>
   );
