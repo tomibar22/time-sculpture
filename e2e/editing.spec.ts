@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 test('tap a line to place a caret, then type sizes and silences', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(5)));
-  await expect(page.getByTestId('caretname')).toContainText('in the start');
+  await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 2 +1/4');
   await page.keyboard.press('1');
   await expectSeq(page, '(2) 3 1 3 2 │ 3 (1) 3 2 4');
   await page.keyboard.press('Shift+2');
@@ -22,7 +22,7 @@ test('tap a line to place a caret, then type sizes and silences', async ({ page 
 test('quick digits are separate groups', async ({ page }) => {
   await clearAll(page);
   const s = await score(page);
-  await tap(page, at(s, P(3)));
+  await tap(page, at(s, P(0.2)));
   await page.keyboard.press('1');
   await page.keyboard.press('2');
   await expectSeq(page, '1 2 │ ·');
@@ -50,8 +50,7 @@ test('copy a group and paste it at the start of the ending', async ({ page }) =>
   const s = await score(page);
   await tap(page, at(s, P(3.5)));
   await page.keyboard.press('ControlOrMeta+c');
-  await tap(page, at(s, P(17)));
-  await expect(page.getByTestId('caretname')).toContainText('start of the ending');
+  await tap(page, at(s, P(18.8)));
   await page.keyboard.press('ControlOrMeta+v');
   await expectSeq(page, '(2) 3 3 2 │ 3 3 (1) 3 2 4');
 });
@@ -68,14 +67,36 @@ test('cut and paste moves a phrase', async ({ page }) => {
   await expectSeq(page, '(2) 2 │ 3 (1) 3 2 4 3 3');
 });
 
-test('Shift+arrows select like text from the caret', async ({ page }) => {
+test('Shift+arrows select pulses like text; typing fills the selection', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(2)));
   await page.keyboard.press('Shift+ArrowRight');
   await page.keyboard.press('Shift+ArrowRight');
-  await expect(page.getByTestId('selname')).toContainText('2 selected');
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(page.getByTestId('caretname')).toContainText('3 pulses');
   await page.keyboard.press('Shift+ArrowLeft');
-  await expect(page.getByTestId('selname')).toContainText('Group 3');
+  await expect(page.getByTestId('caretname')).toContainText('2 pulses');
+  // the 2 pulses cut the first 3: typing 1 writes a 1 and silences the rest of the selection
+  await page.keyboard.press('1');
+  await expectSeq(page, '(2) 1 (1) (1) 3 2 │ 3 (1) 3 2 4');
+});
+
+test('the caret moves pulse by pulse, also inside tiles', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(2)));
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1 +3/4');
+  // typing inside a tile splits it: head, the new group, then silence for the old tail
+  await page.keyboard.press('1');
+  await expectSeq(page, '(2) 1 1 (2) 3 2 │ 3 (1) 3 2 4');
+});
+
+test('Backspace on a range silences it', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(2)));
+  for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Backspace');
+  await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
 });
 
 test('resize and reverse a selection', async ({ page }) => {
@@ -109,7 +130,7 @@ test('paste a phrase typed as text', async ({ page, context, browserName }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await clearAll(page);
   const s = await score(page);
-  await tap(page, at(s, P(3)));
+  await tap(page, at(s, P(0.2)));
   await page.evaluate(() => {
     const dt = new DataTransfer();
     dt.setData('text/plain', '3 (2) 4');

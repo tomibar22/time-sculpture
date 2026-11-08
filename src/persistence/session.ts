@@ -38,7 +38,8 @@ function adopt(id: string, raw: unknown, rename?: (name: string) => string): str
     rows: settings.rows ?? [],
     preview: null,
     selection: [],
-    cursor: null,
+    caret: null,
+    range: null,
   });
   return name;
 }
@@ -118,7 +119,7 @@ export async function createPiece(doc: Doc = blankDoc(), name = 'Untitled'): Pro
   const id = newId();
   useDocStore.getState().load(doc);
   clearSelection();
-  ui().set({ currentId: id, currentName: name, cursor: null });
+  ui().set({ currentId: id, currentName: name, caret: null, range: null });
   await savePiece(id, currentSaved());
   announce(`New composition: ${name}`);
 }

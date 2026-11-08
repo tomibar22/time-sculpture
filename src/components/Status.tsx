@@ -1,6 +1,6 @@
 import * as E from '../engine';
 import { fillWithSilence } from '../state/actions';
-import { FillDialog } from './FillDialog';
+import { openFill } from '../state/fill';
 import { useDocStore } from '../state/store';
 
 export function Status() {
@@ -20,10 +20,15 @@ export function Status() {
           <button type="button" className="link-btn" onClick={fillWithSilence}>
             Fill with silence
           </button>
-          <FillDialog />
+          <button type="button" className="link-btn" onClick={() => openFill('random')}>
+            Fill randomly…
+          </button>
+          <button type="button" className="link-btn" onClick={() => openFill('browse')}>
+            Browse fills…
+          </button>
         </span>
       )}
-      <span className="seq" data-testid="sequence">
+      <span className="seq sr-only" data-testid="sequence">
         {start.join(' ') || '·'} │ {ending.join(' ') || '·'}
       </span>
       <span className="meta">

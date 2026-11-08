@@ -24,8 +24,10 @@ export interface DrawState {
   activeBoundary: string | null;
   hoverBoundary: string | null;
   showHandles: boolean;
-  /** Text caret (item index), drawn when nothing is selected. */
+  /** Text caret (a pulse), drawn when nothing is selected. */
   cursor: number | null;
+  /** Selected pulse range. */
+  range?: { a: number; b: number } | null;
   playhead: number | null;
   flash: { ids: ReadonlySet<ItemId>; alpha: number };
   focusedId: ItemId | null;
@@ -45,6 +47,8 @@ function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: num
 
 const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 const BODY = '"Atkinson Hyperlegible", system-ui, sans-serif';
+
+const E_clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: Palette): void {
   const { doc } = s;
@@ -285,36 +289,38 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     }
   }
 
-  /* ---------------- drop caret, text caret and playhead */
-  /** Where a caret at item index sits. Attached left = it follows an item (shown at the end of a
-   * row rather than the start of the next one when it falls on a row boundary). */
-  const caretAt = (index: number, attachLeft: boolean) => {
-    const t =
-      g.grid.times[Math.min(startOf(doc.items, Math.min(index, doc.items.length)), g.grid.TS)]!;
+  /* ---------------- range, caret and playhead */
+  const TSp = g.grid.TS;
+  /** x and row of a pulse; at a row boundary the end of a range belongs to the row above. */
+  const pulseAt = (k: number, attachLeft: boolean) => {
+    const t = g.grid.times[E_clamp(k, 0, TSp)]!;
     const startsRow = rowStartingAt(g, t);
     if (attachLeft && startsRow > 0) return { x: rowEndX(g, startsRow - 1), r: startsRow - 1 };
-    return xOf(g, Math.min(t, g.grid.NB - 1e-6));
+    if (t >= g.grid.NB) return { x: rowEndX(g, g.R - 1), r: g.R - 1 };
+    return xOf(g, t);
   };
-  if (s.cursor !== null && s.selection.size === 0) {
-    const index = s.cursor;
-    const si = doc.items.findIndex(isSpace);
-    const dir = index === 0 || index === si + 1 ? 1 : -1;
-    const p = caretAt(index, dir < 0);
+  if (s.range) {
+    // a translucent band over the selected pulses, row by row, with clear edges
+    for (const seg of segments(g, s.range.a, s.range.b - s.range.a)) {
+      const x0 = xOf(g, seg.t0).x;
+      const x1 = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.bw;
+      const ty = tileY(g, seg.r);
+      c.fillStyle = P.sel;
+      c.globalAlpha = 0.16;
+      c.fillRect(x0, ty - 4, x1 - x0, L.tileH + 8);
+      c.globalAlpha = 1;
+      if (seg.first) c.fillRect(x0 - 1, ty - 6, 2, L.tileH + 12);
+      if (seg.last) c.fillRect(x1 - 1, ty - 6, 2, L.tileH + 12);
+    }
+  } else if (s.cursor !== null && s.selection.size === 0) {
+    const k = s.cursor;
+    const p = pulseAt(k, k >= TSp);
     const ty = tileY(g, p.r);
     c.fillStyle = P.sel;
     c.fillRect(p.x - 1.5, ty - 6, 3, L.tileH + 12);
-    c.beginPath();
-    c.moveTo(p.x, ty - 6);
-    c.lineTo(p.x + dir * 7, ty - 6);
-    c.lineTo(p.x, ty + 1);
-    c.closePath();
-    c.fill();
-    c.beginPath();
-    c.moveTo(p.x, ty + L.tileH + 6);
-    c.lineTo(p.x + dir * 7, ty + L.tileH + 6);
-    c.lineTo(p.x, ty + L.tileH - 1);
-    c.closePath();
-    c.fill();
+    // small caps top and bottom, like a text caret
+    c.fillRect(p.x - 4.5, ty - 7, 9, 2.5);
+    c.fillRect(p.x - 4.5, ty + L.tileH + 4.5, 9, 2.5);
   }
   if (s.playhead !== null) {
     const p = xOf(g, s.playhead);

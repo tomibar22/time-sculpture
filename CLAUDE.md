@@ -108,20 +108,32 @@ subdivision changes during playback apply immediately without jumps. Sounds: lan
 cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (pentatonic from
 G3 by size), rests silent.
 
-### Text-editor editing (ops/edit.ts, state/editing.ts)
+### Text-editor editing (ops/edit.ts, ops/range.ts, state/editing.ts)
 
-- The **caret** sits between items: `ui.cursor = { after: ItemId | null }` (null = very start;
-  `after: 'space'` = start of the ending), resolved to an index with `cursorIndex`. Anchoring to
-  an id keeps it in place through edits elsewhere. Drawn only when nothing is selected.
-- Placed by tapping a line/edge without dragging, or the open space (nearer side). Clearing a
-  selection (Esc / Done) collapses it to a caret after it. Selecting a tile drops the caret.
-- Digits 1–9 type a group at the caret (Shift = silence); each digit is its own group, however
-  fast they are typed (no multi-digit sizes). With a selection, typing/pasting replaces it
-  (contiguous only; room = selection + space). Tray taps insert at the caret too.
-- Clipboard: `ui.clipboard` (GroupSpec[]) plus system text "3 (2) 4"; paste parses text first.
-- Keys: ←/→ move the selection (by drag mode) or the caret; ⇧←/→ extend the selection;
-  Home/End and ⌘←/→ caret to the ends; Backspace/Delete beside the caret; +/− resize; ⇧R
-  reverse; ⇧Space play from the caret.
+- The **caret is a pulse** (`ui.caret`, 0..TS), like a caret between letters, and a **range** is
+  a pulse range (`ui.range` {a,b}, `ui.rangeAnchor`). Tile selection still exists separately.
+  `selectedRegion()` = range, else the selected tiles' span.
+- Range rules (`fillRange`): a group cut at the range start keeps its head (same id); a group
+  cut at the range end loses its onset, so its tail becomes silence; open space cut by a range
+  stays open after it (a part before it becomes silence only if open space remains after).
+  Property test: every onset outside the range is unchanged.
+- `insertAtPulse`: at a boundary = normal insert (ripple toward the space); inside the space =
+  silence up to the caret, then the groups; inside a group = split (head, groups, silent tail).
+- Typing over a range writes at its start and silences the rest; Backspace silences a range.
+  `sliceRange` copies a range (cut heads become silence).
+- Keys: ← → caret by pulse (or move tiles when tiles are selected); ⌥← ⌥→ caret tile to tile
+  (trim when tiles are selected); ⇧ arrows extend the range (⌥⇧ by tile); ⇧-click range; ⌥-click
+  caret inside a tile; Home/End/⌘← → ends; Esc collapses to a caret, then removes it.
+- The sequence line under the score is visually hidden (user request); it stays for screen
+  readers and as the e2e `sequence` test id.
+
+### Filling a region (engine/fills.ts, state/fill.ts, components/FillPanel.tsx)
+
+- Region = range, tiles span, or the open space. A docked panel (above the number pad, so the
+  score stays visible) has Random (uniform tiling) and Browse: `fillOptions` lists all tilings
+  (≤ 400) or 400 distinct random ones, measured (tiles, onBeat, offBeat, variety, spread) and
+  sorted (`FILL_SORTS`). Hover/focus previews via `ui.preview`; click applies with `fillRange`
+  and keeps the region selected as a range.
 
 ### Trimming (trimEdge)
 

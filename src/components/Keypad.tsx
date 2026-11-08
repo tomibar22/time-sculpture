@@ -1,6 +1,6 @@
 import { ui as sfx } from '../audio/voices';
 import { removeSelection } from '../state/actions';
-import { deleteAtCursor, moveCursor, typeDigit } from '../state/editing';
+import { deleteAtCaret, moveCaret, typeDigit } from '../state/editing';
 import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 
@@ -17,7 +17,7 @@ export function Keypad() {
 
   const backspace = () => {
     if (useUiStore.getState().selection.length) removeSelection();
-    else if (!deleteAtCursor(-1)) sfx.nope();
+    else if (!deleteAtCaret(-1)) sfx.nope();
   };
 
   return (
@@ -36,7 +36,7 @@ export function Keypad() {
             type="button"
             className="icon"
             aria-label="Caret left"
-            onClick={() => moveCursor(-1)}
+            onClick={() => moveCaret(-1)}
           >
             ←
           </button>
@@ -44,7 +44,7 @@ export function Keypad() {
             type="button"
             className="icon"
             aria-label="Caret right"
-            onClick={() => moveCursor(1)}
+            onClick={() => moveCaret(1)}
           >
             →
           </button>

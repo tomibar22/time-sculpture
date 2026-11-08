@@ -41,12 +41,23 @@ export function Help() {
           </dd>
           <dt>Write</dt>
           <dd>
-            Tap a line between groups, or the open space, to place a caret, like in a text editor.
-            Type a number (1–9) to insert a group of that length there (Shift+number inserts a
-            silence). Without a caret, numbers are written at the end of the start. On a phone, the
-            number pad (123, next to the tempo) does the same, with a Sound / Silence switch and ⌫.
-            Typing over selected groups replaces them. Backspace and Delete remove the group before
-            or after the caret.
+            The caret sits on any pulse, like a text caret between letters: tap a line or the open
+            space to place it, ⌥-click to place it inside a tile, and move it with ← → (one pulse)
+            or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there (Shift+number writes
+            a silence). Inside the open space the gap before the caret becomes silence; inside a
+            tile, the tile is split. On a phone, use the number pad (123).
+          </dd>
+          <dt>Select time</dt>
+          <dd>
+            ⇧← ⇧→ (or ⇧-click, or Select ⇥ on a phone) select a range of pulses, whether it is
+            empty, full or part of a tile. Typing over it writes there and silences the rest;
+            Backspace silences it; copy, cut and paste work on it too.
+          </dd>
+          <dt>Fill</dt>
+          <dd>
+            Fill randomly or Browse fills work on the selected range or tiles (or on the open
+            space): choose the sizes, then roll, or browse every way to fill it, sorted by tiles,
+            the beat, syncopation, variety or evenness. Pointing at an option previews it.
           </dd>
           <dt>Copy &amp; paste</dt>
           <dd>

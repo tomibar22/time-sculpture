@@ -4,6 +4,7 @@ import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
 import { PlayIcon, StopIcon } from './Icons';
 import { Keypad } from './Keypad';
+import { FillPanel } from './FillPanel';
 
 function Readout() {
   const meter = useDocStore((s) => s.doc.meter);
@@ -42,6 +43,7 @@ export function Dock() {
   return (
     <div className="dock" ref={ref}>
       <div className="dock-inner">
+        <FillPanel />
         {keypad && <Keypad />}
         <Transport />
       </div>

@@ -12,8 +12,8 @@ import {
   splitSelection,
   toast,
 } from '../state/actions';
-import { setCursor } from '../state/editing';
-import { cursorIndex, useDocStore, useUiStore } from '../state/store';
+import { setCaret, setRange } from '../state/editing';
+import { useDocStore, useUiStore } from '../state/store';
 import { readPalette } from './colors';
 import type { Palette } from './colors';
 import { drawScore } from './draw';
@@ -106,7 +106,8 @@ export function Score() {
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
         showHandles: gs?.kind !== 'slide' && gs?.kind !== 'place',
-        cursor: cursorIndex(doc, s.cursor),
+        cursor: s.caret,
+        range: s.range,
         playhead: s.playhead,
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
         focusedId: s.focusedId,
@@ -167,6 +168,20 @@ export function Score() {
     e.currentTarget.setPointerCapture(e.pointerId);
     const doc = useDocStore.getState().doc;
     const h = hit(g, x, y);
+    // Shift-click with a caret or range (and no tiles selected) selects a pulse range, like text;
+    // ⌥-click puts the caret on any pulse, even inside a tile
+    const st = ui();
+    if (h.zone === 'tiles' && !h.outside && !st.selection.length) {
+      if (e.shiftKey && (st.caret !== null || st.range)) {
+        setRange(st.rangeAnchor ?? st.caret ?? 0, E.clamp(slotAt(g, x, y), 0, g.grid.TS));
+        return;
+      }
+      if (e.altKey) {
+        sfx.snap();
+        setCaret(slotAt(g, x, y));
+        return;
+      }
+    }
     if (h.zone === 'lane') {
       gesture.current = { kind: 'lane', beats: new Set([h.beat]) };
       request();
@@ -397,9 +412,8 @@ export function Score() {
       if (cancelled) return;
       if (!gs.result) {
         // a tap on a line or an edge places the text caret there
-        const index = gs.b.kind === 'edgeL' ? gs.b.i : gs.b.i + 1;
         sfx.snap();
-        setCursor(index);
+        setCaret(gs.b.slot);
         return;
       }
       const it = gs.result.doc.items[gs.b.i];
@@ -480,9 +494,9 @@ export function Score() {
     }
     if (gs.kind === 'empty' && !cancelled && !ui().multi) {
       if (gs.slot === null) return setUi({ selection: [], anchor: null });
-      // a tap in the open space puts the caret at its nearer side
+      // a tap in the open space puts the caret on that pulse
       sfx.snap();
-      setCursor(E.insertionIndex(useDocStore.getState().doc.items, gs.slot));
+      setCaret(gs.slot);
     }
   };
 

@@ -15,11 +15,12 @@ import {
 import {
   brushSelection,
   copySelection,
-  cursorHome,
-  deleteAtCursor,
+  caretHome,
+  deleteAtCaret,
   escape,
   extendSelection,
-  moveCursor,
+  moveCaret,
+  extendRange,
   paste,
   playFromCaret,
   resizeSelection,
@@ -63,7 +64,11 @@ export function useKeyboard() {
         if (k === 'a') return void (e.preventDefault(), selectAll());
         if (k === 'z') return void (e.preventDefault(), e.shiftKey ? redo() : undo());
         if (k === 'y') return void (e.preventDefault(), redo());
-        if ((k === 'c' || k === 'x') && hasSel && !hasTextSelection()) {
+        if (
+          (k === 'c' || k === 'x') &&
+          (hasSel || useUiStore.getState().range) &&
+          !hasTextSelection()
+        ) {
           // do the work here (it must also work if no copy event follows); the event writes the text
           copiedText = copySelection(k === 'x');
           return;
@@ -76,15 +81,18 @@ export function useKeyboard() {
         }
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           e.preventDefault();
-          return cursorHome(e.key === 'ArrowRight');
+          return caretHome(e.key === 'ArrowRight');
         }
         return;
       }
       if (e.altKey) {
         // ⌥←/→ trim the end edge, ⌥⇧←/→ the start edge (preventDefault also stops Alt+← = Back)
-        if (hasSel && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           e.preventDefault();
-          return trimSelection(e.shiftKey ? 'start' : 'end', e.key === 'ArrowLeft' ? -1 : 1);
+          const dir = e.key === 'ArrowLeft' ? -1 : 1;
+          if (hasSel) return trimSelection(e.shiftKey ? 'start' : 'end', dir);
+          // no tiles selected: jump the caret (or the range's end) from tile edge to tile edge
+          return e.shiftKey ? extendRange(dir, true) : moveCaret(dir, true);
         }
         return;
       }
@@ -104,7 +112,7 @@ export function useKeyboard() {
       if (e.key === 'Escape') return escape();
       if (e.key === 'Home' || e.key === 'End') {
         e.preventDefault();
-        return cursorHome(e.key === 'End');
+        return caretHome(e.key === 'End');
       }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const dir = e.key === 'ArrowLeft' ? -1 : 1;
@@ -116,18 +124,16 @@ export function useKeyboard() {
           e.preventDefault();
           return moveSelection(dir);
         }
-        if (useUiStore.getState().cursor) {
-          e.preventDefault();
-          return moveCursor(dir);
-        }
-        return;
+        e.preventDefault();
+        return moveCaret(dir);
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         if (hasSel) return removeSelection();
-        deleteAtCursor(e.key === 'Backspace' ? -1 : 1);
+        deleteAtCaret(e.key === 'Backspace' ? -1 : 1);
         return;
       }
+      if (k === 'b' && useUiStore.getState().range) return brushSelection();
       if (!hasSel) return;
       if (e.key === '+' || e.key === '=') return resizeSelection(1);
       if (e.key === '-' || e.key === '_') return resizeSelection(-1);

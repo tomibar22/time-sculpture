@@ -3,7 +3,7 @@ import type { Doc, ItemId, OpResult, Report } from '../engine';
 import { startPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import { blankDoc } from './defaults';
-import { cursorAt, nextToastId, useDocStore, useUiStore } from './store';
+import { nextToastId, useDocStore, useUiStore } from './store';
 import type { Toast } from './store';
 
 /* ------------------------------------------------------------------ feedback */
@@ -136,7 +136,7 @@ export function select(id: ItemId, mods: { shift?: boolean; toggle?: boolean } =
   } else {
     setUi({ selection: [id], anchor: id });
   }
-  setUi({ cursor: null });
+  setUi({ caret: null, range: null, rangeAnchor: null });
   sfx.snap();
   describeSelection();
 }
@@ -152,9 +152,9 @@ export function selectAll(): void {
 
 /** Clear the selection. It collapses to a caret just after it, like text. */
 export function clearSelection(): void {
-  const idx = E.selectedIndices(doc().items, uiState().selection);
-  const cursor = idx.length ? cursorAt(doc(), idx[idx.length - 1]! + 1) : uiState().cursor;
-  setUi({ selection: [], anchor: null, multi: false, cursor });
+  const span = E.spanOf(doc(), uiState().selection);
+  const caret = span ? span.b : uiState().caret;
+  setUi({ selection: [], anchor: null, multi: false, caret, range: null, rangeAnchor: null });
 }
 
 export function toggleMulti(on = !uiState().multi): void {
@@ -199,7 +199,7 @@ export function clearAll(): void {
 
 export function newComposition(): void {
   useDocStore.getState().load(blankDoc());
-  setUi({ selection: [], anchor: null, multi: false, cursor: null });
+  setUi({ selection: [], anchor: null, multi: false, caret: null, range: null });
 }
 
 /* ------------------------------------------------------------------ selection actions */
@@ -389,31 +389,4 @@ export function paintSubdivision(beats: number[], d = uiState().brush): void {
 
 export function applySubdivisionEverywhere(): void {
   paintSubdivision([...Array(doc().meter.subdivision.length).keys()]);
-}
-
-/**
- * Fill the open space with a random tiling of the chosen sizes (uniform over all tilings).
- * The toast offers another roll, which replaces this one in the same place.
- */
-export function fillRandomly(sizes: number[]): boolean {
-  const r = E.fillWithPieces(doc(), sizes);
-  if (r.report.reason === 'no-room') return (void toast('No open space left'), false);
-  if (r.report.reason === 'cannot-fill') {
-    sfx.nope();
-    toast(`These sizes can't fill ${E.freePulses(doc())} pulses exactly`);
-    return false;
-  }
-  const label = `fill ${r.report.created.map((id) => E.findItem(r.doc, id)?.n).join(' ')}`;
-  if (!run(r, { label, select: [...r.report.created] })) return false;
-  toast(`Filled: ${label.slice(5)}`, {
-    undo: true,
-    action: {
-      label: 'Another',
-      run: () => {
-        useDocStore.getState().undo();
-        fillRandomly(sizes);
-      },
-    },
-  });
-  return true;
 }

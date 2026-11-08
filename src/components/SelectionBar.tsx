@@ -11,13 +11,17 @@ import {
 } from '../state/actions';
 import {
   copyButton,
-  describeCursor,
-  moveCursor,
+  deleteAtCaret,
+  describePulse,
+  escape,
+  extendRange,
+  moveCaret,
   paste,
   resizeSelection,
   reverseSelection,
 } from '../state/editing';
-import { cursorIndex, useDocStore, useUiStore } from '../state/store';
+import { openFill } from '../state/fill';
+import { useDocStore, useUiStore } from '../state/store';
 
 export function SelectionBar() {
   const doc = useDocStore((s) => s.doc);
@@ -26,7 +30,7 @@ export function SelectionBar() {
   const clip = useUiStore((s) => s.clipboard);
   const items = doc.items;
   const idx = E.selectedIndices(items, selection);
-  if (!idx.length && !multi) return <CursorBar />;
+  if (!idx.length && !multi) return <CaretBar />;
 
   const sel = idx.map((i) => items[i]!);
   const total = sel.reduce((a, x) => a + x.n, 0);
@@ -96,6 +100,13 @@ export function SelectionBar() {
       <span className="selbar-sep" aria-hidden="true" />
       <button
         type="button"
+        disabled={!contiguous && sel.length !== 1}
+        onClick={() => openFill('browse')}
+      >
+        Refill…
+      </button>
+      <button
+        type="button"
         disabled={!sel.length}
         title="Copy (⌘C)"
         onClick={() => copyButton(false)}
@@ -150,40 +161,79 @@ export function SelectionBar() {
   );
 }
 
-/** Shown when a text caret is placed and nothing is selected: the touch equivalent of the keys. */
-function CursorBar() {
-  const doc = useDocStore((s) => s.doc);
-  const cursor = useUiStore((s) => s.cursor);
+/**
+ * Shown when a caret is placed or a pulse range is selected (and no tiles are): the touch way to
+ * do what the keys do.
+ */
+function CaretBar() {
+  useDocStore((s) => s.version);
+  const caret = useUiStore((s) => s.caret);
+  const range = useUiStore((s) => s.range);
   const clip = useUiStore((s) => s.clipboard);
-  const set = useUiStore((s) => s.set);
   const keypad = useUiStore((s) => s.keypad);
-  const index = cursorIndex(doc, cursor);
-  if (index === null) return null;
+  if (caret === null && !range) return null;
+
+  if (range) {
+    return (
+      <div className="selbar caretbar" role="toolbar" aria-label="Selected range">
+        <span className="selname" data-testid="caretname">
+          <b>{range.b - range.a}</b> pulses{' '}
+          <span className="dim">· from {describePulse(range.a)}</span>
+        </span>
+        <button type="button" aria-label="Select one pulse less" onClick={() => extendRange(-1)}>
+          ⇤
+        </button>
+        <button type="button" aria-label="Select one pulse more" onClick={() => extendRange(1)}>
+          ⇥
+        </button>
+        <button type="button" onClick={() => openFill('random')}>
+          Fill randomly
+        </button>
+        <button type="button" onClick={() => openFill('browse')}>
+          Browse fills
+        </button>
+        <button type="button" onClick={() => deleteAtCaret(-1)}>
+          Silence
+        </button>
+        <button type="button" onClick={() => copyButton(false)}>
+          Copy
+        </button>
+        <button type="button" onClick={() => copyButton(true)}>
+          Cut
+        </button>
+        {clip.length > 0 && (
+          <button type="button" onClick={() => paste()}>
+            Paste
+          </button>
+        )}
+        <button type="button" aria-label="Done, clear the selection" onClick={escape}>
+          Done
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="selbar caretbar" role="toolbar" aria-label="Caret">
       <span className="selname" data-testid="caretname">
-        Caret <span className="dim">· {describeCursor(index)}</span>
+        Caret <span className="dim">· {describePulse(caret!)}</span>
       </span>
       {!keypad && (
         <>
-          <button
-            type="button"
-            aria-label="Caret left"
-            disabled={index === 0}
-            onClick={() => moveCursor(-1)}
-          >
+          <button type="button" aria-label="Caret left" onClick={() => moveCaret(-1)}>
             ←
           </button>
-          <button
-            type="button"
-            aria-label="Caret right"
-            disabled={index === doc.items.length}
-            onClick={() => moveCursor(1)}
-          >
+          <button type="button" aria-label="Caret right" onClick={() => moveCaret(1)}>
             →
           </button>
         </>
       )}
+      <button
+        type="button"
+        aria-label="Select from the caret, one pulse more"
+        onClick={() => extendRange(1)}
+      >
+        Select ⇥
+      </button>
       {clip.length > 0 && (
         <button type="button" title="Paste here (⌘V)" onClick={() => paste()}>
           Paste {E.formatGroups(clip)}
@@ -191,14 +241,10 @@ function CursorBar() {
       )}
       <span className="hint">
         {keypad
-          ? 'Numbers from the pad below are written here'
-          : 'Type a number to write a group here (123 opens the number pad)'}
+          ? 'Numbers from the pad below are written here. ⇧ arrows select a range.'
+          : 'Type a number to write here; ⇧ arrows select a range (123 opens the number pad)'}
       </span>
-      <button
-        type="button"
-        aria-label="Done, remove the caret"
-        onClick={() => set({ cursor: null })}
-      >
+      <button type="button" aria-label="Done, remove the caret" onClick={escape}>
         Done
       </button>
     </div>

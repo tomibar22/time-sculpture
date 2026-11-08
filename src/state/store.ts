@@ -1,24 +1,6 @@
 import { create } from 'zustand';
-import type { Doc, GroupKind, GroupSpec, ItemId } from '../engine';
+import type { Doc, FillSort, GroupKind, GroupSpec, ItemId } from '../engine';
 
-export interface Cursor {
-  after: ItemId | null;
-}
-
-/** Item index of a cursor in a document, or null if its anchor no longer exists. */
-export function cursorIndex(doc: Doc, cursor: Cursor | null): number | null {
-  if (!cursor) return null;
-  if (cursor.after === null) return 0;
-  const i = doc.items.findIndex((x) => x.id === cursor.after);
-  return i < 0 ? null : i + 1;
-}
-
-/** The cursor for an item index. */
-export function cursorAt(doc: Doc, index: number): Cursor {
-  return {
-    after: index <= 0 ? null : (doc.items[Math.min(index, doc.items.length) - 1]?.id ?? null),
-  };
-}
 import { DEFAULT_TEMPO, defaultDoc } from './defaults';
 
 export type MoveMode = 'pulse' | 'beat' | 'place';
@@ -109,8 +91,11 @@ export interface UiState {
   playing: boolean;
   /** The docked number pad (shown by default on touch screens). */
   keypad: boolean;
-  /** Tile sizes the random fill may use. */
+  /** Tile sizes the fill panel may use. */
   fillSizes: number[];
+  /** The fill panel: closed, or open on the random or browse tab. */
+  fillPanel: 'random' | 'browse' | null;
+  fillSort: FillSort;
   /** Playhead in beats while playing. */
   playhead: number | null;
   theme: Theme;
@@ -118,11 +103,11 @@ export interface UiState {
   preview: Doc | null;
   /** Ids of the lifted block during a move drag. */
   lifted: ItemId[];
-  /**
-   * Text-editor caret between items. Anchored to the item it follows (null = the very beginning),
-   * so it survives edits elsewhere. `{ after: 'space' }` is the start of the ending.
-   */
-  cursor: Cursor | null;
+  /** Text caret on a pulse (0..total), like a caret between letters. */
+  caret: number | null;
+  /** A selected pulse range [a, b) and its fixed end (the other end follows Shift+arrows). */
+  range: { a: number; b: number } | null;
+  rangeAnchor: number | null;
   /** Copied groups (also written to the system clipboard as text). */
   clipboard: GroupSpec[];
   flash: { ids: ItemId[]; until: number };
@@ -151,12 +136,16 @@ export const useUiStore = create<UiState>((set) => ({
   tempo: DEFAULT_TEMPO,
   playing: false,
   fillSizes: [2, 3, 4, 5, 7],
+  fillPanel: null,
+  fillSort: 'onbeat',
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   playhead: null,
   theme: 'system',
   preview: null,
   lifted: [],
-  cursor: null,
+  caret: null,
+  range: null,
+  rangeAnchor: null,
   clipboard: [],
   flash: { ids: [], until: 0 },
   toast: null,

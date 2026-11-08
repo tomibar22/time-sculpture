@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, ready } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -11,7 +11,7 @@ test('fill the open space randomly with chosen sizes', async ({ page }) => {
   await page.getByRole('button', { name: 'Fill randomly…' }).click();
   // only 3s: 9 open pulses → exactly 3 3 3
   for (const n of [2, 4, 5, 7]) await page.getByTestId(`fill-${n}`).click();
-  await expect(page.getByRole('dialog')).toContainText('1 possible fill');
+  await expect(page.locator('.fillpanel')).toContainText('1 possible fill');
   await page.getByRole('button', { name: 'Fill', exact: true }).click();
   await expectSeq(page, '(2) 3 3 2 3 3 3 │ 3 (1) 3 2 4');
   await expect(page.getByTestId('status')).toContainText('Complete');
@@ -20,11 +20,25 @@ test('fill the open space randomly with chosen sizes', async ({ page }) => {
 test('sizes that cannot fill the space are refused', async ({ page }) => {
   await page.getByRole('button', { name: 'Fill randomly…' }).click();
   for (const n of [2, 3, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // only 4 left
-  await expect(page.getByRole('dialog')).toContainText("can't fill 9");
-  await expect(page.getByRole('button', { name: 'Fill', exact: true })).toBeDisabled();
+  await expect(page.locator('.fillpanel')).toContainText("can't fill 9");
+  await expect(page.getByRole('button', { name: 'Fill', exact: true })).toHaveCount(0);
 });
 
 test('⇧A selects every tile', async ({ page }) => {
   await page.keyboard.press('Shift+A');
   await expect(page.getByTestId('selname')).toContainText('9 selected');
+});
+
+test('browse fills for a selected range, sorted, and pick one', async ({ page }) => {
+  const s = await score(page);
+  // select the two 3s (pulses 2–8) as tiles, then refill them
+  await tap(page, at(s, P(3.5)));
+  await tap(page, at(s, P(6.5)), ['Shift']);
+  await page.getByRole('button', { name: 'Refill…' }).click();
+  for (const n of [4, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // 2 and 3 left
+  const list = page.getByRole('list', { name: 'Ways to fill' });
+  await expect(list.getByRole('listitem')).toHaveCount(2); // 6 pulses: 2 2 2 or 3 3
+  await page.locator('#fill-sort').selectOption('most');
+  await list.getByRole('button').first().click();
+  await expectSeq(page, '(2) 2 2 2 2 │ 3 (1) 3 2 4');
 });
