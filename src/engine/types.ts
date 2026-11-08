@@ -35,6 +35,11 @@ export interface Meter {
    * beats, ascending, each on a pulse). Part of the document so they undo and save with it.
    */
   readonly breaks?: readonly number[];
+  /**
+   * Phrase marks: times in beats where a phrase starts (0 ≤ t < total beats, ascending, each on a
+   * pulse). Drawn as flags, so a phrase that does not start on a beat is easy to see.
+   */
+  readonly marks?: readonly number[];
 }
 
 /** The undoable document. Immutable: operations return new objects and share unchanged ones. */

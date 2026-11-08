@@ -9,7 +9,7 @@ import {
   MIN_SUBDIVISION,
   nearestPulse,
 } from '../grid';
-import { groupSum, isSpace, spaceIndex, syncSpace, withBreaks } from '../doc';
+import { groupSum, isSpace, spaceIndex, syncSpace, withBreaks, withMarks } from '../doc';
 import { fail, report } from '../report';
 import type { Doc, Item, ItemId, Meter, OpResult } from '../types';
 
@@ -43,7 +43,7 @@ export function setSubdivision(doc: Doc, beats: Iterable<number>, d: number): Op
   for (const b of todo) subdivision[b] = d;
   const meter0: Meter = { ...doc.meter, subdivision };
   // line breaks keep their moment too, snapped to the nearest pulse of the new grid
-  const meter: Meter = withBreaks(meter0, doc.meter.breaks ?? []);
+  const meter: Meter = withMarks(withBreaks(meter0, doc.meter.breaks ?? []), doc.meter.marks ?? []);
   const grid = buildGrid(meter);
 
   const idx = bt.map((t) => nearestPulse(grid, t));
@@ -112,7 +112,10 @@ export function resizeMeter(
     else subdivision.push(fill);
   }
   // line breaks that still fall inside the piece are kept (on the nearest pulse)
-  const nm: Meter = withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []);
+  const nm: Meter = withMarks(
+    withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []),
+    meter.marks ?? [],
+  );
   const TS = buildGrid(nm).TS;
 
   const items = doc.items.slice();
@@ -147,4 +150,20 @@ export function toggleBreak(doc: Doc, k: number): OpResult {
 export function hasBreakAt(doc: Doc, k: number): boolean {
   const t = buildGrid(doc.meter).times[k];
   return t !== undefined && (doc.meter.breaks ?? []).some((b) => Math.abs(b - t) < EPS);
+}
+
+/** Add a phrase mark at pulse k (0 = the very start), or remove the one that is there. */
+export function toggleMark(doc: Doc, k: number): OpResult {
+  const grid = buildGrid(doc.meter);
+  if (!Number.isInteger(k) || k < 0 || k >= grid.TS) return { doc, report: fail('out-of-range') };
+  const t = grid.times[k]!;
+  const cur = doc.meter.marks ?? [];
+  const has = cur.some((b) => Math.abs(b - t) < EPS);
+  const next = has ? cur.filter((b) => Math.abs(b - t) >= EPS) : [...cur, t];
+  return { doc: { ...doc, meter: withMarks({ ...doc.meter }, next) }, report: report() };
+}
+
+export function hasMarkAt(doc: Doc, k: number): boolean {
+  const t = buildGrid(doc.meter).times[k];
+  return t !== undefined && (doc.meter.marks ?? []).some((b) => Math.abs(b - t) < EPS);
 }

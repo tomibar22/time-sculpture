@@ -29,20 +29,36 @@ export function makeMeter(
  * A meter with these line breaks: snapped to the nearest pulse, inside the piece, ascending and
  * without duplicates. No `breaks` field when there are none.
  */
-export function withBreaks(meter: Meter, breaks: readonly number[]): Meter {
-  const { breaks: _old, ...rest } = meter;
+function withTimes(
+  meter: Meter,
+  key: 'breaks' | 'marks',
+  times: readonly number[],
+  allowZero: boolean,
+): Meter {
+  const { [key]: _old, ...rest } = meter;
   void _old;
   const base: Meter = rest;
   const grid = buildGrid(base);
   const out: number[] = [];
-  for (const b of [...breaks].sort((x, y) => x - y)) {
+  for (const b of [...times].sort((x, y) => x - y)) {
     const k = nearestPulse(grid, b);
-    if (k <= 0 || k >= grid.TS) continue;
+    if (k < (allowZero ? 0 : 1) || k >= grid.TS) continue;
     const t = grid.times[k]!;
     if (!out.length || t - out[out.length - 1]! > EPS) out.push(t);
   }
-  return out.length ? { ...base, breaks: out } : base;
+  return out.length ? { ...base, [key]: out } : base;
 }
+
+/**
+ * A meter with these line breaks: snapped to the nearest pulse, inside the piece (not at its very
+ * start or end), ascending and without duplicates. No `breaks` field when there are none.
+ */
+export const withBreaks = (meter: Meter, breaks: readonly number[]) =>
+  withTimes(meter, 'breaks', breaks, false);
+
+/** The same for phrase marks (a mark at the very start is allowed). */
+export const withMarks = (meter: Meter, marks: readonly number[]) =>
+  withTimes(meter, 'marks', marks, true);
 
 export const isSpace = (x: Item): x is Space => x.kind === 'space';
 export const isGroup = (x: Item): x is Group => x.kind !== 'space';
@@ -160,13 +176,18 @@ export function checkInvariants(doc: Doc): string[] {
     if (!Number.isInteger(d) || d < MIN_SUBDIVISION || d > MAX_SUBDIVISION)
       errs.push(`beat ${b} subdivision ${d}`);
   });
-  if (meter.breaks) {
-    const g = buildGrid({ ...meter, breaks: undefined });
-    let prev = 0;
-    for (const b of meter.breaks) {
+  for (const [key, label, min] of [
+    ['breaks', 'line break', EPS],
+    ['marks', 'phrase mark', -EPS],
+  ] as const) {
+    const list = meter[key];
+    if (!list) continue;
+    const g = buildGrid(meter);
+    let prev = min - 1;
+    for (const b of list) {
       const k = nearestPulse(g, b);
-      if (!(b > prev + EPS) || b >= g.NB - EPS || Math.abs(g.times[k]! - b) > EPS)
-        errs.push(`bad line break ${b}`);
+      if (!(b > prev + EPS) || b < min || b >= g.NB - EPS || Math.abs(g.times[k]! - b) > EPS)
+        errs.push(`bad ${label} ${b}`);
       prev = b;
     }
   }
