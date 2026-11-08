@@ -31,6 +31,21 @@ export interface Palette {
   sel: string;
 }
 
+/** Fixed light palette for printing, whatever theme is on screen. */
+export const PRINT_PALETTE: Palette = {
+  fg: '#16191e',
+  muted: '#646c78',
+  faint: '#9aa2ad',
+  line: '#e1e5ea',
+  soft: '#f3f5f8',
+  card: '#ffffff',
+  accent: '#0d7a72',
+  accentInk: '#ffffff',
+  land: '#c9302c',
+  warn: '#9a6516',
+  sel: '#2b59d9',
+};
+
 export function readPalette(el: Element = document.documentElement): Palette {
   const cs = getComputedStyle(el);
   const v = (k: string) => cs.getPropertyValue(k).trim();
