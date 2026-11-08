@@ -14,9 +14,26 @@ const okBar = (n: number) => Number.isInteger(n) && n >= 1 && n <= MAX_BEATS;
 function withSections(meter: Meter, sections: readonly Section[]): Meter {
   const { sections: _old, ...rest } = meter;
   void _old;
-  const base: Meter = sections.length ? { ...rest, sections: [...sections] } : rest;
+  let base: Meter = sections.length ? { ...rest, sections: [...sections] } : rest;
+  // back to plain bars: the piece must be whole bars again, so complete the last one by
+  // repeating the last beat's subdivision (the open space takes the new pulses)
+  const over = sections.length ? 0 : base.subdivision.length % base.beatsPerCycle;
+  if (over) {
+    const pad = base.beatsPerCycle - over;
+    base = {
+      ...base,
+      subdivision: [...base.subdivision, ...Array<number>(pad).fill(base.subdivision.at(-1)!)],
+    };
+  }
   return { ...base, cycles: barMap(base).barStarts.length };
 }
+
+/** A meter change that may change the number of pulses: the open space absorbs the difference. */
+const withMeter = (doc: Doc, meter: Meter): Doc => ({
+  ...doc,
+  meter,
+  items: syncSpace(doc.items, buildGrid(meter).TS),
+});
 
 export interface SectionSpec {
   from: number;
@@ -55,13 +72,13 @@ export function removeSection(doc: Doc, index: number): OpResult {
   const cur = doc.meter.sections ?? [];
   if (!cur[index]) return { doc, report: fail('nothing-selected') };
   return {
-    doc: {
-      ...doc,
-      meter: withSections(
+    doc: withMeter(
+      doc,
+      withSections(
         doc.meter,
         cur.filter((_, i) => i !== index),
       ),
-    },
+    ),
     report: report(),
   };
 }
@@ -75,7 +92,7 @@ export function setMainBarSize(doc: Doc, beatsPerBar: number): OpResult {
     { ...doc.meter, beatsPerCycle: beatsPerBar },
     doc.meter.sections ?? [],
   );
-  return { doc: { ...doc, meter }, report: report() };
+  return { doc: withMeter(doc, meter), report: report() };
 }
 
 /**
@@ -100,7 +117,8 @@ export function resizeBeats(doc: Doc, delta: number, fill: number): OpResult {
   // the last section must keep at least one beat
   if (delta < 0 && last.end - last.at + delta < 1) return { doc, report: fail('out-of-range') };
 
-  const at = Math.max(last.at, Math.min(NB, Math.ceil(NB / 2)));
+  // insert or cut in the middle (inside the last section); a cut must also end by the end
+  const at = Math.max(last.at, Math.min(NB, Math.ceil(NB / 2), delta < 0 ? NB + delta : NB));
   const subdivision =
     delta > 0
       ? [

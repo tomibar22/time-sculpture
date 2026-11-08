@@ -97,4 +97,24 @@ describe('metric modulation', () => {
     expect(nextPulse(r.doc, 4).click).toBe('beat');
     expect(buildGrid(r.doc.meter).NB).toBe(8);
   });
+
+  it('cutting more than half the piece still ends at the end (3×3 → 3×1)', () => {
+    const d = docFrom(makeMeter(3, 3, 1), ['|']);
+    const r = resizeBeats(d, -6, 3);
+    expect(r.report.ok).toBe(true);
+    expect(r.doc.meter.subdivision).toHaveLength(3);
+    expect(r.doc.meter.cycles).toBe(1);
+    expect(checkInvariants(r.doc)).toEqual([]);
+  });
+
+  it('removing the last modulation completes the last bar, the space takes the new pulses', () => {
+    // 4/4 × 2 at 2:1, a modulation at beat 4, then one beat more in it: 9 beats
+    const withMod = addSection(base(), 4, { from: 2, to: 3, beatsPerBar: 4 }).doc;
+    const nine = resizeBeats(withMod, 1, 2).doc;
+    expect(nine.meter.subdivision).toHaveLength(9);
+    const r = removeSection(nine, 0);
+    expect(r.doc.meter.subdivision).toHaveLength(12);
+    expect(r.doc.meter.cycles).toBe(3);
+    expect(checkInvariants(r.doc)).toEqual([]);
+  });
 });
