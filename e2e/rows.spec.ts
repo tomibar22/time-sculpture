@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('two cycles per row puts the whole phrase on one row', async ({ page }) => {
-  await page.getByRole('button', { name: 'More cycles per row' }).click();
+  await page.getByRole('button', { name: 'More bars per row' }).click();
   await expect(page.getByTestId('per-row-value')).toHaveText('2');
   const s = await score(page);
   // one row of 8 beats: the 3 that opens cycle 2 sits at beat 4 + 1.0
@@ -21,14 +21,14 @@ test('two cycles per row puts the whole phrase on one row', async ({ page }) => 
 });
 
 test('a specific row can hold a different number of cycles', async ({ page }) => {
-  await page.getByRole('button', { name: 'More cycles', exact: true }).click();
-  await page.getByRole('button', { name: 'More cycles', exact: true }).click();
+  await page.getByRole('button', { name: 'More bars', exact: true }).click();
+  await page.getByRole('button', { name: 'More bars', exact: true }).click();
   await page.getByRole('button', { name: 'Rows…' }).click();
   await expect(page.getByRole('dialog').getByRole('listitem')).toHaveCount(4);
-  await page.getByRole('button', { name: 'More cycles in row 2' }).click();
+  await page.getByRole('button', { name: 'More bars in row 2' }).click();
   await expect(page.getByTestId('row-2-value')).toHaveText('2');
   await expect(page.getByRole('dialog').getByRole('listitem')).toHaveCount(3);
-  await expect(page.getByRole('dialog')).toContainText('cycles 2–3');
+  await expect(page.getByRole('dialog')).toContainText('bars 2–3');
   await page.waitForTimeout(700); // autosave debounce
   await page.reload();
   await page.getByRole('button', { name: /^Rows…/ }).click();

@@ -29,17 +29,17 @@ export function Toolbar() {
           value={meter.beatsPerCycle}
           min={MIN_BEATS}
           max={MAX_BEATS}
-          fewer="Fewer beats per cycle"
-          more="More beats per cycle"
+          fewer="Fewer beats per bar"
+          more="More beats per bar"
           onChange={(b) => setMeter(b, meter.cycles)}
         />
         <Stepper
-          label="Cycles"
+          label="Bars"
           value={meter.cycles}
           min={MIN_CYCLES}
           max={MAX_CYCLES}
-          fewer="Fewer cycles"
-          more="More cycles"
+          fewer="Fewer bars"
+          more="More bars"
           onChange={(c) => setMeter(meter.beatsPerCycle, c)}
         />
         {meter.cycles > 1 && <RowsControl />}

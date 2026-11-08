@@ -15,13 +15,13 @@ function Readout() {
   if (!label)
     return (
       <div className="now">
-        <b>{meter.beatsPerCycle}</b> beats · {meter.cycles} cycle{meter.cycles > 1 ? 's' : ''}
+        <b>{meter.beatsPerCycle}</b> beats · {meter.cycles} bar{meter.cycles > 1 ? 's' : ''}
       </div>
     );
   const [cyc, beat, d] = label.split('|');
   return (
     <div className="now" aria-hidden="true">
-      cycle {cyc} · beat <b>{beat}</b> · {d}:1
+      bar {cyc} · beat <b>{beat}</b> · {d}:1
     </div>
   );
 }

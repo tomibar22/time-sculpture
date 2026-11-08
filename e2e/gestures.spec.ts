@@ -104,7 +104,7 @@ test('keyboard: split, silence, remove, escape', async ({ page }) => {
 });
 
 test('meter steppers', async ({ page }) => {
-  await page.getByRole('button', { name: 'More beats per cycle' }).click();
+  await page.getByRole('button', { name: 'More beats per bar' }).click();
   await expect(page.getByTestId('beats-value')).toHaveText('5');
   await expect(page.getByTestId('status')).toContainText('40 pulses');
 });

@@ -174,16 +174,23 @@ G3 by size), rests silent.
 
 ## UI conventions
 
+- **Wording: the UI says "bars", not "cycles"** (user's choice). The code/model keeps `cycles`.
+- Beat numbers are centred on their beat's tick; a differing ratio is written right after it.
+- PDF sheet: title + one meta line (beats × bars · ratios · pulses) + score rows + footer. No
+  phrase line, tempo or legend (removed at the user's request).
+
 - Mobile-first, max content width 800 px, 16 px gutters + safe areas, generous gaps (24 px).
 - Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
 - Writing is by digits (keyboard, or the docked number pad: 1–9, ⌫, Sound/Silence, caret ←/→;
   toggled by **123** in the transport, on by default for coarse pointers). Without a caret,
   digits go to the end of the start and the caret follows. There is no tray/Pieces panel any
   more (removed at the user's request); the engine's tray/count/fill functions remain unused
-  by the UI except `fillWithSilence` (link in the status line). Clear lives in the Library.
+  by the UI except `fillWithSilence` and `fillWithPieces` (status-line links: "Fill with
+  silence" and "Fill randomly…", whose dialog picks the allowed sizes 1–9, `ui.fillSizes`;
+  the toast offers "Another" roll). Clear lives in the Library.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
-  D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A select all · Esc clear · 1–9 type · ⌘C/X/V ·
+  D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.

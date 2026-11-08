@@ -357,7 +357,7 @@ export function setMeter(beats: number, cycles: number): void {
       `Shorter now: ${plural(r.report.removed.length, 'group')} next to the open space removed.`,
       { undo: true },
     );
-  announce(`${beats} beats, ${plural(cycles, 'cycle')}`);
+  announce(`${beats} beats, ${plural(cycles, 'bar')}`);
 }
 
 function beatRange(beats: number[], bpc: number, nb: number): string {
@@ -389,4 +389,31 @@ export function paintSubdivision(beats: number[], d = uiState().brush): void {
 
 export function applySubdivisionEverywhere(): void {
   paintSubdivision([...Array(doc().meter.subdivision.length).keys()]);
+}
+
+/**
+ * Fill the open space with a random tiling of the chosen sizes (uniform over all tilings).
+ * The toast offers another roll, which replaces this one in the same place.
+ */
+export function fillRandomly(sizes: number[]): boolean {
+  const r = E.fillWithPieces(doc(), sizes);
+  if (r.report.reason === 'no-room') return (void toast('No open space left'), false);
+  if (r.report.reason === 'cannot-fill') {
+    sfx.nope();
+    toast(`These sizes can't fill ${E.freePulses(doc())} pulses exactly`);
+    return false;
+  }
+  const label = `fill ${r.report.created.map((id) => E.findItem(r.doc, id)?.n).join(' ')}`;
+  if (!run(r, { label, select: [...r.report.created] })) return false;
+  toast(`Filled: ${label.slice(5)}`, {
+    undo: true,
+    action: {
+      label: 'Another',
+      run: () => {
+        useDocStore.getState().undo();
+        fillRandomly(sizes);
+      },
+    },
+  });
+  return true;
 }

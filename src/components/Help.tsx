@@ -7,7 +7,7 @@ export function Help() {
           <dt>Select</dt>
           <dd>
             Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. On a phone, press
-            and hold a group, or turn on “Select several”, then tap more. ⌘A selects all, Esc
+            and hold a group, or turn on “Select several”, then tap more. ⌘A or ⇧A selects all, Esc
             clears.
           </dd>
           <dt>Move</dt>

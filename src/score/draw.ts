@@ -67,10 +67,11 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       if (inCycle !== 0 && !showNumbers) continue;
       const x = L.margin + lb * g.bw;
       c.textBaseline = 'alphabetic';
-      c.textAlign = 'left';
+      // centred exactly over the beat's tick in the band below (kept inside the canvas)
+      c.textAlign = 'center';
       c.fillStyle = inCycle === 0 ? P.land : P.muted;
       c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
-      c.fillText(String(inCycle + 1), x + (g.bw >= 24 ? 4 : 2), top + 14);
+      c.fillText(String(inCycle + 1), Math.max(x, 5), top + 14);
     }
 
     // tile bed: faint pulse guides, stronger beat guides, red at cycle downbeats
@@ -128,9 +129,10 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       if ((odd || painting) && g.bw >= 40) {
         c.fillStyle = P.accent;
         c.font = `700 11px ${MONO}`;
-        c.textAlign = 'right';
+        // right after this beat's own number, which is centred on the beat's tick
+        c.textAlign = 'left';
         c.textBaseline = 'alphabetic';
-        c.fillText(`${d}:1`, x + g.bw - 4, rowTop(g, r) + 14);
+        c.fillText(`${d}:1`, x + 9, rowTop(g, r) + 14);
       }
     }
     // closing tick at the end of the row (red when a cycle ends there)

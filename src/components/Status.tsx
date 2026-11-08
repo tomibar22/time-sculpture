@@ -1,5 +1,6 @@
 import * as E from '../engine';
 import { fillWithSilence } from '../state/actions';
+import { FillDialog } from './FillDialog';
 import { useDocStore } from '../state/store';
 
 export function Status() {
@@ -19,6 +20,7 @@ export function Status() {
           <button type="button" className="link-btn" onClick={fillWithSilence}>
             Fill with silence
           </button>
+          <FillDialog />
         </span>
       )}
       <span className="seq" data-testid="sequence">

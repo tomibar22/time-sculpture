@@ -109,6 +109,8 @@ export interface UiState {
   playing: boolean;
   /** The docked number pad (shown by default on touch screens). */
   keypad: boolean;
+  /** Tile sizes the random fill may use. */
+  fillSizes: number[];
   /** Playhead in beats while playing. */
   playhead: number | null;
   theme: Theme;
@@ -148,6 +150,7 @@ export const useUiStore = create<UiState>((set) => ({
   ticks: true,
   tempo: DEFAULT_TEMPO,
   playing: false,
+  fillSizes: [2, 3, 4, 5, 7],
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   playhead: null,
   theme: 'system',

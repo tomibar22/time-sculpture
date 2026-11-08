@@ -16,7 +16,7 @@ export function ItemList() {
   const B = doc.meter.beatsPerCycle;
   const where = (k: number) => {
     const b = E.beatOfPulse(grid, Math.min(k, grid.TS - 1));
-    return `cycle ${Math.floor(b / B) + 1}, beat ${(b % B) + 1}`;
+    return `bar ${Math.floor(b / B) + 1}, beat ${(b % B) + 1}`;
   };
   return (
     <ul className="sr-only item-list" aria-label="Groups in order">

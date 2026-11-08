@@ -1,6 +1,6 @@
 import * as E from '../engine';
 import type { Doc } from '../engine';
-import { PRINT_PALETTE, sizeColor } from '../score/colors';
+import { PRINT_PALETTE } from '../score/colors';
 import { drawScore } from '../score/draw';
 import { geometry, L, rowTop } from '../score/geometry';
 import { normalizeRows } from '../score/rows';
@@ -60,60 +60,6 @@ function wrap(c: CanvasRenderingContext2D, text: string, width: number): string[
   return lines;
 }
 
-function legend(c: CanvasRenderingContext2D, x: number, y: number): void {
-  const P = PRINT_PALETTE;
-  c.font = FONT.small;
-  c.textBaseline = 'middle';
-  c.textAlign = 'left';
-  const item = (draw: () => void, label: string, at: number) => {
-    draw();
-    c.fillStyle = P.muted;
-    c.fillText(label, at + 16, y);
-    return at + 16 + c.measureText(label).width + 16;
-  };
-  let at = x;
-  at = item(
-    () => {
-      c.fillStyle = sizeColor(3);
-      c.beginPath();
-      c.roundRect(at, y - 5, 12, 10, 2.5);
-      c.fill();
-    },
-    'sound (the number is its length in pulses)',
-    at,
-  );
-  at = item(
-    () => {
-      c.fillStyle = P.soft;
-      c.beginPath();
-      c.roundRect(at, y - 5, 12, 10, 2.5);
-      c.fill();
-    },
-    'silence (left empty)',
-    at,
-  );
-  at = item(
-    () => {
-      c.setLineDash([2, 2]);
-      c.strokeStyle = P.faint;
-      c.beginPath();
-      c.roundRect(at + 0.5, y - 4.5, 11, 9, 2.5);
-      c.stroke();
-      c.setLineDash([]);
-    },
-    'open',
-    at,
-  );
-  item(
-    () => {
-      c.fillStyle = P.land;
-      c.fillRect(at + 5, y - 6, 1.6, 12);
-    },
-    'beat 1 of each cycle',
-    at,
-  );
-}
-
 /** Render the sheet as page canvases. */
 export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[]> {
   await Promise.all([
@@ -122,7 +68,7 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
     document.fonts?.load(FONT.bodyBold),
     document.fonts?.load(FONT.mono),
   ]);
-  const { doc, title, tempo } = input;
+  const { doc, title } = input;
   const P = PRINT_PALETTE;
   const contentW = PAGE.w - 2 * M.x;
   const scale = contentW / SCORE_W;
@@ -130,7 +76,6 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
   const g = geometry(SCORE_W, doc, rowsLayout);
   const rowH = g.stride * scale;
   const footerY = PAGE.h - M.bottom + 22;
-  const legendH = 26;
 
   const pages: HTMLCanvasElement[] = [];
   let { canvas, c } = newPage();
@@ -149,27 +94,15 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
   const grid = E.buildGrid(doc.meter);
   const mix = [...new Set(doc.meter.subdivision)].sort((a, b) => a - b);
   const meta = [
-    `${doc.meter.beatsPerCycle} beats × ${doc.meter.cycles} cycle${doc.meter.cycles === 1 ? '' : 's'}`,
+    `${doc.meter.beatsPerCycle} beats × ${doc.meter.cycles} bar${doc.meter.cycles === 1 ? '' : 's'}`,
     mix.map((d) => `${d}:1`).join(' '),
     `${grid.TS} pulses`,
-    `♩ = ${tempo}`,
   ].join('   ·   ');
   c.font = FONT.body;
   c.fillStyle = P.muted;
   c.fillText(meta, M.x, y);
 
-  // the phrase in words: start │ ending
-  const { start, ending } = E.sequence(doc);
-  const open = E.freePulses(doc);
-  const phrase = `${start.join(' ') || '·'}   ${open ? `( open ${open} )   ` : ''}│   ${ending.join(' ') || '·'}`;
-  y += 22;
-  c.font = FONT.mono;
-  c.fillStyle = P.fg;
-  for (const line of wrap(c, phrase, contentW)) {
-    c.fillText(line, M.x, y);
-    y += 15;
-  }
-  y += 4;
+  y += 14;
   c.fillStyle = P.line;
   c.fillRect(M.x, y, contentW, 0.75);
   y += 18;
@@ -225,13 +158,6 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
     }
   }
 
-  // legend under the last row (or on a fresh page if there is no room)
-  if (y + legendH > PAGE.h - M.bottom) {
-    finishPage(pages.length + 1);
-    ({ canvas, c } = newPage());
-    y = M.top;
-  }
-  legend(c, M.x, y + 8);
   finishPage(pages.length + 1);
   return pages;
 }

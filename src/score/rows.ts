@@ -53,4 +53,4 @@ export function rowStarts(rows: readonly number[]): number[] {
 }
 
 export const rowLabel = (first: number, count: number) =>
-  count === 1 ? `cycle ${first + 1}` : `cycles ${first + 1}–${first + count}`;
+  count === 1 ? `bar ${first + 1}` : `bars ${first + 1}–${first + count}`;

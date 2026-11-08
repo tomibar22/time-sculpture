@@ -21,7 +21,7 @@ export function RowsControl() {
     const next = setRowCycles(rows, i, n, cycles, perRow);
     set({ rows: next });
     sfx.snap();
-    announce(`Row ${i + 1}: ${n} cycle${n === 1 ? '' : 's'}`);
+    announce(`Row ${i + 1}: ${n} bar${n === 1 ? '' : 's'}`);
   };
 
   return (
@@ -31,11 +31,11 @@ export function RowsControl() {
         value={Math.min(perRow, max)}
         min={1}
         max={max}
-        fewer="Fewer cycles per row"
-        more="More cycles per row"
+        fewer="Fewer bars per row"
+        more="More bars per row"
         onChange={(n) => {
           set({ perRow: n, rows: [] });
-          announce(`${n} cycle${n === 1 ? '' : 's'} per row`);
+          announce(`${n} bar${n === 1 ? '' : 's'} per row`);
         }}
       />
       <button
@@ -60,7 +60,7 @@ export function RowsControl() {
             </button>
           </div>
           <p className="rows-hint">
-            How many cycles each row of the score shows. Beats keep the same width in every row, so
+            How many bars each row of the score shows. Beats keep the same width in every row, so
             they line up like a score.
           </p>
           <ol className="rows-list">
@@ -71,10 +71,10 @@ export function RowsControl() {
                   <span className="rows-name">
                     Row {i + 1} <span className="dim">· {rowLabel(starts[i]!, n)}</span>
                   </span>
-                  <div className="stepper" role="group" aria-label={`Row ${i + 1}, cycles`}>
+                  <div className="stepper" role="group" aria-label={`Row ${i + 1}, bars`}>
                     <button
                       type="button"
-                      aria-label={`Fewer cycles in row ${i + 1}`}
+                      aria-label={`Fewer bars in row ${i + 1}`}
                       disabled={n <= 1}
                       onClick={() => setRow(i, n - 1)}
                     >
@@ -83,7 +83,7 @@ export function RowsControl() {
                     <output data-testid={`row-${i + 1}-value`}>{n}</output>
                     <button
                       type="button"
-                      aria-label={`More cycles in row ${i + 1}`}
+                      aria-label={`More bars in row ${i + 1}`}
                       disabled={n >= MAX_PER_ROW || after <= 0}
                       onClick={() => setRow(i, n + 1)}
                     >
@@ -100,7 +100,7 @@ export function RowsControl() {
               disabled={!isCustom}
               onClick={() => {
                 set({ rows: [] });
-                announce(`Every row: ${perRow} cycle${perRow === 1 ? '' : 's'}`);
+                announce(`Every row: ${perRow} bar${perRow === 1 ? '' : 's'}`);
               }}
             >
               Same for every row ({Math.min(perRow, max)})

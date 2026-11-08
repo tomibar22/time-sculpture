@@ -30,7 +30,7 @@ export function describeCursor(index: number): string {
       : (() => {
           const b = E.beatOfPulse(grid, k);
           const onBeat = grid.pre[b] === k;
-          return `cycle ${Math.floor(b / B) + 1}, beat ${(b % B) + 1}${onBeat ? '' : '+'}`;
+          return `bar ${Math.floor(b / B) + 1}, beat ${(b % B) + 1}${onBeat ? '' : '+'}`;
         })();
   const side =
     index === si
