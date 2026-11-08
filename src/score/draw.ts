@@ -67,13 +67,6 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         c.fillStyle = inCycle === 0 ? P.land : P.muted;
         c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
         c.fillText(String(inCycle + 1), x + (g.bw >= 24 ? 4 : 2), top + 14);
-        // name each cycle where it begins (only when the piece has more than one)
-        if (inCycle === 0 && doc.meter.cycles > 1 && g.bw >= 30) {
-          const cyc = gb / B + 1;
-          c.fillStyle = P.muted;
-          c.font = `500 ${g.bw >= 70 ? 12 : 11}px ${MONO}`;
-          c.fillText(g.bw >= 70 ? `cycle ${cyc}` : `c${cyc}`, x + (g.bw >= 24 ? 16 : 12), top + 14);
-        }
       }
       const painting = !!s.painting && s.painting.beats.has(gb);
       const d = painting ? s.painting!.d : sd[gb]!;

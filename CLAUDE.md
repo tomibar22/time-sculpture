@@ -44,7 +44,7 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/meter.ts     setSubdivision, resizeMeter
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
                    copyGroups, formatGroups / parseGroups ("3 (2) 4")
-src/state/         Zustand store: document (undo/redo + amend) + ui; actions.ts, editing.ts (caret)
+src/state/         Zustand store: document (undo/redo) + ui; actions.ts, editing.ts (caret)
 src/audio/         AudioContext unlock, scheduler, voices, interface sounds
 src/score/         canvas: geometry, draw, hit-testing, gestures
 src/components/    header, toolbar, selection bar, status, pieces, options, help, transport, toasts
@@ -113,8 +113,8 @@ G3 by size), rests silent.
   an id keeps it in place through edits elsewhere. Drawn only when nothing is selected.
 - Placed by tapping a line/edge without dragging, or the open space (nearer side). Clearing a
   selection (Esc / Done) collapses it to a caret after it. Selecting a tile drops the caret.
-- Digits type a group at the caret (Shift = silence); a second digit within 900 ms resizes the
-  just-typed group (amend, one undo step). With a selection, typing/pasting replaces it
+- Digits 1–9 type a group at the caret (Shift = silence); each digit is its own group, however
+  fast they are typed (no multi-digit sizes). With a selection, typing/pasting replaces it
   (contiguous only; room = selection + space). Tray taps insert at the caret too.
 - Clipboard: `ui.clipboard` (GroupSpec[]) plus system text "3 (2) 4"; paste parses text first.
 - Keys: ←/→ move the selection (by drag mode) or the caret; ⇧←/→ extend the selection;
@@ -126,7 +126,7 @@ G3 by size), rests silent.
 - Rows show whole cycles: `ui.perRow` (default 1) plus optional custom `ui.rows` (cycles per
   row from the top), normalised by `normalizeRows`. Saved with the piece (not undoable).
 - Beat width is the same in every row (set by the widest row), so beats align vertically;
-  shorter rows end early. Each cycle is labelled at its downbeat ("cycle N" / "cN").
+  shorter rows end early. No "cycle N" labels (the user found them busy): the red "1" and red downbeat lines mark cycles.
 
 ### Silence
 
