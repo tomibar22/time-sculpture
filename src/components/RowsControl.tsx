@@ -33,8 +33,9 @@ export function RowsControl() {
       {(breaks > 0 || cycles > 1) && (
         <button
           type="button"
-          className="ghost rows-btn"
-          aria-pressed={fitRows}
+          className="switch"
+          role="switch"
+          aria-checked={fitRows}
           title="Stretch rows that end early to the full width"
           onClick={() => {
             set({ fitRows: !fitRows });
@@ -43,6 +44,9 @@ export function RowsControl() {
             );
           }}
         >
+          <span className="switch-track" aria-hidden="true">
+            <span className="switch-knob" />
+          </span>
           Fit rows
         </button>
       )}

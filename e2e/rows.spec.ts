@@ -65,9 +65,9 @@ test('Fit rows stretches a row cut short by a break to the full width', async ({
   const right = { x: s1.x + s1.w - 30, y: s1.y + 54 };
   await page.mouse.click(right.x, right.y);
   await expect(page.getByTestId('selname')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Fit rows' }).click();
-  await expect(page.getByRole('button', { name: 'Fit rows' })).toHaveAttribute(
-    'aria-pressed',
+  await page.getByRole('switch', { name: 'Fit rows' }).click();
+  await expect(page.getByRole('switch', { name: 'Fit rows' })).toHaveAttribute(
+    'aria-checked',
     'true',
   );
   // stretched: the first 3 (pulses 2–5) now reaches the right edge
