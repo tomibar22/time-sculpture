@@ -42,7 +42,7 @@ export function Toolbar() {
           more="More bars"
           onChange={(c) => setMeter(meter.beatsPerCycle, c)}
         />
-        {meter.cycles > 1 && <RowsControl />}
+        <RowsControl />
         <div className="field push">
           <button
             type="button"

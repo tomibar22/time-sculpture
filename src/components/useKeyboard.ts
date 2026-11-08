@@ -8,6 +8,7 @@ import {
   redo,
   removeSelection,
   selectAll,
+  toggleLineBreak,
   splitSelection,
   toggleSelectionKind,
   undo,
@@ -24,6 +25,7 @@ import {
   paste,
   playFromCaret,
   resizeSelection,
+  selectedRegion,
   reverseSelection,
   trimSelection,
   typeDigit,
@@ -110,6 +112,15 @@ export function useKeyboard() {
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
       if (e.key === 'Escape') return escape();
+      if (e.key === 'Enter' && !isActivatable(e.target)) {
+        // a line break at the caret (or where the selection starts), like in a text editor
+        const st = useUiStore.getState();
+        const region = selectedRegion();
+        const k = region ? region.a : st.caret;
+        if (k === null) return;
+        e.preventDefault();
+        return toggleLineBreak(k);
+      }
       if (e.key === 'Home' || e.key === 'End') {
         e.preventDefault();
         return caretHome(e.key === 'End');

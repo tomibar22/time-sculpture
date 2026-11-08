@@ -48,6 +48,7 @@ function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: num
 const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 const BODY = '"Atkinson Hyperlegible", system-ui, sans-serif';
 
+const EPS_D = 1e-9;
 const E_clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: Palette): void {
@@ -57,96 +58,124 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   if (!s.noClear) c.clearRect(0, 0, g.w, g.h);
 
   /* ---------------- rows: beat numbers, tile bed with guides, subdivision band */
+  // Rows may start and end anywhere (manual line breaks), so everything is drawn from pulse and
+  // beat *times* clipped to the row, not from whole beats.
   const B = g.B;
   const showNumbers = g.bw >= 15;
+  const { times, pre } = g.grid;
   for (let r = 0; r < g.R; r++) {
     const row = g.rows[r]!;
     const top = rowTop(g, r);
     const ty = tileY(g, r);
     const by = bandY(g, r);
+    const xAt = (t: number) => L.margin + (t - row.b0) * g.bw;
+    const rowW = row.nb * g.bw;
+    const bFirst = Math.floor(row.b0 + EPS_D);
+    const bLast = Math.ceil(row.b0 + row.nb - EPS_D) - 1;
 
-    // beat numbers (cycle downbeats in red)
-    for (let lb = 0; lb < row.nb; lb++) {
-      const inCycle = (row.b0 + lb) % B;
+    // beat numbers, centred on the beat's tick (only beats that begin in this row)
+    for (let gb = bFirst; gb <= bLast; gb++) {
+      if (gb < row.b0 - EPS_D) continue;
+      const inCycle = gb % B;
       if (inCycle !== 0 && !showNumbers) continue;
-      const x = L.margin + lb * g.bw;
       c.textBaseline = 'alphabetic';
-      // centred exactly over the beat's tick in the band below (kept inside the canvas)
       c.textAlign = 'center';
       c.fillStyle = inCycle === 0 ? P.land : P.muted;
       c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
-      c.fillText(String(inCycle + 1), Math.max(x, 5), top + 14);
+      c.fillText(String(inCycle + 1), Math.max(xAt(gb), 5), top + 14);
+    }
+    // a row that starts at a manual break, in the middle of a beat, says where it is
+    if (row.manual && Math.abs(row.b0 - Math.round(row.b0)) > EPS_D) {
+      const b = Math.floor(row.b0 + EPS_D);
+      const j = row.k0 - pre[b]!;
+      const d = pre[b + 1]! - pre[b]!;
+      c.textAlign = 'left';
+      c.fillStyle = P.muted;
+      c.font = `500 10px ${MONO}`;
+      c.fillText(`${(b % B) + 1}+${j}/${d}`, L.margin + 1, top + 14);
     }
 
-    // tile bed: faint pulse guides, stronger beat guides, red at cycle downbeats
+    // tile bed: faint pulse guides, stronger beat guides, red at bar lines
     c.fillStyle = P.soft;
-    rr(c, L.margin, ty, row.nb * g.bw, L.tileH, 12);
+    rr(c, L.margin, ty, rowW, L.tileH, 12);
     c.fill();
-    for (let lb = 0; lb < row.nb; lb++) {
-      const gb = row.b0 + lb;
-      const d = sd[gb]!;
-      const x = L.margin + lb * g.bw;
-      c.fillStyle = P.line;
-      for (let j = 1; j < d; j++) c.fillRect(x + (j * g.bw) / d - 0.5, ty + 8, 1, L.tileH - 16);
-      if (lb > 0) {
-        const down = gb % B === 0;
-        c.fillStyle = down ? P.land : P.faint;
-        c.globalAlpha = down ? 0.55 : 0.6;
-        c.fillRect(x - (down ? 0.9 : 0.6), ty + 3, down ? 1.8 : 1.2, L.tileH - 6);
-        c.globalAlpha = 1;
+    for (let k = row.k0 + 1; k < row.k1; k++) {
+      const t = times[k]!;
+      const x = xAt(t);
+      const onBeat = Math.abs(t - Math.round(t)) < EPS_D;
+      if (!onBeat) {
+        c.fillStyle = P.line;
+        c.fillRect(x - 0.5, ty + 8, 1, L.tileH - 16);
+        continue;
       }
+      const down = Math.round(t) % B === 0;
+      c.fillStyle = down ? P.land : P.faint;
+      c.globalAlpha = down ? 0.55 : 0.6;
+      c.fillRect(x - (down ? 0.9 : 0.6), ty + 3, down ? 1.8 : 1.2, L.tileH - 6);
+      c.globalAlpha = 1;
     }
 
-    // subdivision band: a ruler under the tiles with a tick where every pulse begins (so ticks
-    // line up with tile edges); beats get taller ticks, cycle downbeats red ones. Beats whose
-    // ratio differs are tinted and named in the number row above.
+    // subdivision band: a tick where every pulse begins; beats taller, bar lines red;
+    // beats whose ratio differs are tinted and named after their number
     c.fillStyle = P.soft;
-    rr(c, L.margin, by, row.nb * g.bw, L.bandH, 7);
+    rr(c, L.margin, by, rowW, L.bandH, 7);
     c.fill();
-    for (let lb = 0; lb < row.nb; lb++) {
-      const gb = row.b0 + lb;
-      const x = L.margin + lb * g.bw;
+    for (let gb = bFirst; gb <= bLast; gb++) {
       const painting = !!s.painting && s.painting.beats.has(gb);
       const d = painting ? s.painting!.d : sd[gb]!;
       const odd = d !== common;
       if (odd || painting) {
+        const x0 = xAt(Math.max(gb, row.b0));
+        const x1 = xAt(Math.min(gb + 1, row.b0 + row.nb));
         c.fillStyle = P.accent;
         c.globalAlpha = painting ? 0.3 : 0.13;
-        rr(c, x + 1, by, g.bw - 2, L.bandH, 6);
+        rr(c, x0 + 1, by, Math.max(0, x1 - x0 - 2), L.bandH, 6);
         c.fill();
         c.globalAlpha = 1;
+        if (g.bw >= 40 && gb >= row.b0 - EPS_D) {
+          c.fillStyle = P.accent;
+          c.font = `700 11px ${MONO}`;
+          c.textAlign = 'left';
+          c.textBaseline = 'alphabetic';
+          c.fillText(`${d}:1`, xAt(gb) + 9, top + 14);
+        }
       }
-      for (let j = 0; j < d; j++) {
-        const tx = x + (j * g.bw) / d;
-        if (j === 0) {
+      const kEnd = Math.min(pre[gb + 1]!, row.k1);
+      for (let k = Math.max(pre[gb]!, row.k0); k < kEnd; k++) {
+        const t = times[k]!;
+        const x = xAt(t);
+        if (k === pre[gb]) {
           const down = gb % B === 0;
           c.fillStyle = down ? P.land : P.fg;
           c.globalAlpha = down ? 1 : 0.55;
-          c.fillRect(tx - (down ? 1 : 0.75), by, down ? 2 : 1.5, L.bandH);
+          c.fillRect(x - (down ? 1 : 0.75), by, down ? 2 : 1.5, L.bandH);
         } else {
           c.fillStyle = odd || painting ? P.fg : P.muted;
           c.globalAlpha = odd || painting ? 0.7 : 0.6;
-          c.fillRect(tx - 0.6, by, 1.2, L.bandH * 0.5);
+          c.fillRect(x - 0.6, by, 1.2, L.bandH * 0.5);
         }
         c.globalAlpha = 1;
       }
-      if ((odd || painting) && g.bw >= 40) {
-        c.fillStyle = P.accent;
-        c.font = `700 11px ${MONO}`;
-        // right after this beat's own number, which is centred on the beat's tick
-        c.textAlign = 'left';
-        c.textBaseline = 'alphabetic';
-        c.fillText(`${d}:1`, x + 9, rowTop(g, r) + 14);
-      }
     }
-    // closing tick at the end of the row (red when a cycle ends there)
+    // closing tick at the end of the row (red on a bar line, a short pulse tick mid-beat)
     {
-      const endBeat = row.b0 + row.nb;
-      const down = endBeat % B === 0;
+      const tEnd = row.b0 + row.nb;
+      const onBeat = Math.abs(tEnd - Math.round(tEnd)) < EPS_D;
+      const down = onBeat && Math.round(tEnd) % B === 0;
       c.fillStyle = down ? P.land : P.fg;
       c.globalAlpha = down ? 1 : 0.55;
-      c.fillRect(L.margin + row.nb * g.bw - (down ? 1 : 0.75), by, down ? 2 : 1.5, L.bandH);
+      c.fillRect(
+        xAt(tEnd) - (down ? 1 : 0.75),
+        by,
+        down ? 2 : 1.5,
+        onBeat ? L.bandH : L.bandH * 0.5,
+      );
       c.globalAlpha = 1;
+    }
+    // a manual break is marked at the left of its row, in the accent colour
+    if (row.manual) {
+      c.fillStyle = P.accent;
+      c.fillRect(L.margin - 3, ty + 6, 2.5, L.tileH - 12);
     }
   }
 

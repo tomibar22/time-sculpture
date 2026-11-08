@@ -1,23 +1,48 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeRows, rowStarts, setRowCycles } from './rows';
+import { makeMeter, withBreaks } from '../engine';
+import { rowLayout, rowsToBreaks } from './rows';
+
+const spans = (m: Parameters<typeof rowLayout>[0], per: number) =>
+  rowLayout(m, per).map((r) => [r.t0, r.t1, r.manual]);
 
 describe('row layout', () => {
-  it('lays out cycles perRow at a time', () => {
-    expect(normalizeRows([], 5, 2)).toEqual([2, 2, 1]);
-    expect(normalizeRows([], 4, 1)).toEqual([1, 1, 1, 1]);
-    expect(normalizeRows([], 3, 9)).toEqual([3]);
+  it('wraps every perRow bars', () => {
+    const m = makeMeter(4, 3, 2);
+    expect(spans(m, 1)).toEqual([
+      [0, 4, false],
+      [4, 8, false],
+      [8, 12, false],
+    ]);
+    expect(spans(m, 2)).toEqual([
+      [0, 8, false],
+      [8, 12, false],
+    ]);
   });
-  it('keeps custom rows that fit and cuts the last one', () => {
-    expect(normalizeRows([3, 1], 6, 2)).toEqual([3, 1, 2]);
-    expect(normalizeRows([3, 3, 3], 5, 1)).toEqual([3, 2]);
-    expect(normalizeRows([0, 2], 3, 1)).toEqual([1, 2]);
+  it('a manual break restarts the wrapping, so later rows keep its offset', () => {
+    const m = withBreaks(makeMeter(4, 3, 2), [1.5]);
+    expect(spans(m, 1)).toEqual([
+      [0, 1.5, false],
+      [1.5, 5.5, true],
+      [5.5, 9.5, false],
+      [9.5, 12, false],
+    ]);
   });
-  it('changes one row and reflows the rest', () => {
-    expect(setRowCycles([1, 1, 1, 1], 1, 2, 4, 1)).toEqual([1, 2, 1]);
-    expect(setRowCycles([2, 2], 0, 1, 4, 2)).toEqual([1, 2, 1]);
-    expect(setRowCycles([2, 2], 5, 1, 4, 2)).toEqual([2, 2]);
+  it('a second break on a bar line realigns', () => {
+    const m = withBreaks(makeMeter(4, 3, 2), [1.5, 4]);
+    expect(spans(m, 1)).toEqual([
+      [0, 1.5, false],
+      [1.5, 4, true],
+      [4, 8, true],
+      [8, 12, false],
+    ]);
   });
-  it('knows where rows start', () => {
-    expect(rowStarts([2, 1, 3])).toEqual([0, 2, 3]);
+  it('rows end on pulses even when a wrap falls inside a beat of another ratio', () => {
+    const m = withBreaks(makeMeter(3, 2, [2, 3, 2, 2, 2, 2]), [0.5]);
+    const rows = rowLayout(m, 1); // wrap at 3.5 falls in a 2:1 beat: fine
+    expect(rows.map((r) => r.t1)).toEqual([0.5, 3.5, 6]);
+    for (const r of rows) expect(r.k1).toBeGreaterThan(r.k0);
+  });
+  it('converts old per-row bar counts', () => {
+    expect(rowsToBreaks([1, 2, 1], 4, 4)).toEqual([4, 12]);
   });
 });

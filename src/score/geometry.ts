@@ -1,5 +1,6 @@
 import { buildGrid, clamp, EPS, floorPulse, isSpace, nearestPulse } from '../engine';
 import type { Doc, Grid, Item } from '../engine';
+import { rowLayout } from './rows';
 
 /** Layout constants (CSS pixels). */
 /**
@@ -17,14 +18,16 @@ export const L = {
   top: 4,
 } as const;
 
-/** One row of the score: a run of whole cycles. */
+/** One row of the score: a span of time (it may start or end inside a bar or a beat). */
 export interface Row {
-  /** First beat and number of beats. */
+  /** Start time and length in beats. */
   b0: number;
   nb: number;
-  /** First cycle and number of cycles. */
-  c0: number;
-  nc: number;
+  /** First pulse and the pulse after the last. */
+  k0: number;
+  k1: number;
+  /** It starts at a manual line break. */
+  manual: boolean;
 }
 
 export interface Geo {
@@ -41,16 +44,16 @@ export interface Geo {
   grid: Grid;
 }
 
-/** `cyclesPerRow` must be normalised (sum = cycles); defaults to one cycle per row. */
-export function geometry(width: number, doc: Doc, cyclesPerRow?: readonly number[]): Geo {
+/** Rows wrap every `perRow` bars and at the document's manual line breaks (see rows.ts). */
+export function geometry(width: number, doc: Doc, perRow = 1): Geo {
   const B = doc.meter.beatsPerCycle;
-  const counts = cyclesPerRow?.length ? cyclesPerRow : Array<number>(doc.meter.cycles).fill(1);
-  const rows: Row[] = [];
-  let c = 0;
-  for (const nc of counts) {
-    rows.push({ b0: c * B, nb: nc * B, c0: c, nc });
-    c += nc;
-  }
+  const rows: Row[] = rowLayout(doc.meter, perRow).map((r) => ({
+    b0: r.t0,
+    nb: r.t1 - r.t0,
+    k0: r.k0,
+    k1: r.k1,
+    manual: r.manual,
+  }));
   const widest = Math.max(...rows.map((r) => r.nb));
   const bw = (width - 2 * L.margin) / widest;
   const stride = L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + L.gapR;
@@ -113,7 +116,12 @@ export function hit(g: Geo, x: number, y: number): Hit {
   const raw = (x - L.margin) / g.bw;
   const local = clamp(raw, 0, row.nb);
   const t = row.b0 + local;
-  const beat = row.b0 + Math.min(row.nb - 1, Math.floor(local));
+  // the beat under the pointer, kept inside the row (rows may start or end mid-beat)
+  const beat = clamp(
+    Math.floor(t + EPS),
+    Math.floor(row.b0 + EPS),
+    Math.ceil(row.b0 + row.nb - EPS) - 1,
+  );
   return {
     r,
     t,
@@ -151,13 +159,13 @@ export interface Segment {
 
 export function segments(g: Geo, s: number, n: number): Segment[] {
   const out: Segment[] = [];
-  const { times, pre, NB } = g.grid;
+  const { times } = g.grid;
   let a = s;
   while (a < s + n) {
     const t0 = times[a]!;
     const r = rowOf(g, t0);
     const row = g.rows[r]!;
-    const rowEnd = pre[Math.min(row.b0 + row.nb, NB)]!;
+    const rowEnd = row.k1;
     const e = Math.min(s + n, rowEnd);
     if (e <= a) break;
     out.push({ r, t0, t1: times[e]!, first: a === s, last: e === s + n });

@@ -390,3 +390,26 @@ export function paintSubdivision(beats: number[], d = uiState().brush): void {
 export function applySubdivisionEverywhere(): void {
   paintSubdivision([...Array(doc().meter.subdivision.length).keys()]);
 }
+
+/* ------------------------------------------------------------------ line breaks */
+
+/** Enter: start a new score row at pulse k, or join the rows if there is a break there. */
+export function toggleLineBreak(k: number): void {
+  const had = E.hasBreakAt(doc(), k);
+  const r = E.toggleBreak(doc(), k);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast('A line break needs to be inside the piece');
+  }
+  run(r, { label: had ? 'join rows' : 'line break', select: 'keep' });
+  announce(had ? 'Rows joined' : 'New row starts here');
+}
+
+export function clearBreaks(): void {
+  const d = doc();
+  if (!d.meter.breaks?.length) return;
+  const { breaks: _b, ...meter } = d.meter;
+  void _b;
+  if (run({ doc: { ...d, meter }, report: E.report() }, { label: 'join rows', select: 'keep' }))
+    toast('All line breaks removed', { undo: true });
+}

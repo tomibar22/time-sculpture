@@ -151,10 +151,16 @@ G3 by size), rests silent.
   edges), taller beat ticks, red cycle ticks; differing beats tinted. The band is both the display and the paint target (everything below the tiles).
   There is no separate lane above. B paints the brush on the beats under the selection.
 
-- Rows show whole cycles: `ui.perRow` (default 1) plus optional custom `ui.rows` (cycles per
-  row from the top), normalised by `normalizeRows`. Saved with the piece (not undoable).
-- Beat width is the same in every row (set by the widest row), so beats align vertically;
-  shorter rows end early. No "cycle N" labels (the user found them busy): the red "1" and red downbeat lines mark cycles.
+- Rows (`rows.ts` `rowLayout`) are spans of time: they wrap every `ui.perRow` bars, and at the
+  document's **manual line breaks** (`meter.breaks`, times in beats, any pulse, toggled with Enter
+  at the caret / "Break line"; `toggleBreak`, `withBreaks` snaps/dedupes/drops out-of-range).
+  Wrapping restarts after a manual break, so a mid-bar break offsets the following rows (another
+  break on a bar line realigns). Breaks are undoable and saved (`layout.breaks`); they snap to the
+  nearest pulse when the subdivision changes and are dropped when the piece gets shorter. Old
+  `rows` (bars per row) layouts load as breaks. "Join rows (N)" clears them.
+- Beat width is the same in every row (set by the widest row), so beats align vertically.
+  Drawing works from pulse/beat _times_ clipped to each row. A row starting at a manual break
+  mid-beat shows where it starts ("2+1/4") and an accent mark at its left. No "cycle N" labels.
 
 ### Silence
 

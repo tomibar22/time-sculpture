@@ -83,9 +83,8 @@ export interface UiState {
   brush: number;
   /** What the number pad types: sounds, or silences. */
   addKind: GroupKind;
-  /** Cycles per row by default, and custom per-row counts (see score/rows.ts). */
+  /** Bars per row before the score wraps (manual line breaks live in the document). */
   perRow: number;
-  rows: number[];
   ticks: boolean;
   tempo: number;
   playing: boolean;
@@ -131,7 +130,6 @@ export const useUiStore = create<UiState>((set) => ({
   brush: 4,
   addKind: 'sound',
   perRow: 1,
-  rows: [],
   ticks: true,
   tempo: DEFAULT_TEMPO,
   playing: false,

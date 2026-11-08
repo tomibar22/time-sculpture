@@ -7,6 +7,7 @@ import {
   removeSelection,
   splitSelection,
   toggleMulti,
+  toggleLineBreak,
   toggleSelectionKind,
 } from '../state/actions';
 import {
@@ -227,6 +228,13 @@ function CaretBar() {
           </button>
         </>
       )}
+      <button
+        type="button"
+        title="Start a new row here (Enter)"
+        onClick={() => toggleLineBreak(caret!)}
+      >
+        {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
+      </button>
       <button
         type="button"
         aria-label="Select from the caret, one pulse more"

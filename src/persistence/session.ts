@@ -19,8 +19,8 @@ import type { SavedPiece } from './serialize';
 const ui = () => useUiStore.getState();
 
 export function currentSaved(): SavedPiece {
-  const { tempo, currentName, perRow, rows } = ui();
-  return toSaved(useDocStore.getState().doc, currentName, { tempo, perRow, rows });
+  const { tempo, currentName, perRow } = ui();
+  return toSaved(useDocStore.getState().doc, currentName, { tempo, perRow });
 }
 
 /** Make a parsed file (any version) the open composition. Returns its name. */
@@ -35,7 +35,6 @@ function adopt(id: string, raw: unknown, rename?: (name: string) => string): str
     currentName: name,
     tempo: settings.tempo,
     perRow: settings.perRow ?? 1,
-    rows: settings.rows ?? [],
     preview: null,
     selection: [],
     caret: null,
@@ -90,12 +89,7 @@ export async function initSession(): Promise<void> {
     if (s.version !== prev.version) scheduleSave();
   });
   useUiStore.subscribe((s, prev) => {
-    if (
-      s.tempo !== prev.tempo ||
-      s.currentName !== prev.currentName ||
-      s.perRow !== prev.perRow ||
-      s.rows !== prev.rows
-    )
+    if (s.tempo !== prev.tempo || s.currentName !== prev.currentName || s.perRow !== prev.perRow)
       scheduleSave();
   });
   window.addEventListener('pagehide', () => void saveNow());
@@ -201,14 +195,13 @@ export async function shareLink(): Promise<string> {
 /** Save the composition as a printed score sheet (PDF). The renderer loads on demand. */
 export async function exportPdf(): Promise<void> {
   const { sheetPdf } = await import('../export/sheet');
-  const { tempo, currentName, perRow, rows } = ui();
+  const { tempo, currentName, perRow } = ui();
   toast('Preparing the PDF…');
   const blob = await sheetPdf({
     doc: useDocStore.getState().doc,
     title: currentName,
     tempo,
     perRow,
-    rows,
   });
   await deliverFile(blob, fileName(currentName, 'pdf'));
   toast('PDF ready');

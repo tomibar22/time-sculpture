@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { docFrom, makeMeter, sequence } from '../engine';
+import { docFrom, makeMeter, sequence, toggleBreak } from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
 // 4 beats × 2 cycles; beat 2 is 3:1, beat 5 is 2:1, the rest 4:1 (29 pulses)
 const doc = docFrom(makeMeter(4, 2, [4, 3, 4, 4, 2, 4, 4, 4]), [[2], 3, '|', 5, 2]);
-const settings = { tempo: 96, perRow: 2, rows: [1, 1] };
+const settings = { tempo: 96, perRow: 2 };
 
 describe('the Time Sculpture file (v2)', () => {
   it('is plain and readable', () => {
@@ -19,7 +19,7 @@ describe('the Time Sculpture file (v2)', () => {
       subdivision: [4, 3, 4, 4, 2, 4, 4, 4],
       start: [{ pulses: 2, rest: true }, { pulses: 3 }],
       ending: [{ pulses: 5 }, { pulses: 2 }],
-      layout: { cyclesPerRow: 2, rows: [1, 1] },
+      layout: { cyclesPerRow: 2, breaks: [] },
     });
   });
 
@@ -54,8 +54,20 @@ describe('the Time Sculpture file (v2)', () => {
     };
     const back = fromSaved(v1);
     expect(sequence(back.doc)).toEqual({ start: ['(2)', '3'], ending: ['4'] });
-    expect(back.settings).toEqual({ tempo: 80, perRow: 1, rows: [] });
+    expect(back.settings).toEqual({ tempo: 80, perRow: 1 });
     expect(back.name).toBe('Old');
+  });
+
+  it('saves line breaks (in beats) and reads them back', () => {
+    const withBreak = toggleBreak(doc, 6).doc; // pulse 6 = beat 1 + 2/3 (beat 1 is 3:1)
+    const f = toSaved(withBreak, 'B', settings);
+    expect(f.layout.breaks).toEqual([1 + 2 / 3]);
+    expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.breaks).toEqual([1 + 2 / 3]);
+  });
+
+  it('turns an old bars-per-row layout into line breaks', () => {
+    const old = { ...toSaved(doc, 'Old', settings), layout: { cyclesPerRow: 1, rows: [1, 1] } };
+    expect(fromSaved(old).doc.meter.breaks).toEqual([4]);
   });
 
   it('rejects foreign, future and damaged files', () => {

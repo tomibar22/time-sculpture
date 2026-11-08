@@ -20,7 +20,7 @@ A composition saved from **Library → Save as a file → JSON** is a small, pla
     { "pulses": 2 },
     { "pulses": 4 }
   ],
-  "layout": { "cyclesPerRow": 1, "rows": [] },
+  "layout": { "cyclesPerRow": 1, "breaks": [] },
   "sounds": [
     { "at": 0.5, "length": 0.75, "pulses": 3 },
     { "at": 1.25, "length": 0.75, "pulses": 3 }

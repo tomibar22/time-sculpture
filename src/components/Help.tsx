@@ -47,6 +47,13 @@ export function Help() {
             a silence). Inside the open space the gap before the caret becomes silence; inside a
             tile, the tile is split. On a phone, use the number pad (123).
           </dd>
+          <dt>Rows</dt>
+          <dd>
+            Per row sets how many bars a row holds before the score wraps. Press Enter (or Break
+            line) at the caret to start a new row there, on any pulse, even inside a beat; press it
+            again at the same place to join the rows. Wrapping restarts after a break, so a phrase
+            that does not start on beat 1 lines up row under row. Join rows removes every break.
+          </dd>
           <dt>Select time</dt>
           <dd>
             ⇧← ⇧→ (or ⇧-click, or Select ⇥ on a phone) select a range of pulses, whether it is
@@ -71,10 +78,10 @@ export function Help() {
           </dd>
           <dt>Keys</dt>
           <dd>
-            Space play · ⇧Space play from the caret · ← → move the selection or the caret · ⇧← ⇧→
-            select like text · Home / End caret to the start or end · 1–9 type · Delete remove · M
-            merge · S split · R silence · D duplicate · + − resize · ⌥← ⌥→ trim · B brush · ⇧R
-            reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
+            Space play · ⇧Space play from the caret · Enter line break · ← → move the selection or
+            the caret · ⇧← ⇧→ select like text · Home / End caret to the start or end · 1–9 type ·
+            Delete remove · M merge · S split · R silence · D duplicate · + − resize · ⌥← ⌥→ trim ·
+            B brush · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

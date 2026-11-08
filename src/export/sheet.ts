@@ -3,7 +3,6 @@ import type { Doc } from '../engine';
 import { PRINT_PALETTE } from '../score/colors';
 import { drawScore } from '../score/draw';
 import { geometry, L, rowTop } from '../score/geometry';
-import { normalizeRows } from '../score/rows';
 import { buildPdf, canvasRgb } from './pdfWriter';
 
 /**
@@ -30,7 +29,6 @@ export interface SheetInput {
   title: string;
   tempo: number;
   perRow: number;
-  rows: number[];
 }
 
 function newPage(): { canvas: HTMLCanvasElement; c: CanvasRenderingContext2D } {
@@ -72,8 +70,7 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
   const P = PRINT_PALETTE;
   const contentW = PAGE.w - 2 * M.x;
   const scale = contentW / SCORE_W;
-  const rowsLayout = normalizeRows(input.rows, doc.meter.cycles, input.perRow);
-  const g = geometry(SCORE_W, doc, rowsLayout);
+  const g = geometry(SCORE_W, doc, input.perRow);
   const rowH = g.stride * scale;
   const footerY = PAGE.h - M.bottom + 22;
 

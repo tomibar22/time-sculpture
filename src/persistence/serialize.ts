@@ -1,4 +1,4 @@
-import { buildGrid, checkInvariants, group, spaceIndex, syncSpace } from '../engine';
+import { buildGrid, checkInvariants, group, spaceIndex, syncSpace, withBreaks } from '../engine';
 import type { Doc, Item } from '../engine';
 import { SPACE_ID } from '../engine';
 
@@ -10,9 +10,8 @@ import { SPACE_ID } from '../engine';
 /** Settings saved with a composition (not part of the undoable document). */
 export interface PieceSettings {
   tempo: number;
-  /** Score layout: cycles per row, and custom per-row counts. */
+  /** Score layout: bars per row before it wraps (line breaks are part of the document). */
   perRow?: number;
-  rows?: number[];
 }
 
 /** One group of the phrase: `pulses` long; `rest: true` for silence. */
@@ -44,7 +43,8 @@ export interface SavedPiece {
   start: FileGroup[];
   /** The phrase as written to the end; it ends exactly on the next beat 1. */
   ending: FileGroup[];
-  layout: { cyclesPerRow: number; rows: number[] };
+  /** Bars per row, and manual line breaks (times in beats where a new row starts). */
+  layout: { cyclesPerRow: number; breaks: number[] };
   sounds?: FileSound[];
 }
 
@@ -69,7 +69,7 @@ export function toSaved(
     subdivision: [...doc.meter.subdivision],
     start: doc.items.slice(0, si).map(fg),
     ending: doc.items.slice(si + 1).map(fg),
-    layout: { cyclesPerRow: settings.perRow ?? 1, rows: [...(settings.rows ?? [])] },
+    layout: { cyclesPerRow: settings.perRow ?? 1, breaks: [...(doc.meter.breaks ?? [])] },
   };
   if (opts.sounds) {
     const { times } = buildGrid(doc.meter);
@@ -114,7 +114,7 @@ export function fromSaved(raw: unknown): Parsed {
   const start = Array.isArray(p.start) ? p.start.map(toItem) : [];
   const ending = Array.isArray(p.ending) ? p.ending.map(toItem) : [];
   const items: Item[] = [...start, { id: SPACE_ID, kind: 'space', n: 0 }, ...ending];
-  const layout = (p.layout ?? {}) as { cyclesPerRow?: unknown; rows?: unknown };
+  const layout = (p.layout ?? {}) as { cyclesPerRow?: unknown; rows?: unknown; breaks?: unknown };
   return finish(
     meter,
     items,
@@ -123,6 +123,7 @@ export function fromSaved(raw: unknown): Parsed {
     p.tempo,
     layout.cyclesPerRow,
     layout.rows,
+    layout.breaks,
   );
 }
 
@@ -138,7 +139,28 @@ function fromV1(p: Record<string, unknown>): Parsed {
     const rest = s.startsWith('r');
     return group(`g${next++}`, Number(rest ? s.slice(1) : s), rest ? 'rest' : 'sound');
   });
-  return finish(meter, items, next, String(p.name ?? 'Untitled'), p.tempo, p.perRow, p.rows);
+  return finish(
+    meter,
+    items,
+    next,
+    String(p.name ?? 'Untitled'),
+    p.tempo,
+    p.perRow,
+    p.rows,
+    undefined,
+  );
+}
+
+/** Old layouts saved as bars per row become line breaks at those bar lines. */
+function rowsToBreaks(rows: readonly number[], beatsPerCycle: number, cycles: number): number[] {
+  const out: number[] = [];
+  let c = 0;
+  for (const n of rows) {
+    c += n;
+    if (c >= cycles) break;
+    out.push(c * beatsPerCycle);
+  }
+  return out;
 }
 
 function finish(
@@ -149,18 +171,26 @@ function finish(
   tempo0: unknown,
   perRow0: unknown,
   rows0: unknown,
+  breaks0: unknown,
 ): Parsed {
   if (!Number.isInteger(meter.beatsPerCycle) || !Number.isInteger(meter.cycles))
     throw new Error('This file is damaged: the meter is missing');
-  const doc: Doc = { meter, items: syncSpace(items, buildGrid(meter).TS), nextId };
+  const breaks = Array.isArray(breaks0)
+    ? breaks0.map(Number).filter(Number.isFinite)
+    : Array.isArray(rows0)
+      ? rowsToBreaks(
+          rows0.map(Number).filter((n) => Number.isInteger(n) && n >= 1),
+          meter.beatsPerCycle,
+          meter.cycles,
+        )
+      : [];
+  const m = breaks.length ? withBreaks(meter, breaks) : meter;
+  const doc: Doc = { meter: m, items: syncSpace(items, buildGrid(m).TS), nextId };
   const errs = checkInvariants(doc);
   if (errs.length) throw new Error(`This file is damaged: ${errs[0]}`);
   const tempo = Number.isFinite(tempo0) ? Math.min(160, Math.max(40, Number(tempo0))) : 72;
   const perRow = Number.isInteger(perRow0) ? Math.min(8, Math.max(1, Number(perRow0))) : 1;
-  const rows = Array.isArray(rows0)
-    ? rows0.map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 8)
-    : [];
-  return { doc, name, settings: { tempo, perRow, rows } };
+  return { doc, name, settings: { tempo, perRow } };
 }
 
 /* ------------------------------------------------------------------ share links */

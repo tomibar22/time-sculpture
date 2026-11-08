@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, score, ready } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -20,17 +20,36 @@ test('two cycles per row puts the whole phrase on one row', async ({ page }) => 
   expect(box.height).toBeLessThan(160);
 });
 
-test('a specific row can hold a different number of cycles', async ({ page }) => {
-  await page.getByRole('button', { name: 'More bars', exact: true }).click();
-  await page.getByRole('button', { name: 'More bars', exact: true }).click();
-  await page.getByRole('button', { name: 'Rows…' }).click();
-  await expect(page.getByRole('dialog').getByRole('listitem')).toHaveCount(4);
-  await page.getByRole('button', { name: 'More bars in row 2' }).click();
-  await expect(page.getByTestId('row-2-value')).toHaveText('2');
-  await expect(page.getByRole('dialog').getByRole('listitem')).toHaveCount(3);
-  await expect(page.getByRole('dialog')).toContainText('bars 2–3');
-  await page.waitForTimeout(700); // autosave debounce
+test('Enter breaks the line at the caret, even in the middle of a beat', async ({ page }) => {
+  const s = await score(page);
+  const h0 = (await page.getByTestId('score').boundingBox())!.height;
+  // caret on the line between the two 3s: pulse 5 = beat 2, +1/4
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: /Join rows \(1\)/ })).toBeVisible();
+  // rows: 0–1¼, 1¼–5¼, 5¼–8 → one more row than before
+  const h1 = (await page.getByTestId('score').boundingBox())!.height;
+  expect(h1).toBeGreaterThan(h0 + 100);
+  // the second row starts with the second 3: tapping its start selects it
+  const s2 = await score(page);
+  const bw = (s2.w - 8) / 4;
+  await page.mouse.click(s2.x + 4 + 0.3 * bw, s2.y + 54 + 127);
+  await expect(page.getByTestId('selname')).toContainText('Group 3');
+  // undo removes the break
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('z');
+  await expect(page.getByRole('button', { name: /Join rows/ })).toHaveCount(0);
+});
+
+test('line breaks are saved with the piece', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(700);
   await page.reload();
-  await page.getByRole('button', { name: /^Rows…/ }).click();
-  await expect(page.getByTestId('row-2-value')).toHaveText('2');
+  await ready(page);
+  await expect(page.getByRole('button', { name: /Join rows \(1\)/ })).toBeVisible();
+  await page.getByRole('button', { name: /Join rows/ }).click();
+  await expect(page.getByRole('button', { name: /Join rows/ })).toHaveCount(0);
 });
