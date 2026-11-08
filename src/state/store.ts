@@ -38,8 +38,6 @@ export interface DocState {
   /** Increments on every committed change (used to expire toasts and trigger saves). */
   version: number;
   commit: (doc: Doc, label: string) => void;
-  /** Replace the latest commit (e.g. typing a second digit) without a new history step. */
-  amend: (doc: Doc, label: string) => void;
   undo: () => boolean;
   redo: () => boolean;
   /** Replace the document without history (load from library / share link). */
@@ -62,11 +60,6 @@ export const useDocStore = create<DocState>((set, get) => ({
       log: [...s.log.slice(-(LOG_LIMIT - 1)), label],
       version: s.version + 1,
     });
-  },
-  amend: (doc, label) => {
-    const s = get();
-    if (!s.past.length) return s.commit(doc, label);
-    set({ doc, future: [], log: [...s.log.slice(0, -1), label], version: s.version + 1 });
   },
   undo: () => {
     const s = get();

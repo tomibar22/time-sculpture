@@ -14,20 +14,19 @@ test('tap a line to place a caret, then type sizes and silences', async ({ page 
   await expect(page.getByTestId('caretname')).toContainText('in the start');
   await page.keyboard.press('1');
   await expectSeq(page, '(2) 3 1 3 2 │ 3 (1) 3 2 4');
-  await page.waitForTimeout(1000);
   await page.keyboard.press('Shift+2');
   await expectSeq(page, '(2) 3 1 (2) 3 2 │ 3 (1) 3 2 4');
 });
 
-test('two quick digits make one group, in one undo step', async ({ page }) => {
+test('quick digits are separate groups', async ({ page }) => {
   await page.getByRole('button', { name: 'Clear all' }).click();
   const s = await score(page);
   await tap(page, at(s, P(3)));
   await page.keyboard.press('1');
   await page.keyboard.press('2');
-  await expectSeq(page, '12 │ ·');
+  await expectSeq(page, '1 2 │ ·');
   await page.keyboard.press('z');
-  await expectSeq(page, '· │ ·');
+  await expectSeq(page, '1 │ ·');
 });
 
 test('typing over a selection replaces it', async ({ page }) => {

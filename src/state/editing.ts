@@ -134,49 +134,19 @@ export function extendSelection(dir: -1 | 1): void {
 
 /* ------------------------------------------------------------------ typing */
 
-const TYPE_WINDOW_MS = 900;
-let lastTyped: { id: ItemId; digits: string; at: number; version: number; kind: GroupKind } | null =
-  null;
-
 /**
- * Type a size. With a selection, it replaces the selection; otherwise it inserts at the caret
- * (or at the Add-at side if there is no caret). A second digit typed quickly extends the number
- * (1 then 2 → 12) in the same undo step.
+ * Type a size (1–9). With a selection, it replaces the selection; otherwise it inserts at the
+ * caret (or at the Add-at side if there is no caret). Every digit is its own group, however
+ * quickly they are typed: "1" then "2" gives 1 2.
  */
 export function typeDigit(digit: number, kind: GroupKind = 'sound'): void {
-  const now = performance.now();
-  const version = useDocStore.getState().version;
-  const lt = lastTyped;
-  if (
-    lt &&
-    now - lt.at < TYPE_WINDOW_MS &&
-    lt.version === version &&
-    lt.kind === kind &&
-    lt.digits.length < 2
-  ) {
-    const digits = lt.digits + String(digit);
-    const n = Number(digits);
-    const r = E.resizeGroup(doc(), lt.id, n);
-    if (r.report.ok) {
-      useDocStore.getState().amend(r.doc, kind === 'rest' ? `(${n})` : `+${n}`);
-      sfx.add(n);
-      lastTyped = { ...lt, digits, at: now, version: useDocStore.getState().version };
-      return void announce(`${n}, ${E.freePulses(r.doc)} open`);
-    }
-  }
-  if (digit === 0) return sfx.nope();
-  const groups: GroupSpec[] = [{ n: digit, kind }];
-  const placed = insertOrReplace(groups, kind === 'rest' ? `(${digit})` : `+${digit}`);
-  if (placed) {
-    lastTyped = {
-      id: placed[0]!,
-      digits: String(digit),
-      at: now,
-      version: useDocStore.getState().version,
-      kind,
-    };
+  if (digit < 1 || digit > 9) return sfx.nope();
+  const placed = insertOrReplace(
+    [{ n: digit, kind }],
+    kind === 'rest' ? `(${digit})` : `+${digit}`,
+  );
+  if (placed)
     announce(`${kind === 'rest' ? 'Silence of ' : ''}${digit} typed, ${E.freePulses(doc())} open`);
-  }
 }
 
 /** Insert at the caret, or replace the selection. Returns the new ids, leaving the caret after them. */

@@ -33,9 +33,9 @@ export function Help() {
           <dt>Write</dt>
           <dd>
             Tap a line between groups, or the open space, to place a caret, like in a text editor.
-            Type a number to insert a group of that length there (two quick digits make 10–99,
-            Shift+number inserts a silence), or tap a piece in the tray. Typing over selected groups
-            replaces them. Backspace and Delete remove the group before or after the caret.
+            Type a number (1–9) to insert a group of that length there (Shift+number inserts a
+            silence), or tap a piece in the tray. Typing over selected groups replaces them.
+            Backspace and Delete remove the group before or after the caret.
           </dd>
           <dt>Copy &amp; paste</dt>
           <dd>
