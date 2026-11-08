@@ -8,6 +8,7 @@ import {
   resizeGroup,
   resizeGroups,
   reverseGroups,
+  trimEdge,
 } from '../ops/edit';
 import { sample, show, valid } from './helpers';
 
@@ -77,5 +78,41 @@ describe('clipboard text', () => {
     expect(parseGroups('hello')).toBeNull();
     expect(parseGroups('3 0')).toBeNull();
     expect(parseGroups('')).toBeNull();
+  });
+});
+
+describe('trimEdge (drag a tile edge)', () => {
+  // sample: (2) 3 3 2 | 3 (1) 3 2 4 — g2 = first 3, open 3
+  it('grows the end into the next sound, then covers it', () => {
+    const r = trimEdge(sample(), 'g2', 'end', 1);
+    expect(show(r.doc)).toBe('(2) 4 2 2 open 3 3 (1) 3 2 4');
+    expect(r.report.shortened).toEqual(['g3']);
+    const r2 = trimEdge(sample(), 'g2', 'end', 4);
+    expect(show(r2.doc)).toBe('(2) 7 1 open 3 3 (1) 3 2 4');
+    expect(r2.report.covered).toEqual(['g3']);
+    valid(r2.doc);
+  });
+  it('shrinking the end leaves silence after it', () => {
+    const r = trimEdge(sample(), 'g2', 'end', -2);
+    expect(show(r.doc)).toBe('(2) 1 (2) 3 2 open 3 3 (1) 3 2 4');
+    expect(r.report.created).toEqual(['g10']);
+    // next to the space, the freed time joins it
+    expect(show(trimEdge(sample(), 'g4', 'end', -1).doc)).toBe('(2) 3 3 1 open 4 3 (1) 3 2 4');
+  });
+  it('grows the start backwards into a rest, and shrinking it widens that rest', () => {
+    expect(show(trimEdge(sample(), 'g2', 'start', 1).doc)).toBe('(1) 4 3 2 open 3 3 (1) 3 2 4');
+    expect(show(trimEdge(sample(), 'g2', 'start', -1).doc)).toBe('(3) 2 3 2 open 3 3 (1) 3 2 4');
+    expect(show(trimEdge(sample(), 'g5', 'start', 2).doc)).toBe('(2) 3 3 2 open 1 5 (1) 3 2 4');
+  });
+  it('the first group shrinking from its start leaves a rest at the very start', () => {
+    const r = trimEdge(sample(), 'g9', 'end', 1);
+    expect(r.report.reason).toBe('out-of-range');
+    const d = trimEdge(sample(), 'g1', 'start', 1);
+    expect(d.report.reason).toBe('out-of-range');
+  });
+  it('clamps: a group keeps at least one pulse', () => {
+    expect(show(trimEdge(sample(), 'g2', 'end', -9).doc)).toBe('(2) 1 (2) 3 2 open 3 3 (1) 3 2 4');
+    expect(trimEdge(sample(), 'g2', 'end', 0).report.reason).toBe('no-change');
+    expect(trimEdge(sample(), 'space', 'end', 1).report.ok).toBe(false);
   });
 });

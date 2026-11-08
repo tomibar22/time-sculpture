@@ -126,3 +126,68 @@ export function parseGroups(text: string): GroupSpec[] | null {
   }
   return out;
 }
+
+/**
+ * Trim one edge of a group, like a clip in a DAW: the other edge stays where it is in time.
+ * `side` 'end' moves the right edge by `delta` pulses (+ later), 'start' moves the left edge by
+ * `delta` (+ earlier, i.e. longer). Growing eats into whatever is on that side (space, rests,
+ * sounds; used-up groups are covered), like a slide. Shrinking leaves the freed time as silence:
+ * it joins a neighbouring rest or the space, otherwise a new rest is created. The total never changes.
+ */
+export function trimEdge(doc: Doc, id: ItemId, side: 'start' | 'end', delta: number): OpResult {
+  const i = indexOfId(doc.items, id);
+  const x = doc.items[i];
+  if (!x || isSpace(x)) return { doc, report: fail('nothing-selected') };
+  const total = doc.items.reduce((a, y) => a + y.n, 0);
+  let start = 0;
+  for (let j = 0; j < i; j++) start += doc.items[j]!.n;
+  const end = start + x.n;
+  // growing is limited by the piece, shrinking by the group's own size
+  const d = Math.round(clamp(delta, -(x.n - 1), side === 'end' ? total - end : start)) || 0;
+  if (d === 0) return { doc, report: fail(delta === 0 ? 'no-change' : 'out-of-range') };
+
+  const sizes = doc.items.map((y) => y.n);
+  sizes[i] = x.n + d;
+  const shortened: ItemId[] = [];
+  const covered: ItemId[] = [];
+  const created: ItemId[] = [];
+  let nextId = doc.nextId;
+  let insert: { at: number; n: number } | null = null;
+  const step = side === 'end' ? 1 : -1;
+  const beside = i + step;
+
+  if (d > 0) {
+    let remaining = d;
+    for (let j = beside; remaining > 0 && j >= 0 && j < sizes.length; j += step) {
+      const take = Math.min(sizes[j]!, remaining);
+      sizes[j]! -= take;
+      remaining -= take;
+      const y = doc.items[j]!;
+      if (take > 0 && !isSpace(y)) {
+        if (sizes[j] === 0) covered.push(y.id);
+        else if (y.kind === 'sound') shortened.push(y.id);
+      }
+    }
+  } else {
+    const n = beside >= 0 && beside < sizes.length ? doc.items[beside] : undefined;
+    if (n && (isSpace(n) || n.kind === 'rest')) sizes[beside]! += -d;
+    else insert = { at: side === 'end' ? i + 1 : i, n: -d };
+  }
+
+  const out: Item[] = [];
+  let restItem: Item | null = null;
+  if (insert) {
+    const minted = mintIds(doc, 1);
+    nextId = minted.nextId;
+    created.push(minted.ids[0]!);
+    restItem = group(minted.ids[0]!, insert.n, 'rest');
+  }
+  doc.items.forEach((y, j) => {
+    if (insert && restItem && insert.at === j) out.push(restItem);
+    const n = sizes[j]!;
+    if (!isSpace(y) && n === 0) return;
+    out.push(n === y.n ? y : { ...y, n });
+  });
+  if (insert && restItem && insert.at === doc.items.length) out.push(restItem);
+  return { doc: withItems(doc, out, nextId), report: report({ shortened, covered, created }) };
+}

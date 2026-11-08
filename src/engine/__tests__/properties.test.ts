@@ -196,6 +196,14 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
       (d: Doc) =>
         E.reverseGroups(d, pickRun(d, i, len)),
   ),
+  fc
+    .record({ i: fc.nat(), start: fc.boolean(), dlt: fc.integer({ min: -12, max: 12 }) })
+    .map(({ i, start, dlt }) => (d: Doc) => {
+      const id = pick(d, i)[0];
+      return id
+        ? E.trimEdge(d, id, start ? 'start' : 'end', dlt)
+        : { doc: d, report: E.fail('nothing-selected') };
+    }),
   fc.constant((d: Doc) => E.clear(d)),
 );
 
@@ -313,6 +321,34 @@ describe('engine invariants (property-based)', () => {
           if (R > 0) expect(E.countWays(R, S)).toBe(total);
         },
       ),
+    );
+  });
+});
+
+describe('trimEdge keeps the opposite edge fixed in time', () => {
+  it('holds for random documents', () => {
+    fc.assert(
+      fc.property(
+        docArb,
+        fc.nat(),
+        fc.boolean(),
+        fc.integer({ min: -12, max: 12 }),
+        (d, i, start, dlt) => {
+          const id = pick(d, i)[0];
+          if (!id) return;
+          const r = E.trimEdge(d, id, start ? 'start' : 'end', dlt);
+          if (!r.report.ok) return;
+          const before = d.items.findIndex((x) => x.id === id);
+          const after = r.doc.items.findIndex((x) => x.id === id);
+          const s0 = E.startOf(d.items, before);
+          const s1 = E.startOf(r.doc.items, after);
+          const e0 = s0 + d.items[before]!.n;
+          const e1 = s1 + r.doc.items[after]!.n;
+          if (start) expect(e1).toBe(e0);
+          else expect(s1).toBe(s0);
+        },
+      ),
+      { numRuns: 300 },
     );
   });
 });
