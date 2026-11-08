@@ -10,6 +10,7 @@ import {
   MIN_SUBDIVISION,
 } from './grid';
 import type { Doc, Group, GroupKind, Item, ItemId, Meter, Space } from './types';
+import { barMap } from './sections';
 import { SPACE_ID } from './types';
 
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -166,12 +167,27 @@ export function checkInvariants(doc: Doc): string[] {
     meter.beatsPerCycle > MAX_BEATS
   )
     errs.push(`beatsPerCycle out of range: ${meter.beatsPerCycle}`);
-  if (!Number.isInteger(meter.cycles) || meter.cycles < MIN_CYCLES || meter.cycles > MAX_CYCLES)
+  const maxBars = meter.sections?.length ? MAX_CYCLES * 2 : MAX_CYCLES;
+  if (!Number.isInteger(meter.cycles) || meter.cycles < MIN_CYCLES || meter.cycles > maxBars)
     errs.push(`cycles out of range: ${meter.cycles}`);
-  if (meter.subdivision.length !== meter.beatsPerCycle * meter.cycles)
-    errs.push(
-      `subdivision length ${meter.subdivision.length} != ${meter.beatsPerCycle * meter.cycles}`,
-    );
+  const NBm = meter.subdivision.length;
+  if (!meter.sections?.length) {
+    if (NBm !== meter.beatsPerCycle * meter.cycles)
+      errs.push(`subdivision length ${NBm} != ${meter.beatsPerCycle * meter.cycles}`);
+  } else {
+    let prevAt = 0;
+    for (const sec of meter.sections) {
+      if (!Number.isInteger(sec.at) || sec.at <= prevAt || sec.at >= NBm)
+        errs.push(`bad section start ${sec.at}`);
+      if (![sec.from, sec.to].every((v) => Number.isInteger(v) && v >= 1 && v <= MAX_SUBDIVISION))
+        errs.push(`bad modulation ${sec.from}:1 = ${sec.to}:1`);
+      if (!Number.isInteger(sec.beatsPerBar) || sec.beatsPerBar < 1 || sec.beatsPerBar > MAX_BEATS)
+        errs.push(`bad bar size ${sec.beatsPerBar}`);
+      prevAt = sec.at;
+    }
+    const bars = barMap(meter).barStarts.length;
+    if (meter.cycles !== bars) errs.push(`cycles ${meter.cycles} != ${bars} bars`);
+  }
   meter.subdivision.forEach((d, b) => {
     if (!Number.isInteger(d) || d < MIN_SUBDIVISION || d > MAX_SUBDIVISION)
       errs.push(`beat ${b} subdivision ${d}`);

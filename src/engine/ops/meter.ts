@@ -9,6 +9,8 @@ import {
   MIN_SUBDIVISION,
   nearestPulse,
 } from '../grid';
+import { barMap } from '../sections';
+import { resizeBeats, setMainBarSize } from './sections';
 import { groupSum, isSpace, spaceIndex, syncSpace, withBreaks, withMarks } from '../doc';
 import { fail, report } from '../report';
 import type { Doc, Item, ItemId, Meter, OpResult } from '../types';
@@ -99,6 +101,13 @@ export function resizeMeter(
   const { meter } = doc;
   if (beatsPerCycle === meter.beatsPerCycle && cycles === meter.cycles)
     return { doc, report: fail('no-change') };
+  // with modulations: beats regroup the main section; bars are added or cut at the end
+  if (meter.sections?.length) {
+    if (beatsPerCycle !== meter.beatsPerCycle) return setMainBarSize(doc, beatsPerCycle);
+    const map = barMap(meter);
+    const lastBar = map.sections[map.sections.length - 1]!.beatsPerBar;
+    return resizeBeats(doc, (cycles - meter.cycles) * lastBar, fill);
+  }
 
   const old = meter.subdivision;
   const oNB = old.length;

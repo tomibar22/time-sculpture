@@ -28,7 +28,10 @@ export interface Meter {
   readonly beatsPerCycle: number;
   /** 1..32 cycles. */
   readonly cycles: number;
-  /** Pulses per beat for every beat of the piece (length = beatsPerCycle * cycles), each 1..8. */
+  /**
+   * Pulses per beat for every beat of the piece, each 1..8. Without modulations its length is
+   * beatsPerCycle × cycles; `cycles` is always the number of bars.
+   */
   readonly subdivision: readonly number[];
   /**
    * Manual line breaks of the score, as times in beats where a new row starts (0 < t < total
@@ -40,6 +43,21 @@ export interface Meter {
    * pulse). Drawn as flags, so a phrase that does not start on a beat is easy to see.
    */
   readonly marks?: readonly number[];
+  /**
+   * Metric modulations, in order: from each `at` (a local beat) the tempo changes by the pulse
+   * equation `from`:1 = `to`:1 and bars have `beatsPerBar` beats. See engine/sections.ts.
+   */
+  readonly sections?: readonly Section[];
+}
+
+export interface Section {
+  /** Local beat where the section starts (> 0, ascending). */
+  readonly at: number;
+  /** Pulse equation with the previous section: `from`:1 before = `to`:1 after (each 1..8). */
+  readonly from: number;
+  readonly to: number;
+  /** Beats per bar in this section (1..13). */
+  readonly beatsPerBar: number;
 }
 
 /** The undoable document. Immutable: operations return new objects and share unchanged ones. */

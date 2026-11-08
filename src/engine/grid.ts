@@ -29,7 +29,7 @@ const cache = new WeakMap<Meter, Grid>();
 export function buildGrid(meter: Meter): Grid {
   const hit = cache.get(meter);
   if (hit) return hit;
-  const NB = meter.beatsPerCycle * meter.cycles;
+  const NB = meter.subdivision.length;
   const pre = [0];
   const times: number[] = [];
   for (let b = 0; b < NB; b++) {

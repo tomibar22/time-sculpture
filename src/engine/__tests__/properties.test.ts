@@ -205,6 +205,20 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
         : { doc: d, report: E.fail('nothing-selected') };
     }),
   fc.constant((d: Doc) => E.clear(d)),
+  fc
+    .record({
+      b: fc.nat(),
+      f: fc.integer({ min: 1, max: 8 }),
+      t: fc.integer({ min: 1, max: 8 }),
+      bar: fc.integer({ min: 1, max: 7 }),
+    })
+    .map(
+      ({ b, f, t, bar }) =>
+        (d: Doc) =>
+          E.addSection(d, b % d.meter.subdivision.length, { from: f, to: t, beatsPerBar: bar }),
+    ),
+  fc.nat().map((i) => (d: Doc) => E.removeSection(d, i % 3)),
+  fc.integer({ min: -6, max: 6 }).map((n) => (d: Doc) => E.resizeBeats(d, n, 3)),
   fc.nat().map((k) => (d: Doc) => E.toggleBreak(d, k % (buildGrid(d.meter).TS + 1))),
   fc.nat().map((k) => (d: Doc) => E.toggleMark(d, k % (buildGrid(d.meter).TS + 1))),
 );

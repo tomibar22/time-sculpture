@@ -1,6 +1,7 @@
 import { beatOfPulse, buildGrid, ceilPulse, EPS, isOnBeat } from './grid';
 import { isSpace } from './doc';
 import type { Doc, Group } from './types';
+import { barMap } from './sections';
 
 /** Pentatonic scale degrees (major pentatonic) used to pitch groups by size. */
 export const PENTATONIC = [0, 2, 4, 7, 9] as const;
@@ -42,7 +43,7 @@ export function nextPulse(doc: Doc, T: number): PulseEvent {
     k === 0
       ? 'landing'
       : isOnBeat(grid, k)
-        ? beat % doc.meter.beatsPerCycle === 0
+        ? barMap(doc.meter).beatInBar[beat] === 0
           ? 'downbeat'
           : 'beat'
         : 'tick';
