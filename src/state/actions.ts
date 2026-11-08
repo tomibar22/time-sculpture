@@ -3,7 +3,7 @@ import type { Doc, ItemId, OpResult, Report } from '../engine';
 import { startPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import { blankDoc } from './defaults';
-import { nextToastId, useDocStore, useUiStore } from './store';
+import { cursorAt, cursorIndex, nextToastId, useDocStore, useUiStore } from './store';
 import type { Toast } from './store';
 
 /* ------------------------------------------------------------------ feedback */
@@ -136,6 +136,7 @@ export function select(id: ItemId, mods: { shift?: boolean; toggle?: boolean } =
   } else {
     setUi({ selection: [id], anchor: id });
   }
+  setUi({ cursor: null });
   sfx.snap();
   describeSelection();
 }
@@ -149,8 +150,11 @@ export function selectAll(): void {
   describeSelection();
 }
 
+/** Clear the selection. It collapses to a caret just after it, like text. */
 export function clearSelection(): void {
-  setUi({ selection: [], anchor: null, multi: false });
+  const idx = E.selectedIndices(doc().items, uiState().selection);
+  const cursor = idx.length ? cursorAt(doc(), idx[idx.length - 1]! + 1) : uiState().cursor;
+  setUi({ selection: [], anchor: null, multi: false, cursor });
 }
 
 export function toggleMulti(on = !uiState().multi): void {
@@ -178,16 +182,25 @@ function describeSelection(): void {
 
 /* ------------------------------------------------------------------ adding and fills */
 
+/**
+ * Add a tray piece. `index` = dropped at a place. Otherwise, if a caret is placed (and nothing is
+ * selected) it is inserted at the caret and the caret moves after it, like typing; else it goes to
+ * the Add-at side.
+ */
 export function addPiece(size: number, index?: number): void {
-  const { addAt, addKind } = uiState();
-  const r = E.add(doc(), size, addKind, index !== undefined ? { index } : addAt);
-  const label = `${addAt === 'start' && index === undefined ? '⇤' : ''}${addKind === 'rest' ? `(${size})` : `+${size}`}${addAt === 'end' && index === undefined ? '⇥' : ''}`;
+  const { addAt, addKind, cursor, selection } = uiState();
+  const d = doc();
+  const caret = index === undefined && !selection.length ? cursorIndex(d, cursor) : null;
+  const at = index ?? caret;
+  const r = E.add(d, size, addKind, at !== null ? { index: at } : addAt);
+  const label = `${addAt === 'start' && at === null ? '⇤' : ''}${addKind === 'rest' ? `(${size})` : `+${size}`}${addAt === 'end' && at === null ? '⇥' : ''}`;
   const ok = run(r, {
     label,
-    select: [...r.report.created],
+    select: caret !== null ? 'none' : [...r.report.created],
     sound: () => (addKind === 'rest' ? sfx.remove() : sfx.add(size)),
   });
   if (!ok) return;
+  if (caret !== null) setUi({ cursor: { after: r.report.created[0]! } });
   const free = E.freePulses(r.doc);
   announce(`${addKind === 'rest' ? 'Silence of ' : ''}${size} added, ${free} open`);
   if (free > 0 && E.countWays(free, uiState().tray) === 0n)
@@ -225,7 +238,7 @@ export function clearAll(): void {
 
 export function newComposition(): void {
   useDocStore.getState().load(blankDoc());
-  clearSelection();
+  setUi({ selection: [], anchor: null, multi: false, cursor: null });
 }
 
 /* ------------------------------------------------------------------ selection actions */

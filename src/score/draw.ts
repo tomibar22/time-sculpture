@@ -15,7 +15,9 @@ export interface DrawState {
   activeBoundary: string | null;
   hoverBoundary: string | null;
   showHandles: boolean;
-  caret: number | null;
+  dropCaret: number | null;
+  /** Text caret (item index), drawn when nothing is selected. */
+  cursor: number | null;
   playhead: number | null;
   flash: { ids: ReadonlySet<ItemId>; alpha: number };
   focusedId: ItemId | null;
@@ -253,14 +255,42 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     }
   }
 
-  /* ---------------- drop caret and playhead */
-  if (s.caret !== null) {
-    const k = startOf(doc.items, Math.min(s.caret, doc.items.length));
-    const t = g.grid.times[Math.min(k, g.grid.TS)]!;
-    const p = xOf(g, t >= g.grid.NB ? g.grid.NB - 1e-6 : t);
+  /* ---------------- drop caret, text caret and playhead */
+  /** Where a caret at item index sits. Attached left = it follows an item (shown at the end of a
+   * row rather than the start of the next one when it falls on a row boundary). */
+  const caretAt = (index: number, attachLeft: boolean) => {
+    const t =
+      g.grid.times[Math.min(startOf(doc.items, Math.min(index, doc.items.length)), g.grid.TS)]!;
+    const onRowEdge = t > 0 && t < g.grid.NB && Math.abs(t / g.B - Math.round(t / g.B)) < 1e-9;
+    if (attachLeft && onRowEdge) return { x: L.margin + g.B * g.bw, r: Math.round(t / g.B) - 1 };
+    return xOf(g, Math.min(t, g.grid.NB - 1e-6));
+  };
+  if (s.dropCaret !== null) {
+    const p = caretAt(s.dropCaret, false);
     const ty = tileY(g, p.r);
     c.fillStyle = P.accent;
     rr(c, p.x - 2, ty - 4, 4, L.tileH + 8, 2);
+    c.fill();
+  }
+  if (s.cursor !== null && s.selection.size === 0) {
+    const index = s.cursor;
+    const si = doc.items.findIndex(isSpace);
+    const dir = index === 0 || index === si + 1 ? 1 : -1;
+    const p = caretAt(index, dir < 0);
+    const ty = tileY(g, p.r);
+    c.fillStyle = P.sel;
+    c.fillRect(p.x - 1.5, ty - 6, 3, L.tileH + 12);
+    c.beginPath();
+    c.moveTo(p.x, ty - 6);
+    c.lineTo(p.x + dir * 7, ty - 6);
+    c.lineTo(p.x, ty + 1);
+    c.closePath();
+    c.fill();
+    c.beginPath();
+    c.moveTo(p.x, ty + L.tileH + 6);
+    c.lineTo(p.x + dir * 7, ty + L.tileH + 6);
+    c.lineTo(p.x, ty + L.tileH - 1);
+    c.closePath();
     c.fill();
   }
   if (s.playhead !== null) {

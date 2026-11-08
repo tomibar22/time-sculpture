@@ -33,6 +33,8 @@ function adopt(id: string, piece: SavedPiece): void {
     tray: settings.tray,
     tempo: settings.tempo,
     preview: null,
+    selection: [],
+    cursor: null,
   });
 }
 
@@ -104,7 +106,7 @@ export async function createPiece(doc: Doc = blankDoc(), name = 'Untitled'): Pro
   const id = newId();
   useDocStore.getState().load(doc);
   clearSelection();
-  ui().set({ currentId: id, currentName: name });
+  ui().set({ currentId: id, currentName: name, cursor: null });
   await savePiece(id, currentSaved());
   announce(`New composition: ${name}`);
 }

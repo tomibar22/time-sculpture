@@ -42,7 +42,9 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/shape.ts     reshapeLine, stretchEdge, snap helpers
   ops/move.ts      reorder (Place), slide (Pulse/Beat), stepDelta, clampSlide
   ops/meter.ts     setSubdivision, resizeMeter
-src/state/         Zustand store: document (undo/redo) + ui
+  ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
+                   copyGroups, formatGroups / parseGroups ("3 (2) 4")
+src/state/         Zustand store: document (undo/redo + amend) + ui; actions.ts, editing.ts (caret)
 src/audio/         AudioContext unlock, scheduler, voices, interface sounds
 src/score/         canvas: geometry, draw, hit-testing, gestures
 src/components/    header, toolbar, selection bar, status, pieces, options, help, transport, toasts
@@ -104,6 +106,21 @@ subdivision changes during playback apply immediately without jumps. Sounds: lan
 cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (pentatonic from
 G3 by size), rests silent.
 
+### Text-editor editing (ops/edit.ts, state/editing.ts)
+
+- The **caret** sits between items: `ui.cursor = { after: ItemId | null }` (null = very start;
+  `after: 'space'` = start of the ending), resolved to an index with `cursorIndex`. Anchoring to
+  an id keeps it in place through edits elsewhere. Drawn only when nothing is selected.
+- Placed by tapping a line/edge without dragging, or the open space (nearer side). Clearing a
+  selection (Esc / Done) collapses it to a caret after it. Selecting a tile drops the caret.
+- Digits type a group at the caret (Shift = silence); a second digit within 900 ms resizes the
+  just-typed group (amend, one undo step). With a selection, typing/pasting replaces it
+  (contiguous only; room = selection + space). Tray taps insert at the caret too.
+- Clipboard: `ui.clipboard` (GroupSpec[]) plus system text "3 (2) 4"; paste parses text first.
+- Keys: ←/→ move the selection (by drag mode) or the caret; ⇧←/→ extend the selection;
+  Home/End and ⌘←/→ caret to the ends; Backspace/Delete beside the caret; +/− resize; ⇧R
+  reverse; ⇧Space play from the caret.
+
 ## Persistence
 
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
@@ -128,7 +145,7 @@ G3 by size), rests silent.
 - Default tray: 2, 3, 4, 5, 7. Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
-  D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A select all · Esc clear.
+  D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A select all · Esc clear · 1–9 type · ⌘C/X/V.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.
 

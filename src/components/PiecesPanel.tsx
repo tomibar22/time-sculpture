@@ -58,15 +58,15 @@ function Piece({
     d.ghost.style.top = `${e.clientY}px`;
     const slot = scoreRegistry.slotAt?.(e.clientX, e.clientY) ?? null;
     const caret = slot === null ? null : E.insertionIndex(useDocStore.getState().doc.items, slot);
-    if (caret !== useUiStore.getState().caret) useUiStore.getState().set({ caret });
+    if (caret !== useUiStore.getState().dropCaret) useUiStore.getState().set({ dropCaret: caret });
   };
   const finish = (commit: boolean) => {
     const d = drag.current;
     drag.current = null;
     if (!d) return;
     d.ghost?.remove();
-    const caret = useUiStore.getState().caret;
-    useUiStore.getState().set({ caret: null });
+    const caret = useUiStore.getState().dropCaret;
+    useUiStore.getState().set({ dropCaret: null });
     if (!commit) return;
     if (!d.moved) addPiece(size);
     else if (caret !== null) addPiece(size, caret);
@@ -128,14 +128,14 @@ export function PiecesPanel() {
             <button
               type="button"
               aria-pressed={addAt === 'start'}
-              onClick={() => seg({ addAt: 'start' })}
+              onClick={() => seg({ addAt: 'start', cursor: null })}
             >
               ⇤ Start
             </button>
             <button
               type="button"
               aria-pressed={addAt === 'end'}
-              onClick={() => seg({ addAt: 'end' })}
+              onClick={() => seg({ addAt: 'end', cursor: null })}
             >
               End ⇥
             </button>

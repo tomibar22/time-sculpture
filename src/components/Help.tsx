@@ -30,10 +30,29 @@ export function Help() {
             Pick 1:1 to 8:1, then tap or drag along the dotted lane above a row. Groups keep their
             moments in time and snap to the nearest new pulse; you can undo.
           </dd>
+          <dt>Write</dt>
+          <dd>
+            Tap a line between groups, or the open space, to place a caret, like in a text editor.
+            Type a number to insert a group of that length there (two quick digits make 10–99,
+            Shift+number inserts a silence), or tap a piece in the tray. Typing over selected groups
+            replaces them. Backspace and Delete remove the group before or after the caret.
+          </dd>
+          <dt>Copy &amp; paste</dt>
+          <dd>
+            ⌘C / ⌘X copy or cut the selection, ⌘V pastes at the caret or over a selection. Copies
+            are also plain text such as “3 (2) 4”, so you can paste a phrase typed in Notes.
+          </dd>
+          <dt>Shape</dt>
+          <dd>
+            + / − make the selected groups a pulse longer or shorter (the open space gives or takes
+            it). Reverse (⇧R) plays a run of groups backwards.
+          </dd>
           <dt>Keys</dt>
           <dd>
-            Space play · ← → move · Delete remove · M merge · S split · R silence · D duplicate · Z
-            undo · Y or ⇧⌘Z redo · Esc clear
+            Space play · ⇧Space play from the caret · ← → move the selection or the caret · ⇧← ⇧→
+            select like text · Home / End caret to the start or end · 1–9 type · Delete remove · M
+            merge · S split · R silence · D duplicate · + − resize · ⇧R reverse · Z undo · Y or ⇧⌘Z
+            redo · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

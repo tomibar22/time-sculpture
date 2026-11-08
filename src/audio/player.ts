@@ -61,10 +61,11 @@ function frame(): void {
   raf = requestAnimationFrame(frame);
 }
 
-export function startPlayback(): void {
+/** Start playing from beat-time `from` (default: the top). */
+export function startPlayback(from = 0): void {
   if (timer) return;
   if (!ensureAudio()) return;
-  T = 0;
+  T = from;
   next = audioNow() + 0.08;
   queue = [];
   current = null;
@@ -83,5 +84,5 @@ export function stopPlayback(): void {
 
 export function togglePlayback(): void {
   if (timer) stopPlayback();
-  else startPlayback();
+  else startPlayback(0);
 }

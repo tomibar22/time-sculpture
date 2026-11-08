@@ -11,7 +11,8 @@ import {
   splitSelection,
   toast,
 } from '../state/actions';
-import { useDocStore, useUiStore } from '../state/store';
+import { setCursor } from '../state/editing';
+import { cursorIndex, useDocStore, useUiStore } from '../state/store';
 import { readPalette } from './colors';
 import type { Palette } from './colors';
 import { drawScore } from './draw';
@@ -45,7 +46,7 @@ type Gesture =
       result: OpResult | null;
     }
   | { kind: 'place'; base: Doc; ids: ItemId[]; result: OpResult | null }
-  | { kind: 'empty' };
+  | { kind: 'empty'; slot: number | null };
 
 const ui = () => useUiStore.getState();
 const setUi = (p: Parameters<ReturnType<typeof useUiStore.getState>['set']>[0]) => ui().set(p);
@@ -96,7 +97,8 @@ export function Score() {
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
         showHandles: gs?.kind !== 'slide' && gs?.kind !== 'place',
-        caret: s.caret,
+        dropCaret: s.dropCaret,
+        cursor: cursorIndex(doc, s.cursor),
         playhead: s.playhead,
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
         focusedId: s.focusedId,
@@ -173,7 +175,7 @@ export function Score() {
     const i = itemAt(g, doc.items, x, y);
     const item = doc.items[i];
     if (!item || E.isSpace(item)) {
-      gesture.current = { kind: 'empty' };
+      gesture.current = { kind: 'empty', slot: item ? slotAt(g, x, y) : null };
       return;
     }
     const mods = { shift: e.shiftKey, toggle: e.metaKey || e.ctrlKey };
@@ -348,7 +350,14 @@ export function Score() {
     }
     if (gs.kind === 'boundary') {
       clearDrag();
-      if (cancelled || !gs.result) return;
+      if (cancelled) return;
+      if (!gs.result) {
+        // a tap on a line or an edge places the text caret there
+        const index = gs.b.kind === 'edgeL' ? gs.b.i : gs.b.i + 1;
+        sfx.snap();
+        setCursor(index);
+        return;
+      }
       const it = gs.result.doc.items[gs.b.i];
       run(gs.result, {
         label: gs.b.kind === 'line' ? 'reshape' : `stretch ${it ? E.describeItem(it) : ''}`,
@@ -407,7 +416,12 @@ export function Score() {
       select(gs.id, gs.mods);
       return;
     }
-    if (gs.kind === 'empty' && !cancelled && !ui().multi) setUi({ selection: [], anchor: null });
+    if (gs.kind === 'empty' && !cancelled && !ui().multi) {
+      if (gs.slot === null) return setUi({ selection: [], anchor: null });
+      // a tap in the open space puts the caret at its nearer side
+      sfx.snap();
+      setCursor(E.insertionIndex(useDocStore.getState().doc.items, gs.slot));
+    }
   };
 
   return (

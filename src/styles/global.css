@@ -759,3 +759,18 @@ button.danger {
   background: var(--land);
   color: var(--card);
 }
+
+/* ---------------------------------------------------------------- caret bar */
+.selbar-sep {
+  width: 1px;
+  align-self: stretch;
+  background: color-mix(in srgb, var(--sel) 25%, transparent);
+  margin: 4px 2px;
+}
+.caretbar .hint {
+  flex-basis: 100%;
+  order: 10;
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0 6px;
+}

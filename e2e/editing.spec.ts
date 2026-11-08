@@ -1,0 +1,118 @@
+import { expect, test } from '@playwright/test';
+import { at, DEFAULT_SEQ, expectSeq, P, score, tap } from './helpers';
+
+// Default: (2) 3 3 2 │ 3 (1) 3 2 4 — lines at pulses 2, 5, 8; open space 10–19.
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await expectSeq(page, DEFAULT_SEQ);
+});
+
+test('tap a line to place a caret, then type sizes and silences', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await expect(page.getByTestId('caretname')).toContainText('in the start');
+  await page.keyboard.press('1');
+  await expectSeq(page, '(2) 3 1 3 2 │ 3 (1) 3 2 4');
+  await page.waitForTimeout(1000);
+  await page.keyboard.press('Shift+2');
+  await expectSeq(page, '(2) 3 1 (2) 3 2 │ 3 (1) 3 2 4');
+});
+
+test('two quick digits make one group, in one undo step', async ({ page }) => {
+  await page.getByRole('button', { name: 'Clear all' }).click();
+  const s = await score(page);
+  await tap(page, at(s, P(3)));
+  await page.keyboard.press('1');
+  await page.keyboard.press('2');
+  await expectSeq(page, '12 │ ·');
+  await page.keyboard.press('z');
+  await expectSeq(page, '· │ ·');
+});
+
+test('typing over a selection replaces it', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(3.5)));
+  await page.keyboard.press('5');
+  await expectSeq(page, '(2) 5 3 2 │ 3 (1) 3 2 4');
+});
+
+test('Backspace and Delete remove beside the caret', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('Backspace');
+  await expectSeq(page, '(2) 3 2 │ 3 (1) 3 2 4');
+  await page.keyboard.press('Delete');
+  await expectSeq(page, '(2) 2 │ 3 (1) 3 2 4');
+});
+
+test('copy a group and paste it at the start of the ending', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(3.5)));
+  await page.keyboard.press('ControlOrMeta+c');
+  await tap(page, at(s, P(17)));
+  await expect(page.getByTestId('caretname')).toContainText('start of the ending');
+  await page.keyboard.press('ControlOrMeta+v');
+  await expectSeq(page, '(2) 3 3 2 │ 3 3 (1) 3 2 4');
+});
+
+test('cut and paste moves a phrase', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(3.5)));
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(page.getByTestId('selname')).toContainText('2 selected');
+  await page.keyboard.press('ControlOrMeta+x');
+  await expectSeq(page, '(2) 2 │ 3 (1) 3 2 4');
+  await page.keyboard.press('End');
+  await page.keyboard.press('ControlOrMeta+v');
+  await expectSeq(page, '(2) 2 │ 3 (1) 3 2 4 3 3');
+});
+
+test('Shift+arrows select like text from the caret', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(2)));
+  await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(page.getByTestId('selname')).toContainText('2 selected');
+  await page.keyboard.press('Shift+ArrowLeft');
+  await expect(page.getByTestId('selname')).toContainText('Group 3');
+});
+
+test('resize and reverse a selection', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(20.5)));
+  await tap(page, at(s, P(27)), ['Shift']);
+  await page.keyboard.press('Shift+R');
+  await expectSeq(page, '(2) 3 3 2 │ 2 3 (1) 3 4');
+  await page.keyboard.press('Escape');
+  await tap(page, at(s, P(3.5)));
+  await page.keyboard.press('+');
+  await expectSeq(page, '(2) 4 3 2 │ 2 3 (1) 3 4');
+});
+
+test('touch: tray pieces and the Paste button work at the caret', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(8)));
+  await page.getByTestId('piece-4').click();
+  await expectSeq(page, '(2) 3 3 4 2 │ 3 (1) 3 2 4');
+  const s2 = await score(page); // the tray click scrolled the page
+  await tap(page, at(s2, P(3.5)));
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await page.getByRole('button', { name: 'Clear selection' }).click();
+  await page.getByRole('button', { name: 'Paste 3' }).click();
+  await expectSeq(page, '(2) 3 3 3 4 2 │ 3 (1) 3 2 4');
+});
+
+test('paste a phrase typed as text', async ({ page, context, browserName }) => {
+  test.skip(browserName !== 'chromium');
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByRole('button', { name: 'Clear all' }).click();
+  const s = await score(page);
+  await tap(page, at(s, P(3)));
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.setData('text/plain', '3 (2) 4');
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
+  });
+  await expectSeq(page, '3 (2) 4 │ ·');
+});
