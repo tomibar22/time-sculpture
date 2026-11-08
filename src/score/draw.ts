@@ -1,4 +1,12 @@
-import { commonSubdivision, isSpace, startOf } from '../engine';
+import {
+  barMap,
+  commonSubdivision,
+  fromMain,
+  sectionAt,
+  toMain,
+  isSpace,
+  startOf,
+} from '../engine';
 import type { Doc, ItemId } from '../engine';
 import { inkFor, sizeColor } from './colors';
 import type { Palette } from './colors';
@@ -33,6 +41,8 @@ export interface DrawState {
   focusedId: ItemId | null;
   /** Single selected group that shows trim grips on its edges, and the grip being dragged. */
   grips: ItemId | null;
+  /** Main tempo (for the tempo shown on modulation markers). */
+  mainTempo?: number;
   activeGrip: 'start' | 'end' | null;
   /** Printing: draw onto an existing page instead of clearing the canvas. */
   noClear?: boolean;
@@ -93,7 +103,10 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   /* ---------------- rows: beat numbers, tile bed with guides, subdivision band */
   // Rows may start and end anywhere (manual line breaks), so everything is drawn from pulse and
   // beat *times* clipped to the row, not from whole beats.
-  const B = g.B;
+  // bars come from the bar map (each section has its own bar size and starts a new bar)
+  const bm = barMap(doc.meter);
+  const inBar = (b: number) => (b >= bm.NB ? 0 : (bm.beatInBar[b] ?? 0));
+  const isDown = (b: number) => inBar(b) === 0;
   const { times, pre } = g.grid;
   for (let r = 0; r < g.R; r++) {
     const row = g.rows[r]!;
@@ -110,7 +123,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     // beat numbers, centred on the beat's tick (only beats that begin in this row)
     for (let gb = bFirst; gb <= bLast; gb++) {
       if (gb < row.b0 - EPS_D) continue;
-      const inCycle = gb % B;
+      const inCycle = inBar(gb);
       if (inCycle !== 0 && !showNumbers) continue;
       c.textBaseline = 'alphabetic';
       c.textAlign = 'center';
@@ -126,7 +139,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       c.textAlign = 'left';
       c.fillStyle = P.muted;
       c.font = `500 10px ${MONO}`;
-      c.fillText(`${(b % B) + 1}+${j}/${d}`, L.margin + 1, top + 14);
+      c.fillText(`${inBar(b) + 1}+${j}/${d}`, L.margin + 1, top + 14);
     }
 
     // tile bed: faint pulse guides, stronger beat guides, red at bar lines
@@ -142,7 +155,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         c.fillRect(x - 0.5, ty + 8, 1, L.tileH - 16);
         continue;
       }
-      const down = Math.round(t) % B === 0;
+      const down = isDown(Math.round(t));
       c.fillStyle = down ? P.land : P.faint;
       c.globalAlpha = down ? 0.55 : 0.6;
       c.fillRect(x - (down ? 0.9 : 0.6), ty + 3, down ? 1.8 : 1.2, L.tileH - 6);
@@ -179,7 +192,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         const t = times[k]!;
         const x = xAt(t);
         if (k === pre[gb]) {
-          const down = gb % B === 0;
+          const down = isDown(gb);
           c.fillStyle = down ? P.land : P.fg;
           c.globalAlpha = down ? 1 : 0.55;
           c.fillRect(x - (down ? 1 : 0.75), by, down ? 2 : 1.5, L.bandH);
@@ -195,7 +208,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     {
       const tEnd = row.b0 + row.nb;
       const onBeat = Math.abs(tEnd - Math.round(tEnd)) < EPS_D;
-      const down = onBeat && Math.round(tEnd) % B === 0;
+      const down = onBeat && isDown(Math.round(tEnd));
       c.fillStyle = down ? P.land : P.fg;
       c.globalAlpha = down ? 1 : 0.55;
       c.fillRect(
@@ -385,6 +398,56 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.fillRect(p.x - 4.5, ty - 7, 9, 2.5);
     c.fillRect(p.x - 4.5, ty + L.tileH + 4.5, 9, 2.5);
   }
+  /* ---------------- metric modulation: section markers and the main tempo's ghost grid */
+  const mainBar = doc.meter.beatsPerCycle;
+  bm.sections.forEach((sec, si) => {
+    if (si === 0) return;
+    const p = xOf(g, sec.at);
+    const top = rowTop(g, p.r);
+    const tempo = s.mainTempo ? ` · ♩=${Math.round((s.mainTempo / sec.scale) * 10) / 10}` : '';
+    const label = `${sec.from}:1 = ${sec.to}:1${tempo}`;
+    c.font = `700 11px ${MONO}`;
+    const w = c.measureText(label).width + 12;
+    const fx = p.x + 12; // after the bar's "1"
+    c.fillStyle = P.warn;
+    rr(c, fx, top + 2, w, 15, 4);
+    c.fill();
+    c.fillStyle = P.card;
+    c.textAlign = 'left';
+    c.textBaseline = 'middle';
+    c.fillText(label, fx + 6, top + 10);
+  });
+  if (bm.sections.length > 1) {
+    // inside a modulated section, show where the main tempo's beats fall: bar lines as a dashed
+    // red line through the tiles, other beats as small ticks under the band
+    for (let r = 0; r < g.R; r++) {
+      const row = g.rows[r]!;
+      if (sectionAt(doc.meter, row.b0) === 0) continue;
+      const m0 = toMain(doc.meter, row.b0);
+      const m1 = toMain(doc.meter, row.b0 + row.nb);
+      const ty = tileY(g, r);
+      const by = ty + L.tileH + L.bandGap;
+      for (let M = Math.ceil(m0 - 1e-9); M <= m1 + 1e-9; M++) {
+        const t = fromMain(doc.meter, M);
+        if (t < row.b0 - 1e-9 || t > row.b0 + row.nb + 1e-9) continue;
+        const x = L.margin + (t - row.b0) * row.bw;
+        const down = M % mainBar === 0;
+        c.fillStyle = down ? P.land : P.muted;
+        c.globalAlpha = down ? 0.75 : 0.6;
+        if (down) {
+          for (let y = ty - 2; y < ty + L.tileH + 2; y += 6) c.fillRect(x - 0.75, y, 1.5, 3);
+          c.beginPath();
+          c.moveTo(x - 4, by + L.bandH + 6);
+          c.lineTo(x + 4, by + L.bandH + 6);
+          c.lineTo(x, by + L.bandH);
+          c.closePath();
+          c.fill();
+        } else c.fillRect(x - 0.6, by + L.bandH + 1, 1.2, 5);
+        c.globalAlpha = 1;
+      }
+    }
+  }
+
   /* ---------------- phrase marks: a flag and a line where a phrase starts */
   const marks = doc.meter.marks ?? [];
   marks.forEach((t, i) => {

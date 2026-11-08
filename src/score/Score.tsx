@@ -17,7 +17,17 @@ import { useDocStore, useUiStore } from '../state/store';
 import { readPalette } from './colors';
 import type { Palette } from './colors';
 import { drawScore } from './draw';
-import { geometry, hit, hitBoundary, hitTrimGrip, itemAt, slotAt } from './geometry';
+import {
+  geometry,
+  hit,
+  hitBoundary,
+  hitTrimGrip,
+  itemAt,
+  L,
+  rowTop,
+  slotAt,
+  xOf,
+} from './geometry';
 import type { Boundary, Geo } from './geometry';
 
 const LONG_PRESS_MS = 450;
@@ -105,6 +115,7 @@ export function Score() {
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
         showHandles: gs?.kind !== 'slide' && gs?.kind !== 'place',
+        mainTempo: s.tempo,
         cursor: s.caret,
         range: s.range,
         playhead: s.playhead,
@@ -167,6 +178,16 @@ export function Score() {
     e.currentTarget.setPointerCapture(e.pointerId);
     const doc = useDocStore.getState().doc;
     const h = hit(g, x, y);
+    // a click on a modulation marker (in the number row) opens it for editing
+    const sections = doc.meter.sections ?? [];
+    for (let i = 0; i < sections.length; i++) {
+      const p = xOf(g, sections[i]!.at);
+      const top = rowTop(g, p.r);
+      if (p.r === h.r && y >= top && y <= top + L.numH && x >= p.x + 8 && x <= p.x + 190) {
+        setUi({ modDialog: { index: i } });
+        return;
+      }
+    }
     // Shift-click with a caret or range (and no tiles selected) selects a pulse range, like text;
     // ⌥-click puts the caret on any pulse, even inside a tile
     const st = ui();

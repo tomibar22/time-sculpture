@@ -62,6 +62,16 @@ export function Help() {
             flag shows how far it is from the previous mark, in beats, so a phrase repeating every
             3½ beats reads at a glance. P again removes it. Marks print in the PDF too.
           </dd>
+          <dt>Modulation</dt>
+          <dd>
+            Put the caret on a beat line (mid-bar is fine) and press T (or Modulate…): choose the
+            pulse equation, e.g. 2:1 = 3:1 (a pulse of 2:1 before equals a pulse of 3:1 after, so ♩
+            72 becomes 48), and the bars after it. Beats keep their width on screen; the new section
+            starts a new row, an amber marker names it, and dashed red lines show where the main
+            tempo's bar lines fall. The status says whether the piece ends on 1 of the main tempo
+            and offers whole beats to add or cut at the end. Click a marker to edit or remove it.
+            With modulations, Beats regroups the main bars and Bars adds or cuts a bar at the end.
+          </dd>
           <dt>Select time</dt>
           <dd>
             ⇧← ⇧→ (or ⇧-click, or Select ⇥ on a phone) select a range of pulses, whether it is
@@ -86,10 +96,10 @@ export function Help() {
           </dd>
           <dt>Keys</dt>
           <dd>
-            Space play · ⇧Space play from the caret · Enter line break · P phrase mark · ← → move
-            the selection or the caret · ⇧← ⇧→ select like text · Home / End caret to the start or
-            end · 1–9 type · Delete remove · M merge · S split · R silence · D duplicate · + −
-            resize · ⌥← ⌥→ trim · B brush · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
+            Space play · ⇧Space play from the caret · Enter line break · P phrase mark · T modulate
+            · ← → move the selection or the caret · ⇧← ⇧→ select like text · Home / End caret to the
+            start or end · 1–9 type · Delete remove · M merge · S split · R silence · D duplicate ·
+            + − resize · ⌥← ⌥→ trim · B brush · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

@@ -4,6 +4,7 @@ import {
   group,
   spaceIndex,
   syncSpace,
+  toMain,
   withBreaks,
   withMarks,
 } from '../engine';
@@ -51,6 +52,11 @@ export interface SavedPiece {
   subdivision: number[];
   /** Phrase marks: times in beats where a phrase starts (optional). */
   phraseStarts?: number[];
+  /**
+   * Metric modulations (optional): from local beat `atBeat`, a pulse of `from`:1 before equals a
+   * pulse of `to`:1 after, and bars have `beatsPerBar` beats.
+   */
+  modulations?: { atBeat: number; from: number; to: number; beatsPerBar: number }[];
   /** The phrase as written from the top; the open space comes next. */
   start: FileGroup[];
   /** The phrase as written to the end; it ends exactly on the next beat 1. */
@@ -80,6 +86,16 @@ export function toSaved(
     cycles: doc.meter.cycles,
     subdivision: [...doc.meter.subdivision],
     ...(doc.meter.marks?.length ? { phraseStarts: [...doc.meter.marks] } : {}),
+    ...(doc.meter.sections?.length
+      ? {
+          modulations: doc.meter.sections.map((m) => ({
+            atBeat: m.at,
+            from: m.from,
+            to: m.to,
+            beatsPerBar: m.beatsPerBar,
+          })),
+        }
+      : {}),
     start: doc.items.slice(0, si).map(fg),
     ending: doc.items.slice(si + 1).map(fg),
     layout: {
@@ -94,9 +110,10 @@ export function toSaved(
     let k = 0;
     for (const x of doc.items) {
       if (x.kind === 'sound')
+        // in beats of the main tempo, so modulated sections come out in real time
         sounds.push({
-          at: round(times[k]!),
-          length: round(times[k + x.n]! - times[k]!),
+          at: round(toMain(doc.meter, times[k]!)),
+          length: round(toMain(doc.meter, times[k + x.n]!) - toMain(doc.meter, times[k]!)),
           pulses: x.n,
         });
       k += x.n;
@@ -124,6 +141,16 @@ export function fromSaved(raw: unknown): Parsed {
     subdivision: Array.isArray(p.subdivision) ? p.subdivision.map(Number) : [],
     ...(Array.isArray(p.phraseStarts)
       ? { marks: p.phraseStarts.map(Number).filter(Number.isFinite) }
+      : {}),
+    ...(Array.isArray(p.modulations) && p.modulations.length
+      ? {
+          sections: (p.modulations as Record<string, unknown>[]).map((m) => ({
+            at: Number(m.atBeat),
+            from: Number(m.from),
+            to: Number(m.to),
+            beatsPerBar: Number(m.beatsPerBar),
+          })),
+        }
       : {}),
   };
   let next = 1;

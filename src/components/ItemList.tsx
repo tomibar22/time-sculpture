@@ -13,10 +13,9 @@ export function ItemList() {
   const si = E.spaceIndex(doc.items);
   let a = 0;
   const grid = E.buildGrid(doc.meter);
-  const B = doc.meter.beatsPerCycle;
   const where = (k: number) => {
-    const b = E.beatOfPulse(grid, Math.min(k, grid.TS - 1));
-    return `bar ${Math.floor(b / B) + 1}, beat ${(b % B) + 1}`;
+    const bb = E.barBeat(doc.meter, E.beatOfPulse(grid, Math.min(k, grid.TS - 1)));
+    return `bar ${bb.bar}, beat ${bb.beat}`;
   };
   return (
     <ul className="sr-only item-list" aria-label="Groups in order">

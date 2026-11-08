@@ -360,10 +360,13 @@ export function setMeter(beats: number, cycles: number): void {
   announce(`${beats} beats, ${plural(cycles, 'bar')}`);
 }
 
-function beatRange(beats: number[], bpc: number, nb: number): string {
+function beatRange(beats: number[], meter: E.Meter): string {
   const bs = [...beats].sort((a, b) => a - b);
-  const lab = (b: number) => `${Math.floor(b / bpc) + 1}.${(b % bpc) + 1}`;
-  if (bs.length === nb) return 'Every beat';
+  const lab = (b: number) => {
+    const bb = E.barBeat(meter, b);
+    return `${bb.bar}.${bb.beat}`;
+  };
+  if (bs.length === meter.subdivision.length) return 'Every beat';
   return bs.length === 1
     ? `Beat ${lab(bs[0]!)}`
     : `Beats ${lab(bs[0]!)}–${lab(bs[bs.length - 1]!)}`;
@@ -374,7 +377,7 @@ export function paintSubdivision(beats: number[], d = uiState().brush): void {
   const todo = beats.filter((b) => before.meter.subdivision[b] !== d);
   if (!todo.length) return;
   const r = E.setSubdivision(before, todo, d);
-  const range = beatRange(todo, before.meter.beatsPerCycle, before.meter.subdivision.length);
+  const range = beatRange(todo, before.meter);
   if (!run(r, { label: `${range} → ${d}:1`, select: 'keep' })) return;
   flash(r.report.moved);
   const parts: string[] = [];
@@ -424,4 +427,52 @@ export function togglePhraseMark(k: number): void {
   }
   run(r, { label: had ? 'unmark phrase' : 'phrase mark', select: 'keep' });
   announce(had ? 'Phrase mark removed' : 'Phrase starts here');
+}
+
+/* ------------------------------------------------------------------ metric modulation */
+
+export function modulate(at: number, spec: E.SectionSpec): boolean {
+  const r = E.addSection(doc(), at, spec);
+  if (!r.report.ok) {
+    sfx.nope();
+    toast('A modulation needs a beat line inside the piece, where none starts yet');
+    return false;
+  }
+  if (!run(r, { label: `${spec.from}:1 = ${spec.to}:1`, select: 'keep' })) return false;
+  announce(
+    `Modulation ${spec.from} to 1 equals ${spec.to} to 1, ${spec.beatsPerBar} beats per bar`,
+  );
+  return true;
+}
+
+export function editModulation(index: number, spec: E.SectionSpec): boolean {
+  const r = E.updateSection(doc(), index, spec);
+  if (r.report.reason === 'no-change') return true;
+  return run(r, { label: `${spec.from}:1 = ${spec.to}:1`, select: 'keep' });
+}
+
+export function removeModulation(index: number): void {
+  if (run(E.removeSection(doc(), index), { label: 'remove modulation', select: 'keep' }))
+    toast('Modulation removed', { undo: true });
+}
+
+/** Add (n > 0) or cut whole beats at the end of the last section, e.g. to land on a main 1. */
+export function adjustEnd(n: number): void {
+  const r = E.resizeBeats(doc(), n, uiState().brush);
+  if (run(r, { label: `${n > 0 ? '+' : ''}${n} beats`, select: 'keep' }))
+    announce(E.landing(r.doc.meter).lands ? 'Lands on 1 of the main tempo' : `${n} beats`);
+}
+
+/** Open the modulation dialog for pulse k: edit the modulation that starts there, or add one on
+ * that beat line. */
+export function openModulation(k: number): void {
+  const d = doc();
+  const grid = E.buildGrid(d.meter);
+  const b = E.beatOfPulse(grid, Math.min(k, grid.TS - 1));
+  if (grid.pre[b] !== k || b === 0) {
+    sfx.nope();
+    return void toast('Put the caret on a beat line (not the very start) to modulate there');
+  }
+  const index = (d.meter.sections ?? []).findIndex((s) => s.at === b);
+  setUi({ modDialog: index >= 0 ? { index } : { at: b } });
 }

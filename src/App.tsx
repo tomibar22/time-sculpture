@@ -2,6 +2,7 @@ import { Announcer, ToastHost } from './components/Feedback';
 import { Help } from './components/Help';
 import { ItemList } from './components/ItemList';
 import { LibraryMenu } from './components/LibraryMenu';
+import { ModulationDialog } from './components/ModulationDialog';
 import { Options } from './components/Options';
 import { SelectionBar } from './components/SelectionBar';
 import { Status } from './components/Status';
@@ -45,6 +46,7 @@ export function App() {
       <Dock />
       <ToastHost />
       <Announcer />
+      <ModulationDialog />
     </>
   );
 }

@@ -165,6 +165,26 @@ G3 by size), rests silent.
   Drawing works from pulse/beat _times_ clipped to each row. A row starting at a manual break
   mid-beat shows where it starts ("2+1/4") and an accent mark at its left. No "cycle N" labels.
 
+### Metric modulation (engine/sections.ts, ops/sections.ts)
+
+- `meter.sections`: `{at (local beat > 0), from, to, beatsPerBar}`. From `at`, "from:1 = to:1":
+  a new beat lasts `to/from` of the old (2:1 = 3:1 → ♩72 → 48). Can start mid-bar; each section
+  starts a new bar and has its own bar size. With sections, `cycles` = total bars (≤ 64) and the
+  piece length is `subdivision.length` (grid NB = subdivision.length always).
+- `barMap(meter)` (cached): per beat its section, bar and beat-in-bar, bar starts, and per
+  section `scale` (main beats per local beat) and `mainAt`. Use it — never `beat % beatsPerCycle`
+  — for downbeats, numbering, clicks and descriptions (`barBeat`). `toMain`/`fromMain` convert
+  local ↔ main time; playback durations use `toMain`.
+- `landing(meter)`: does the piece end on a main beat 1? `late` in main beats, and `fixes` =
+  whole local beats of the last section to add/cut. Status shows it with buttons (`adjustEnd`).
+- Ops: `addSection`, `updateSection`, `removeSection`, `setMainBarSize` (regroup, length kept),
+  `resizeBeats` (insert/cut at max(last section start, middle); later sections/breaks/marks move).
+  `resizeMeter` delegates to these when sections exist. Without sections the old B×C rules hold.
+- UI: T / "Modulate…" at a beat-line caret opens `ModulationDialog` (also by clicking the amber
+  marker). Beats keep their width; a section always starts a row; inside sections dashed red
+  lines + small ticks show the main tempo's bars and beats. File: `modulations` (+ `sounds` in
+  main beats).
+
 ### Phrase marks
 
 - `meter.marks` (times in beats, any pulse, 0 allowed; `toggleMark`, `withMarks`, same snapping /
@@ -219,7 +239,7 @@ G3 by size), rests silent.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
-  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark.
+  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.
 

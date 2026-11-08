@@ -1025,3 +1025,30 @@ button.switch[aria-checked='true'] .switch-track {
 button.switch[aria-checked='true'] .switch-knob {
   transform: translateX(14px);
 }
+
+/* ---------------------------------------------------------------- modulation */
+.mod-eq {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.mod-ratios {
+  max-width: none;
+}
+.mod-equals {
+  font-family: var(--f-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.mod-summary {
+  margin: 0;
+  font-size: 0.92rem;
+}
+.landing {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}

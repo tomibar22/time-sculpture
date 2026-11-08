@@ -1,4 +1,4 @@
-import { buildGrid, EPS, nearestPulse } from '../engine';
+import { barMap, buildGrid, EPS, nearestPulse, sectionAt } from '../engine';
 import type { Meter } from '../engine';
 
 /**
@@ -21,8 +21,11 @@ export interface RowSpan {
 
 export function rowLayout(meter: Meter, perRow: number): RowSpan[] {
   const grid = buildGrid(meter);
-  const width = Math.max(1, Math.min(MAX_PER_ROW, Math.round(perRow))) * meter.beatsPerCycle;
+  const per = Math.max(1, Math.min(MAX_PER_ROW, Math.round(perRow)));
+  const map = barMap(meter);
   const breaks = meter.breaks ?? [];
+  // a modulation always starts a new row
+  const sectionStarts = map.sections.slice(1).map((s) => s.at);
   const rows: RowSpan[] = [];
   let t0 = 0;
   let manual = false;
@@ -30,9 +33,13 @@ export function rowLayout(meter: Meter, perRow: number): RowSpan[] {
   while (t0 < grid.NB - EPS) {
     while (bi < breaks.length && breaks[bi]! <= t0 + EPS) bi++;
     const nextBreak = breaks[bi] ?? Infinity;
-    const auto = t0 + width;
-    const t1 = Math.min(nextBreak, auto, grid.NB);
-    // rows end on a pulse (a wrap inside a beat of another ratio snaps to its nearest pulse)
+    const nextSection = sectionStarts.find((a) => a > t0 + EPS) ?? Infinity;
+    // wrap after `per` bars of the section we are in; from a mid-bar break, after the same span
+    const sec = map.sections[sectionAt(meter, t0)]!;
+    const barIdx = map.barStarts.indexOf(Math.round(t0));
+    const onBarLine = Math.abs(t0 - Math.round(t0)) < EPS && barIdx >= 0;
+    const auto = onBarLine ? (map.barStarts[barIdx + per] ?? grid.NB) : t0 + per * sec.beatsPerBar;
+    const t1 = Math.min(nextBreak, nextSection, auto, grid.NB);
     let k1 = t1 >= grid.NB - EPS ? grid.TS : nearestPulse(grid, t1);
     const k0 = nearestPulse(grid, t0);
     if (k1 <= k0) k1 = k0 + 1;

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { barBeat } from '../engine';
 import { togglePlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
@@ -11,7 +12,8 @@ function Readout() {
   const label = useUiStore((s) => {
     if (s.playhead === null) return null;
     const bt = Math.floor(s.playhead + 1e-9);
-    return `${Math.floor(bt / meter.beatsPerCycle) + 1}|${(bt % meter.beatsPerCycle) + 1}|${meter.subdivision[Math.min(bt, meter.subdivision.length - 1)]}`;
+    const bb = barBeat(meter, bt);
+    return `${bb.bar}|${bb.beat}|${meter.subdivision[Math.min(bt, meter.subdivision.length - 1)]}`;
   });
   if (!label)
     return (

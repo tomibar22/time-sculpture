@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { docFrom, makeMeter, sequence, toggleBreak, toggleMark } from '../engine';
+import { addSection, docFrom, makeMeter, sequence, toggleBreak, toggleMark } from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
 // 4 beats × 2 cycles; beat 2 is 3:1, beat 5 is 2:1, the rest 4:1 (29 pulses)
@@ -71,6 +71,18 @@ describe('the Time Sculpture file (v2)', () => {
     expect(f.phraseStarts).toEqual([0, 1 + 2 / 3]);
     expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.marks).toEqual([0, 1 + 2 / 3]);
     expect(toSaved(doc, 'none', settings).phraseStarts).toBeUndefined();
+  });
+
+  it('saves modulations, and gives sounds in main-tempo beats', () => {
+    const plain = docFrom(makeMeter(4, 2, 2), ['|', 2, 2]); // two 2s ending the piece
+    const mod = addSection(plain, 4, { from: 2, to: 3, beatsPerBar: 4 }).doc;
+    const f = toSaved(mod, 'Mod', settings);
+    expect(f.modulations).toEqual([{ atBeat: 4, from: 2, to: 3, beatsPerBar: 4 }]);
+    // the last 2 (one local beat, 6..7 → 7..8) lasts 1.5 main beats and ends at 4 + 4 × 1.5 = 10
+    expect(f.sounds![1]).toEqual({ at: 8.5, length: 1.5, pulses: 2 });
+    const back = fromSaved(JSON.parse(JSON.stringify(f)));
+    expect(back.doc.meter.sections).toEqual(mod.meter.sections);
+    expect(back.doc.meter.cycles).toBe(mod.meter.cycles);
   });
 
   it('remembers fitted rows', () => {

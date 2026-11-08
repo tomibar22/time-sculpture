@@ -97,6 +97,8 @@ export interface UiState {
   /** The fill panel: closed, or open on the random or browse tab. */
   fillPanel: 'random' | 'browse' | null;
   fillSort: FillSort;
+  /** The modulation dialog: adding one at a beat, or editing one (index into meter.sections). */
+  modDialog: { at: number } | { index: number } | null;
   /** Playhead in beats while playing. */
   playhead: number | null;
   theme: Theme;
@@ -139,6 +141,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillSizes: [2, 3, 4, 5, 7],
   fillPanel: null,
   fillSort: 'onbeat',
+  modDialog: null,
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   playhead: null,
   theme: 'system',

@@ -1,4 +1,4 @@
-import { buildGrid, EPS, nextPulse } from '../engine';
+import { buildGrid, EPS, nextPulse, toMain } from '../engine';
 import { useDocStore, useUiStore } from '../state/store';
 import { audioNow, ensureAudio } from './context';
 import { playClick, playGroup } from './voices';
@@ -35,16 +35,18 @@ function schedule(): void {
     const doc = activeDoc();
     const { NB } = buildGrid(doc.meter);
     const ev = nextPulse(doc, T);
+    // durations go through main time, so modulated sections play at their own tempo
+    const span = (a: number, b: number) => (toMain(doc.meter, b) - toMain(doc.meter, a)) * beatDur;
     if (ev.k === 0 && T > EPS) {
-      next += Math.max(0, NB - T) * beatDur; // finish the cycle, then wrap to 1
+      next += Math.max(0, span(T, NB)); // finish the piece, then wrap to 1
       T = 0;
     } else if (ev.t0 > T + EPS) {
-      next += (ev.t0 - T) * beatDur;
+      next += span(T, ev.t0);
       T = ev.t0;
     }
     playClick(next, ev.click, ui.ticks);
     if (ev.onset) playGroup(next, ev.onset.n);
-    const dur = (ev.t1 - ev.t0) * beatDur;
+    const dur = span(ev.t0, ev.t1);
     queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur });
     next += dur;
     T = ev.t1 >= NB - EPS ? 0 : ev.t1;

@@ -7,6 +7,7 @@ import {
   removeSelection,
   splitSelection,
   toggleMulti,
+  openModulation,
   toggleLineBreak,
   togglePhraseMark,
   toggleSelectionKind,
@@ -174,6 +175,12 @@ function CaretBar() {
   const clip = useUiStore((s) => s.clipboard);
   const keypad = useUiStore((s) => s.keypad);
   if (caret === null && !range) return null;
+  const docNow = useDocStore.getState().doc;
+  const gridNow = E.buildGrid(docNow.meter);
+  const beatHere = caret === null ? -1 : E.beatOfPulse(gridNow, Math.min(caret, gridNow.TS - 1));
+  const isBeatLine =
+    caret !== null && caret > 0 && caret < gridNow.TS && gridNow.pre[beatHere] === caret;
+  const sectionHere = (docNow.meter.sections ?? []).some((s) => s.at === beatHere);
 
   if (range) {
     return (
@@ -228,6 +235,15 @@ function CaretBar() {
             →
           </button>
         </>
+      )}
+      {isBeatLine && (
+        <button
+          type="button"
+          title="Metric modulation from here (T)"
+          onClick={() => openModulation(caret!)}
+        >
+          {sectionHere ? 'Modulation…' : 'Modulate…'}
+        </button>
       )}
       <button
         type="button"

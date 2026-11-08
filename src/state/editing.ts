@@ -24,11 +24,11 @@ export function describePulse(k: number): string {
   const d = doc();
   const grid = E.buildGrid(d.meter);
   if (k >= grid.TS) return 'the very end';
-  const B = d.meter.beatsPerCycle;
   const b = E.beatOfPulse(grid, k);
   const j = k - grid.pre[b]!;
   const per = grid.pre[b + 1]! - grid.pre[b]!;
-  return `bar ${Math.floor(b / B) + 1}, beat ${(b % B) + 1}${j ? ` +${j}/${per}` : ''}`;
+  const bb = E.barBeat(d.meter, b);
+  return `bar ${bb.bar}, beat ${bb.beat}${j ? ` +${j}/${per}` : ''}`;
 }
 
 /** Where typing goes when there is no caret: the end of the start. */

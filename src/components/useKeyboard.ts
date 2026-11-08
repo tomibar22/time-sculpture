@@ -9,6 +9,7 @@ import {
   removeSelection,
   selectAll,
   toast,
+  openModulation,
   toggleLineBreak,
   togglePhraseMark,
   splitSelection,
@@ -115,6 +116,13 @@ export function useKeyboard() {
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
       if (e.key === 'Escape') return escape();
+      if (k === 't' && !e.shiftKey) {
+        const region = selectedRegion();
+        const at = region ? region.a : useUiStore.getState().caret;
+        if (at === null) return void toast('Put the caret on a beat line to modulate there');
+        e.preventDefault();
+        return openModulation(at);
+      }
       if (k === 'p' && !e.shiftKey) {
         // a phrase mark at the caret (or where the selection starts)
         const region = selectedRegion();

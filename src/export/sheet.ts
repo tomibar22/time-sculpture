@@ -92,7 +92,9 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
   const grid = E.buildGrid(doc.meter);
   const mix = [...new Set(doc.meter.subdivision)].sort((a, b) => a - b);
   const meta = [
-    `${doc.meter.beatsPerCycle} beats × ${doc.meter.cycles} bar${doc.meter.cycles === 1 ? '' : 's'}`,
+    doc.meter.sections?.length
+      ? `${doc.meter.cycles} bars · ${doc.meter.sections.map((m) => `${m.from}:1 = ${m.to}:1`).join(', ')}`
+      : `${doc.meter.beatsPerCycle} beats × ${doc.meter.cycles} bar${doc.meter.cycles === 1 ? '' : 's'}`,
     mix.map((d) => `${d}:1`).join(' '),
     `${grid.TS} pulses`,
   ].join('   ·   ');
