@@ -9,7 +9,7 @@ import {
   MIN_SUBDIVISION,
   nearestPulse,
 } from '../grid';
-import { groupSum, isSpace, spaceIndex, syncSpace } from '../doc';
+import { groupSum, isSpace, spaceIndex, syncSpace, withBreaks } from '../doc';
 import { fail, report } from '../report';
 import type { Doc, Item, ItemId, Meter, OpResult } from '../types';
 
@@ -41,7 +41,9 @@ export function setSubdivision(doc: Doc, beats: Iterable<number>, d: number): Op
   const bt = boundaryTimes(doc);
   const subdivision = doc.meter.subdivision.slice();
   for (const b of todo) subdivision[b] = d;
-  const meter: Meter = { ...doc.meter, subdivision };
+  const meter0: Meter = { ...doc.meter, subdivision };
+  // line breaks keep their moment too, snapped to the nearest pulse of the new grid
+  const meter: Meter = withBreaks(meter0, doc.meter.breaks ?? []);
   const grid = buildGrid(meter);
 
   const idx = bt.map((t) => nearestPulse(grid, t));
@@ -109,7 +111,8 @@ export function resizeMeter(
     else if (fromEnd < oNB) subdivision.push(old[oNB - 1 - fromEnd]!);
     else subdivision.push(fill);
   }
-  const nm: Meter = { beatsPerCycle, cycles, subdivision };
+  // line breaks that still fall inside the piece are kept (on the nearest pulse)
+  const nm: Meter = withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []);
   const TS = buildGrid(nm).TS;
 
   const items = doc.items.slice();
@@ -125,4 +128,23 @@ export function resizeMeter(
     doc: { meter: nm, items: syncSpace(items, TS), nextId: doc.nextId },
     report: report({ removed }),
   };
+}
+
+/**
+ * Add a line break at pulse k (a new score row starts there), or remove it if there is one.
+ * Breaks at the very start or end are meaningless and refused.
+ */
+export function toggleBreak(doc: Doc, k: number): OpResult {
+  const grid = buildGrid(doc.meter);
+  if (!Number.isInteger(k) || k <= 0 || k >= grid.TS) return { doc, report: fail('out-of-range') };
+  const t = grid.times[k]!;
+  const cur = doc.meter.breaks ?? [];
+  const has = cur.some((b) => Math.abs(b - t) < EPS);
+  const next = has ? cur.filter((b) => Math.abs(b - t) >= EPS) : [...cur, t];
+  return { doc: { ...doc, meter: withBreaks({ ...doc.meter }, next) }, report: report() };
+}
+
+export function hasBreakAt(doc: Doc, k: number): boolean {
+  const t = buildGrid(doc.meter).times[k];
+  return t !== undefined && (doc.meter.breaks ?? []).some((b) => Math.abs(b - t) < EPS);
 }

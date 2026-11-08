@@ -30,6 +30,11 @@ export interface Meter {
   readonly cycles: number;
   /** Pulses per beat for every beat of the piece (length = beatsPerCycle * cycles), each 1..8. */
   readonly subdivision: readonly number[];
+  /**
+   * Manual line breaks of the score, as times in beats where a new row starts (0 < t < total
+   * beats, ascending, each on a pulse). Part of the document so they undo and save with it.
+   */
+  readonly breaks?: readonly number[];
 }
 
 /** The undoable document. Immutable: operations return new objects and share unchanged ones. */

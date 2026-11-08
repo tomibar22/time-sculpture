@@ -1,5 +1,7 @@
 import {
   buildGrid,
+  EPS,
+  nearestPulse,
   MAX_BEATS,
   MAX_CYCLES,
   MAX_SUBDIVISION,
@@ -21,6 +23,25 @@ export function makeMeter(
   const sd =
     typeof subdivision === 'number' ? Array<number>(nb).fill(subdivision) : [...subdivision];
   return { beatsPerCycle, cycles, subdivision: sd };
+}
+
+/**
+ * A meter with these line breaks: snapped to the nearest pulse, inside the piece, ascending and
+ * without duplicates. No `breaks` field when there are none.
+ */
+export function withBreaks(meter: Meter, breaks: readonly number[]): Meter {
+  const { breaks: _old, ...rest } = meter;
+  void _old;
+  const base: Meter = rest;
+  const grid = buildGrid(base);
+  const out: number[] = [];
+  for (const b of [...breaks].sort((x, y) => x - y)) {
+    const k = nearestPulse(grid, b);
+    if (k <= 0 || k >= grid.TS) continue;
+    const t = grid.times[k]!;
+    if (!out.length || t - out[out.length - 1]! > EPS) out.push(t);
+  }
+  return out.length ? { ...base, breaks: out } : base;
 }
 
 export const isSpace = (x: Item): x is Space => x.kind === 'space';
@@ -139,6 +160,16 @@ export function checkInvariants(doc: Doc): string[] {
     if (!Number.isInteger(d) || d < MIN_SUBDIVISION || d > MAX_SUBDIVISION)
       errs.push(`beat ${b} subdivision ${d}`);
   });
+  if (meter.breaks) {
+    const g = buildGrid({ ...meter, breaks: undefined });
+    let prev = 0;
+    for (const b of meter.breaks) {
+      const k = nearestPulse(g, b);
+      if (!(b > prev + EPS) || b >= g.NB - EPS || Math.abs(g.times[k]! - b) > EPS)
+        errs.push(`bad line break ${b}`);
+      prev = b;
+    }
+  }
   const spaces = doc.items.filter(isSpace).length;
   if (spaces !== 1) errs.push(`expected exactly one space, found ${spaces}`);
   const ids = new Set<string>();

@@ -205,6 +205,7 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
         : { doc: d, report: E.fail('nothing-selected') };
     }),
   fc.constant((d: Doc) => E.clear(d)),
+  fc.nat().map((k) => (d: Doc) => E.toggleBreak(d, k % (buildGrid(d.meter).TS + 1))),
 );
 
 describe('engine invariants (property-based)', () => {
