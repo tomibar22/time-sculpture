@@ -88,3 +88,13 @@ test('P marks the start of a phrase at the caret, and again removes it', async (
   await page.keyboard.press('z');
   await expect(page.getByRole('button', { name: 'Phrase mark' })).toBeVisible();
 });
+
+test('letter shortcuts work with a Hebrew keyboard layout', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  // the P key on a Hebrew layout types "פ" but its code is still KeyP
+  await page.evaluate(() =>
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'פ', code: 'KeyP', bubbles: true })),
+  );
+  await expect(page.getByRole('button', { name: 'Unmark phrase' })).toBeVisible();
+});

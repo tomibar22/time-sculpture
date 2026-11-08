@@ -8,6 +8,7 @@ import {
   redo,
   removeSelection,
   selectAll,
+  toast,
   toggleLineBreak,
   togglePhraseMark,
   splitSelection,
@@ -53,7 +54,8 @@ export function useKeyboard() {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || isTyping(e.target)) return;
       const mod = e.metaKey || e.ctrlKey;
-      const k = e.key.toLowerCase();
+      // letter shortcuts follow the physical key, so they work with any layout (e.g. Hebrew)
+      const k = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const hasSel = useUiStore.getState().selection.length > 0;
 
       if (e.key === ' ' || e.code === 'Space') {
@@ -117,7 +119,10 @@ export function useKeyboard() {
         // a phrase mark at the caret (or where the selection starts)
         const region = selectedRegion();
         const at = region ? region.a : useUiStore.getState().caret;
-        if (at === null) return;
+        if (at === null) {
+          toast('Place the caret first: click a line between tiles, or ⌥-click inside one');
+          return;
+        }
         e.preventDefault();
         return togglePhraseMark(at);
       }
@@ -157,7 +162,7 @@ export function useKeyboard() {
       if (!hasSel) return;
       if (e.key === '+' || e.key === '=') return resizeSelection(1);
       if (e.key === '-' || e.key === '_') return resizeSelection(-1);
-      if (e.key === 'R' && e.shiftKey) return reverseSelection();
+      if (k === 'r' && e.shiftKey) return reverseSelection();
       if (k === 'b') return brushSelection();
       if (k === 's') splitSelection();
       else if (k === 'm') mergeSelection();
