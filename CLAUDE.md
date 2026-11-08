@@ -165,6 +165,13 @@ G3 by size), rests silent.
   Drawing works from pulse/beat _times_ clipped to each row. A row starting at a manual break
   mid-beat shows where it starts ("2+1/4") and an accent mark at its left. No "cycle N" labels.
 
+### Phrase marks
+
+- `meter.marks` (times in beats, any pulse, 0 allowed; `toggleMark`, `withMarks`, same snapping /
+  dropping rules as breaks), toggled with P at the caret or "Phrase mark". Drawn as a teal line
+  through the tiles with a flag in the number row showing the distance from the previous mark
+  (`beatsLabel`: "3", "1¾", "1 2/7"). Saved as `phraseStarts` in the file; printed in the PDF.
+
 ### Silence
 
 - Rests are still items (selectable, movable, shown as "(n)" in the status) but are drawn as
@@ -212,7 +219,7 @@ G3 by size), rests silent.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
-  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush.
+  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.
 

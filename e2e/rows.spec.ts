@@ -75,3 +75,16 @@ test('Fit rows stretches a row cut short by a break to the full width', async ({
   await page.mouse.click(s2.x + s2.w - 30, s2.y + 54);
   await expect(page.getByTestId('selname')).toContainText('Group 3');
 });
+
+test('P marks the start of a phrase at the caret, and again removes it', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5))); // not on a beat: beat 2 +1/4
+  await page.keyboard.press('p');
+  await expect(page.getByTestId('announcer')).toHaveText('Phrase starts here');
+  await expect(page.getByRole('button', { name: 'Unmark phrase' })).toBeVisible();
+  await page.keyboard.press('p');
+  await expect(page.getByRole('button', { name: 'Phrase mark' })).toBeVisible();
+  await page.getByRole('button', { name: 'Phrase mark' }).click();
+  await page.keyboard.press('z');
+  await expect(page.getByRole('button', { name: 'Phrase mark' })).toBeVisible();
+});

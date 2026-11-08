@@ -1,4 +1,12 @@
-import { buildGrid, checkInvariants, group, spaceIndex, syncSpace, withBreaks } from '../engine';
+import {
+  buildGrid,
+  checkInvariants,
+  group,
+  spaceIndex,
+  syncSpace,
+  withBreaks,
+  withMarks,
+} from '../engine';
 import type { Doc, Item } from '../engine';
 import { SPACE_ID } from '../engine';
 
@@ -41,6 +49,8 @@ export interface SavedPiece {
   cycles: number;
   /** Pulses per beat, one number for every beat of the piece. */
   subdivision: number[];
+  /** Phrase marks: times in beats where a phrase starts (optional). */
+  phraseStarts?: number[];
   /** The phrase as written from the top; the open space comes next. */
   start: FileGroup[];
   /** The phrase as written to the end; it ends exactly on the next beat 1. */
@@ -69,6 +79,7 @@ export function toSaved(
     beatsPerCycle: doc.meter.beatsPerCycle,
     cycles: doc.meter.cycles,
     subdivision: [...doc.meter.subdivision],
+    ...(doc.meter.marks?.length ? { phraseStarts: [...doc.meter.marks] } : {}),
     start: doc.items.slice(0, si).map(fg),
     ending: doc.items.slice(si + 1).map(fg),
     layout: {
@@ -111,6 +122,9 @@ export function fromSaved(raw: unknown): Parsed {
     beatsPerCycle: Number(p.beatsPerCycle),
     cycles: Number(p.cycles),
     subdivision: Array.isArray(p.subdivision) ? p.subdivision.map(Number) : [],
+    ...(Array.isArray(p.phraseStarts)
+      ? { marks: p.phraseStarts.map(Number).filter(Number.isFinite) }
+      : {}),
   };
   let next = 1;
   const toItem = (g: unknown): Item => {
@@ -198,7 +212,8 @@ function finish(
           meter.cycles,
         )
       : [];
-  const m = breaks.length ? withBreaks(meter, breaks) : meter;
+  const withB = breaks.length ? withBreaks(meter, breaks) : meter;
+  const m = meter.marks ? withMarks(withB, meter.marks) : withB;
   const doc: Doc = { meter: m, items: syncSpace(items, buildGrid(m).TS), nextId };
   const errs = checkInvariants(doc);
   if (errs.length) throw new Error(`This file is damaged: ${errs[0]}`);

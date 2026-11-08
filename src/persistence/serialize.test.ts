@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { docFrom, makeMeter, sequence, toggleBreak } from '../engine';
+import { docFrom, makeMeter, sequence, toggleBreak, toggleMark } from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
 // 4 beats × 2 cycles; beat 2 is 3:1, beat 5 is 2:1, the rest 4:1 (29 pulses)
@@ -63,6 +63,14 @@ describe('the Time Sculpture file (v2)', () => {
     const f = toSaved(withBreak, 'B', settings);
     expect(f.layout.breaks).toEqual([1 + 2 / 3]);
     expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.breaks).toEqual([1 + 2 / 3]);
+  });
+
+  it('saves phrase marks as phraseStarts (in beats)', () => {
+    const marked = toggleMark(toggleMark(doc, 0).doc, 6).doc;
+    const f = toSaved(marked, 'M', settings);
+    expect(f.phraseStarts).toEqual([0, 1 + 2 / 3]);
+    expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.marks).toEqual([0, 1 + 2 / 3]);
+    expect(toSaved(doc, 'none', settings).phraseStarts).toBeUndefined();
   });
 
   it('remembers fitted rows', () => {

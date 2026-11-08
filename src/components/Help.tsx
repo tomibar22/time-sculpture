@@ -56,6 +56,12 @@ export function Help() {
             rows stretches rows that end early to the full width (their beats get wider, so they no
             longer line up with full rows).
           </dd>
+          <dt>Phrase marks</dt>
+          <dd>
+            Press P (or Phrase mark) at the caret to flag where a phrase starts, on any pulse. The
+            flag shows how far it is from the previous mark, in beats, so a phrase repeating every
+            3½ beats reads at a glance. P again removes it. Marks print in the PDF too.
+          </dd>
           <dt>Select time</dt>
           <dd>
             ⇧← ⇧→ (or ⇧-click, or Select ⇥ on a phone) select a range of pulses, whether it is
@@ -80,10 +86,10 @@ export function Help() {
           </dd>
           <dt>Keys</dt>
           <dd>
-            Space play · ⇧Space play from the caret · Enter line break · ← → move the selection or
-            the caret · ⇧← ⇧→ select like text · Home / End caret to the start or end · 1–9 type ·
-            Delete remove · M merge · S split · R silence · D duplicate · + − resize · ⌥← ⌥→ trim ·
-            B brush · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
+            Space play · ⇧Space play from the caret · Enter line break · P phrase mark · ← → move
+            the selection or the caret · ⇧← ⇧→ select like text · Home / End caret to the start or
+            end · 1–9 type · Delete remove · M merge · S split · R silence · D duplicate · + −
+            resize · ⌥← ⌥→ trim · B brush · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

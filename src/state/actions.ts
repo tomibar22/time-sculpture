@@ -413,3 +413,15 @@ export function clearBreaks(): void {
   if (run({ doc: { ...d, meter }, report: E.report() }, { label: 'join rows', select: 'keep' }))
     toast('All line breaks removed', { undo: true });
 }
+
+/** P: mark (or unmark) the start of a phrase at pulse k. */
+export function togglePhraseMark(k: number): void {
+  const had = E.hasMarkAt(doc(), k);
+  const r = E.toggleMark(doc(), k);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast('A phrase mark needs to be inside the piece');
+  }
+  run(r, { label: had ? 'unmark phrase' : 'phrase mark', select: 'keep' });
+  announce(had ? 'Phrase mark removed' : 'Phrase starts here');
+}

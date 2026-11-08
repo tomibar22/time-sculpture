@@ -49,6 +49,39 @@ const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 const BODY = '"Atkinson Hyperlegible", system-ui, sans-serif';
 
 const EPS_D = 1e-9;
+
+/** A length in beats as a musician reads it: "3", "1¾", "2⅓", or "5/8" when small. */
+export function beatsLabel(beats: number): string {
+  const den = 840; // lcm of 1..8: every pulse length is a whole number of these
+  let num = Math.round(beats * den);
+  let d = den;
+  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+  const g = gcd(num, d);
+  num /= g;
+  d /= g;
+  const whole = Math.floor(num / d);
+  const rest = num - whole * d;
+  const FR: Record<string, string> = {
+    '1/2': '½',
+    '1/3': '⅓',
+    '2/3': '⅔',
+    '1/4': '¼',
+    '3/4': '¾',
+    '1/8': '⅛',
+    '3/8': '⅜',
+    '5/8': '⅝',
+    '7/8': '⅞',
+    '1/5': '⅕',
+    '2/5': '⅖',
+    '3/5': '⅗',
+    '4/5': '⅘',
+    '1/6': '⅙',
+    '5/6': '⅚',
+  };
+  if (!rest) return `${whole}`;
+  const f = FR[`${rest}/${d}`] ?? `${rest}/${d}`;
+  return whole ? `${whole}${f.length > 1 ? ' ' : ''}${f}` : f;
+}
 const E_clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: Palette): void {
@@ -352,6 +385,41 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.fillRect(p.x - 4.5, ty - 7, 9, 2.5);
     c.fillRect(p.x - 4.5, ty + L.tileH + 4.5, 9, 2.5);
   }
+  /* ---------------- phrase marks: a flag and a line where a phrase starts */
+  const marks = doc.meter.marks ?? [];
+  marks.forEach((t, i) => {
+    const p = xOf(g, Math.min(t, g.grid.NB - 1e-6));
+    const top = rowTop(g, p.r);
+    const ty = tileY(g, p.r);
+    c.fillStyle = P.accent;
+    const onBeatLine = Math.abs(t - Math.round(t)) < EPS_D;
+    // on a beat the line starts under the beat number, so the number stays readable
+    const lineTop = onBeatLine ? top + 17 : top + 2;
+    c.fillRect(p.x - 1.25, lineTop, 2.5, ty - lineTop + L.tileH + 2);
+    // the flag carries how far this phrase starts from the previous one; on a beat it starts
+    // after the beat's number so the number stays readable
+    const label = i === 0 ? '' : beatsLabel(t - marks[i - 1]!);
+    const onBeat = Math.abs(t - Math.round(t)) < EPS_D;
+    const fx = p.x + (onBeat ? 10 : 0);
+    if (!label) {
+      c.beginPath();
+      c.moveTo(fx, top + 3);
+      c.lineTo(fx + 9, top + 8);
+      c.lineTo(fx, top + 13);
+      c.closePath();
+      c.fill();
+      return;
+    }
+    c.font = `700 11px ${MONO}`;
+    const w = c.measureText(label).width + 12;
+    rr(c, fx, top + 2, w, 15, 4);
+    c.fill();
+    c.fillStyle = P.accentInk;
+    c.textAlign = 'left';
+    c.textBaseline = 'middle';
+    c.fillText(label, fx + 6, top + 10);
+  });
+
   if (s.playhead !== null) {
     const p = xOf(g, s.playhead);
     const ty = tileY(g, p.r);

@@ -9,6 +9,7 @@ import {
   removeSelection,
   selectAll,
   toggleLineBreak,
+  togglePhraseMark,
   splitSelection,
   toggleSelectionKind,
   undo,
@@ -112,6 +113,14 @@ export function useKeyboard() {
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
       if (e.key === 'Escape') return escape();
+      if (k === 'p' && !e.shiftKey) {
+        // a phrase mark at the caret (or where the selection starts)
+        const region = selectedRegion();
+        const at = region ? region.a : useUiStore.getState().caret;
+        if (at === null) return;
+        e.preventDefault();
+        return togglePhraseMark(at);
+      }
       if (e.key === 'Enter' && !isActivatable(e.target)) {
         // a line break at the caret (or where the selection starts), like in a text editor
         const st = useUiStore.getState();

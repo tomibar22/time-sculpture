@@ -8,6 +8,7 @@ import {
   splitSelection,
   toggleMulti,
   toggleLineBreak,
+  togglePhraseMark,
   toggleSelectionKind,
 } from '../state/actions';
 import {
@@ -228,6 +229,13 @@ function CaretBar() {
           </button>
         </>
       )}
+      <button
+        type="button"
+        title="Mark the start of a phrase here (P)"
+        onClick={() => togglePhraseMark(caret!)}
+      >
+        {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
+      </button>
       <button
         type="button"
         title="Start a new row here (Enter)"
