@@ -5,7 +5,7 @@ import type { Palette } from './colors';
 import {
   boundaries,
   L,
-  laneY,
+  bandY,
   rowEndX,
   rowStartingAt,
   rowTop,
@@ -31,6 +31,9 @@ export interface DrawState {
   playhead: number | null;
   flash: { ids: ReadonlySet<ItemId>; alpha: number };
   focusedId: ItemId | null;
+  /** Single selected group that shows trim grips on its edges, and the grip being dragged. */
+  grips: ItemId | null;
+  activeGrip: 'start' | 'end' | null;
 }
 
 function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -49,53 +52,28 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   const common = commonSubdivision(doc.meter);
   c.clearRect(0, 0, g.w, g.h);
 
-  /* ---------------- rows: numbers, subdivision lane, tile bed, guides, ruler */
+  /* ---------------- rows: beat numbers, tile bed with guides, subdivision band */
   const B = g.B;
   const showNumbers = g.bw >= 15;
   for (let r = 0; r < g.R; r++) {
     const row = g.rows[r]!;
     const top = rowTop(g, r);
-    const ly = laneY(g, r);
     const ty = tileY(g, r);
+    const by = bandY(g, r);
+
+    // beat numbers (cycle downbeats in red)
     for (let lb = 0; lb < row.nb; lb++) {
-      const gb = row.b0 + lb;
-      const inCycle = gb % B;
+      const inCycle = (row.b0 + lb) % B;
+      if (inCycle !== 0 && !showNumbers) continue;
       const x = L.margin + lb * g.bw;
-      if (inCycle === 0 || showNumbers) {
-        c.textBaseline = 'alphabetic';
-        c.textAlign = 'left';
-        c.fillStyle = inCycle === 0 ? P.land : P.muted;
-        c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
-        c.fillText(String(inCycle + 1), x + (g.bw >= 24 ? 4 : 2), top + 14);
-      }
-      const painting = !!s.painting && s.painting.beats.has(gb);
-      const d = painting ? s.painting!.d : sd[gb]!;
-      const odd = d !== common;
-      c.fillStyle = painting || odd ? P.accent : P.soft;
-      c.globalAlpha = painting ? 0.35 : odd ? 0.14 : 1;
-      rr(c, x + 1.5, ly, g.bw - 3, L.laneH, Math.min(8, g.bw / 4));
-      c.fill();
-      c.globalAlpha = 1;
-      const dotR = Math.min(2.4, g.bw / d / 4 + 0.6);
-      for (let j = 0; j < d; j++) {
-        c.fillStyle = odd || painting ? P.fg : P.faint;
-        c.globalAlpha = odd || painting ? 0.7 : 1;
-        c.beginPath();
-        c.arc(x + ((j + 0.5) * g.bw) / d, ly + L.laneH / 2, dotR, 0, Math.PI * 2);
-        c.fill();
-      }
-      c.globalAlpha = 1;
-      if ((odd || painting) && g.bw >= 36) {
-        c.fillStyle = P.card;
-        rr(c, x + g.bw / 2 - 16, ly + 3, 32, L.laneH - 6, 6);
-        c.fill();
-        c.fillStyle = P.fg;
-        c.font = `700 11px ${MONO}`;
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.fillText(`${d}:1`, x + g.bw / 2, ly + L.laneH / 2 + 0.5);
-      }
+      c.textBaseline = 'alphabetic';
+      c.textAlign = 'left';
+      c.fillStyle = inCycle === 0 ? P.land : P.muted;
+      c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
+      c.fillText(String(inCycle + 1), x + (g.bw >= 24 ? 4 : 2), top + 14);
     }
+
+    // tile bed: faint pulse guides, stronger beat guides, red at cycle downbeats
     c.fillStyle = P.soft;
     rr(c, L.margin, ty, row.nb * g.bw, L.tileH, 12);
     c.fill();
@@ -113,18 +91,45 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         c.globalAlpha = 1;
       }
     }
-    const ry = ty + L.tileH + 4;
-    for (let lb = 0; lb <= row.nb; lb++) {
+
+    // subdivision band: one pill per beat, a dot per pulse; ratio badge where it differs
+    for (let lb = 0; lb < row.nb; lb++) {
       const gb = row.b0 + lb;
       const x = L.margin + lb * g.bw;
-      const down = gb % B === 0;
-      c.fillStyle = down ? P.land : P.muted;
-      c.fillRect(x - (down ? 1 : 0.7), ry, down ? 2 : 1.4, down ? 10 : 7);
-      if (lb < row.nb) {
-        const d = sd[gb]!;
-        c.fillStyle = P.faint;
-        for (let j = 1; j < d; j++) c.fillRect(x + (j * g.bw) / d - 0.5, ry, 1, 4);
+      const painting = !!s.painting && s.painting.beats.has(gb);
+      const d = painting ? s.painting!.d : sd[gb]!;
+      const odd = d !== common;
+      const pad = Math.min(2, g.bw * 0.06);
+      c.fillStyle = painting || odd ? P.accent : P.soft;
+      c.globalAlpha = painting ? 0.32 : odd ? 0.15 : 1;
+      rr(c, x + pad, by, g.bw - 2 * pad, L.bandH, Math.min(8, g.bw / 4));
+      c.fill();
+      c.globalAlpha = 1;
+      const dotR = Math.min(2.4, g.bw / d / 4 + 0.6);
+      c.fillStyle = odd || painting ? P.fg : P.muted;
+      c.globalAlpha = odd || painting ? 0.75 : 0.55;
+      for (let j = 0; j < d; j++) {
+        c.beginPath();
+        c.arc(x + ((j + 0.5) * g.bw) / d, by + L.bandH / 2, dotR, 0, Math.PI * 2);
+        c.fill();
       }
+      c.globalAlpha = 1;
+      // the ratio of beats that differ is named in the number row above, so no dot is covered
+      if ((odd || painting) && g.bw >= 40) {
+        c.fillStyle = P.accent;
+        c.font = `700 11px ${MONO}`;
+        c.textAlign = 'right';
+        c.textBaseline = 'alphabetic';
+        c.fillText(`${d}:1`, x + g.bw - 4, rowTop(g, r) + 14);
+      }
+    }
+    // cycle marks: a red tick at every downbeat and at the row's end
+    for (let lb = 0; lb <= row.nb; lb++) {
+      const gb = row.b0 + lb;
+      if (gb % B !== 0) continue;
+      const x = L.margin + lb * g.bw;
+      c.fillStyle = P.land;
+      c.fillRect(x - 1, by - 2, 2, L.bandH + 4);
     }
   }
 
@@ -223,6 +228,18 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.fillText(seg.first ? String(x.n) : `…${x.n}`, X + (W > 26 ? 8 : 4), ty + L.tileH / 2);
           c.globalAlpha = 1;
         }
+        if (s.grips === x.id) {
+          const drawGrip = (gx: number, on: boolean) => {
+            c.fillStyle = P.sel;
+            rr(c, gx - 3, ty + L.tileH / 2 - 14, 6, 28, 3);
+            c.fill();
+            c.strokeStyle = P.card;
+            c.lineWidth = on ? 2 : 1.5;
+            c.stroke();
+          };
+          if (seg.first) drawGrip(X + 1, s.activeGrip === 'start');
+          if (seg.last) drawGrip(X + W - 1, s.activeGrip === 'end');
+        }
       }
     }
     a += x.n;
@@ -231,8 +248,13 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   /* ---------------- handles */
   if (s.showHandles) {
     const maxD = Math.max(...sd);
+    // the selected group's grips replace the handles on its own edges
+    const gi = s.grips ? doc.items.findIndex((y) => y.id === s.grips) : -1;
+    const gs0 = gi >= 0 ? startOf(doc.items, gi) : -1;
+    const ge0 = gi >= 0 ? gs0 + doc.items[gi]!.n : -1;
     for (const b of boundaries(doc.items)) {
       if (b.slot <= 0 || b.slot >= g.grid.TS) continue;
+      if (b.slot === gs0 || b.slot === ge0) continue;
       const p = xOf(g, g.grid.times[b.slot]!);
       const ty = tileY(g, p.r);
       const on = s.activeBoundary === b.key || s.hoverBoundary === b.key;

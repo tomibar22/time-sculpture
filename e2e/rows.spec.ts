@@ -12,7 +12,7 @@ test('two cycles per row puts the whole phrase on one row', async ({ page }) => 
   const s = await score(page);
   // one row of 8 beats: the 3 that opens cycle 2 sits at beat 4 + 1.0
   const bw = (s.w - 8) / 8;
-  await page.mouse.click(s.x + 4 + 5.1 * bw, s.y + 82);
+  await page.mouse.click(s.x + 4 + 5.1 * bw, s.y + 54);
   await expect(page.getByTestId('selname')).toContainText('Group 3');
   await expect(page.getByTestId('selname')).toContainText('ending');
   const box = (await page.getByTestId('score').boundingBox())!;

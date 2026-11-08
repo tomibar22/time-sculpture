@@ -3,8 +3,9 @@ import type { Page } from '@playwright/test';
 
 /** Mirrors src/score/geometry.ts layout constants. */
 const M = 4;
-const STRIDE = 20 + 24 + 8 + 52 + 14 + 26;
-const TILE_TOP = 4 + 20 + 24 + 8;
+const STRIDE = 20 + 4 + 52 + 5 + 22 + 24;
+const TILE_TOP = 4 + 20 + 4;
+const BAND_MID = TILE_TOP + 52 + 5 + 11;
 
 export interface ScoreBox {
   x: number;
@@ -30,7 +31,7 @@ export function at(s: ScoreBox, t: number, dy = 0): { x: number; y: number } {
 export function laneAt(s: ScoreBox, beat: number): { x: number; y: number } {
   const r = Math.floor(beat / s.beats);
   const bw = (s.w - 2 * M) / s.beats;
-  return { x: s.x + M + (beat - r * s.beats + 0.5) * bw, y: s.y + 4 + 20 + 12 + r * STRIDE };
+  return { x: s.x + M + (beat - r * s.beats + 0.5) * bw, y: s.y + BAND_MID + r * STRIDE };
 }
 
 export async function drag(
