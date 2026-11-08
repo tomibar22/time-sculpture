@@ -1,0 +1,83 @@
+/** Identifier of an item. Stable across edits. The space always has the id `SPACE_ID`. */
+export type ItemId = string;
+
+export type GroupKind = 'sound' | 'rest';
+
+/** A group of pulses that sounds or rests. */
+export interface Group {
+  readonly id: ItemId;
+  readonly kind: GroupKind;
+  /** Length in pulses, always >= 1. */
+  readonly n: number;
+}
+
+/** The single open space. Its size is derived: total pulses minus the sum of the groups. */
+export interface Space {
+  readonly id: typeof SPACE_ID;
+  readonly kind: 'space';
+  /** Derived length in pulses, >= 0. Recomputed by `normalize`. */
+  readonly n: number;
+}
+
+export type Item = Group | Space;
+
+export const SPACE_ID = 'space' as const;
+
+export interface Meter {
+  /** 3..13 beats per cycle (no denominator). */
+  readonly beatsPerCycle: number;
+  /** 1..32 cycles. */
+  readonly cycles: number;
+  /** Pulses per beat for every beat of the piece (length = beatsPerCycle * cycles), each 1..8. */
+  readonly subdivision: readonly number[];
+}
+
+/** The undoable document. Immutable: operations return new objects and share unchanged ones. */
+export interface Doc {
+  readonly meter: Meter;
+  readonly items: readonly Item[];
+  /** Counter used to mint fresh item ids, so operations stay pure and deterministic. */
+  readonly nextId: number;
+}
+
+export type FailReason =
+  | 'no-room'
+  | 'not-contiguous'
+  | 'nothing-selected'
+  | 'too-small'
+  | 'not-adjacent'
+  | 'no-change'
+  | 'cannot-fill'
+  | 'out-of-range';
+
+/** What an operation did, for user feedback (toasts, flashes, announcements). */
+export interface Report {
+  readonly ok: boolean;
+  readonly reason?: FailReason;
+  /** Items whose start time changed because of a conflict resolution. */
+  readonly moved: readonly ItemId[];
+  /** Sounding groups that lost pulses because something ran into them. */
+  readonly shortened: readonly ItemId[];
+  /** Groups used up completely and removed by a slide. */
+  readonly covered: readonly ItemId[];
+  /** Newly created items (split halves, copies, silences left behind, fills). */
+  readonly created: readonly ItemId[];
+  /** Items removed by the operation itself (remove, merge, meter shrink, absorption). */
+  readonly removed: readonly ItemId[];
+  /** setSubdivision: how many group starts snapped to a different moment. */
+  readonly startsMoved: number;
+  /** setSubdivision: how many groups were squeezed to zero and absorbed. */
+  readonly absorbed: number;
+}
+
+export interface OpResult {
+  readonly doc: Doc;
+  readonly report: Report;
+}
+
+/** Where `add` puts a new group. `start` = end of the start (just before the space), `end` = beginning of the ending (just after the space). */
+export type AddAt = 'start' | 'end' | { readonly index: number };
+
+export type MoveUnit = 'pulse' | 'beat';
+
+export type TrayState = 'fits' | 'dead' | 'big';

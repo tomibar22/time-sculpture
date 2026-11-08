@@ -1,0 +1,128 @@
+import {
+  buildGrid,
+  EPS,
+  MAX_BEATS,
+  MAX_CYCLES,
+  MAX_SUBDIVISION,
+  MIN_BEATS,
+  MIN_CYCLES,
+  MIN_SUBDIVISION,
+  nearestPulse,
+} from '../grid';
+import { groupSum, isSpace, spaceIndex, syncSpace } from '../doc';
+import { fail, report } from '../report';
+import type { Doc, Item, ItemId, Meter, OpResult } from '../types';
+
+/** Time (beats) of every item boundary: [0, end of item 0, end of item 1, ..., NB]. */
+export function boundaryTimes(doc: Doc): number[] {
+  const { times } = buildGrid(doc.meter);
+  const out = [0];
+  let a = 0;
+  for (const x of doc.items) {
+    a += x.n;
+    out.push(times[a]!);
+  }
+  return out;
+}
+
+/**
+ * Change the subdivision of the given beats to d. Every item boundary keeps its moment in time
+ * and snaps to the nearest pulse of the new grid (order preserved). Groups squeezed to zero are absorbed.
+ */
+export function setSubdivision(doc: Doc, beats: Iterable<number>, d: number): OpResult {
+  if (!Number.isInteger(d) || d < MIN_SUBDIVISION || d > MAX_SUBDIVISION)
+    return { doc, report: fail('out-of-range') };
+  const NB = doc.meter.subdivision.length;
+  const todo = [...new Set(beats)].filter(
+    (b) => b >= 0 && b < NB && doc.meter.subdivision[b] !== d,
+  );
+  if (!todo.length) return { doc, report: fail('no-change') };
+
+  const bt = boundaryTimes(doc);
+  const subdivision = doc.meter.subdivision.slice();
+  for (const b of todo) subdivision[b] = d;
+  const meter: Meter = { ...doc.meter, subdivision };
+  const grid = buildGrid(meter);
+
+  const idx = bt.map((t) => nearestPulse(grid, t));
+  idx[0] = 0;
+  idx[idx.length - 1] = grid.TS;
+  for (let i = 1; i < idx.length; i++) if (idx[i]! < idx[i - 1]!) idx[i] = idx[i - 1]!;
+
+  const moved: ItemId[] = [];
+  const removed: ItemId[] = [];
+  let startsMoved = 0;
+  const items: Item[] = [];
+  doc.items.forEach((x, i) => {
+    const n = idx[i + 1]! - idx[i]!;
+    const shifted = Math.abs(grid.times[idx[i]!]! - bt[i]!) > EPS;
+    if (n <= 0 && !isSpace(x)) {
+      removed.push(x.id);
+      return;
+    }
+    if (shifted && i > 0 && !isSpace(x)) {
+      startsMoved++;
+      moved.push(x.id);
+    }
+    items.push(n === x.n ? x : { ...x, n });
+  });
+
+  return {
+    doc: { meter, items: syncSpace(items, grid.TS), nextId: doc.nextId },
+    report: report({ moved, removed, startsMoved, absorbed: removed.length }),
+  };
+}
+
+/**
+ * Change beats per cycle and/or cycles. Subdivisions near the start and near the end stay aligned
+ * (the first half of the new piece copies the old start, the rest copies the old end; any new
+ * beats in between get `fill`). Item sizes are kept and the space absorbs the difference. If the
+ * piece becomes too short, groups next to the space are removed (start side first).
+ */
+export function resizeMeter(
+  doc: Doc,
+  beatsPerCycle: number,
+  cycles: number,
+  fill: number,
+): OpResult {
+  if (
+    beatsPerCycle < MIN_BEATS ||
+    beatsPerCycle > MAX_BEATS ||
+    cycles < MIN_CYCLES ||
+    cycles > MAX_CYCLES ||
+    !Number.isInteger(beatsPerCycle) ||
+    !Number.isInteger(cycles)
+  )
+    return { doc, report: fail('out-of-range') };
+  const { meter } = doc;
+  if (beatsPerCycle === meter.beatsPerCycle && cycles === meter.cycles)
+    return { doc, report: fail('no-change') };
+
+  const old = meter.subdivision;
+  const oNB = old.length;
+  const nNB = beatsPerCycle * cycles;
+  const headLen = Math.ceil(nNB / 2);
+  const subdivision: number[] = [];
+  for (let i = 0; i < nNB; i++) {
+    const fromEnd = nNB - 1 - i;
+    if (i < headLen && i < oNB) subdivision.push(old[i]!);
+    else if (fromEnd < oNB) subdivision.push(old[oNB - 1 - fromEnd]!);
+    else subdivision.push(fill);
+  }
+  const nm: Meter = { beatsPerCycle, cycles, subdivision };
+  const TS = buildGrid(nm).TS;
+
+  const items = doc.items.slice();
+  const removed: ItemId[] = [];
+  while (TS - groupSum(items) < 0) {
+    const si = spaceIndex(items);
+    const k = si > 0 ? si - 1 : si + 1 < items.length ? si + 1 : -1;
+    if (k < 0) break;
+    removed.push(items[k]!.id);
+    items.splice(k, 1);
+  }
+  return {
+    doc: { meter: nm, items: syncSpace(items, TS), nextId: doc.nextId },
+    report: report({ removed }),
+  };
+}
