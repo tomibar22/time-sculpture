@@ -83,7 +83,7 @@ export function Toolbar() {
               onClick={() => {
                 set({ brush: d });
                 sfx.snap();
-                announce(`Brush ${d}:1. Paint the lane above a row.`);
+                announce(`Brush ${d}:1. Paint the dotted band under the tiles.`);
               }}
             >
               {d}:1
@@ -91,7 +91,8 @@ export function Toolbar() {
           ))}
         </div>
         <span id="sub-hint" className="sr-only">
-          Pick a ratio, then tap or drag along the dotted lane above a row of the score.
+          Pick a ratio, then tap or drag along the dotted band under the tiles. With groups
+          selected, press B.
         </span>
       </div>
       <div className="field wrap-field">

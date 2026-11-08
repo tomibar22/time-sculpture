@@ -23,12 +23,21 @@ export function Help() {
             Drag the line between two groups. Drag a green edge into the open space to stretch. To
             merge, select neighbouring groups and press Merge.
           </dd>
+          <dt>Trim</dt>
+          <dd>
+            Select one group: grips appear on its edges. Drag a grip to make the group longer or
+            shorter on that side; its other edge stays put. Whatever it runs into gives way, and
+            time it lets go of becomes silence. Keys: ⌥← ⌥→ move the end edge, ⌥⇧← ⌥⇧→ the start
+            edge (by a pulse, or by a beat in Beat mode).
+          </dd>
           <dt>Split</dt>
           <dd>Double-tap a group, or press S.</dd>
           <dt>Subdivision</dt>
           <dd>
-            Pick 1:1 to 8:1, then tap or drag along the dotted lane above a row. Groups keep their
-            moments in time and snap to the nearest new pulse; you can undo.
+            The dotted band under each row shows the pulses of every beat (a ratio badge marks beats
+            that differ). Pick 1:1 to 8:1, then tap or drag along the band, or select groups and
+            press B. Groups keep their moments in time and snap to the nearest new pulse; you can
+            undo.
           </dd>
           <dt>Write</dt>
           <dd>
@@ -51,8 +60,8 @@ export function Help() {
           <dd>
             Space play · ⇧Space play from the caret · ← → move the selection or the caret · ⇧← ⇧→
             select like text · Home / End caret to the start or end · 1–9 type · Delete remove · M
-            merge · S split · R silence · D duplicate · + − resize · ⇧R reverse · Z undo · Y or ⇧⌘Z
-            redo · Esc clear
+            merge · S split · R silence · D duplicate · + − resize · ⌥← ⌥→ trim · B brush · ⇧R
+            reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

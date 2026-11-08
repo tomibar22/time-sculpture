@@ -2,7 +2,7 @@ import * as E from '../engine';
 import type { GroupKind, GroupSpec, ItemId } from '../engine';
 import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
-import { announce, plural, run, toast } from './actions';
+import { announce, paintSubdivision, plural, run, toast } from './actions';
 import { cursorAt, cursorIndex, useDocStore, useUiStore } from './store';
 import type { Cursor } from './store';
 
@@ -283,4 +283,55 @@ export function playFromCaret(): void {
   const k = E.startOf(d.items, i);
   const grid = E.buildGrid(d.meter);
   startPlayback(k >= grid.TS ? 0 : grid.times[k]!);
+}
+
+/* ------------------------------------------------------------------ trimming edges */
+
+/**
+ * ⌥←/→ move the end edge of the selection, ⌥⇧←/→ its start edge (by a pulse, or to the next
+ * beat line in Beat mode). The opposite edge stays put; neighbours give way or silence fills in.
+ */
+export function trimSelection(side: 'start' | 'end', dir: -1 | 1): void {
+  const d = doc();
+  const idx = E.selectedIndices(d.items, ui().selection);
+  if (!idx.length) return sfx.nope();
+  const i = side === 'end' ? idx[idx.length - 1]! : idx[0]!;
+  const x = d.items[i]!;
+  const s0 = E.startOf(d.items, i);
+  const edge = side === 'end' ? s0 + x.n : s0;
+  let target = edge + dir;
+  if (ui().moveMode === 'beat') {
+    const grid = E.buildGrid(d.meter);
+    const b = E.beatOfPulse(grid, Math.min(edge, grid.TS - 1));
+    const onBeat = grid.pre[b] === edge;
+    const nb = dir > 0 ? (edge >= grid.TS ? grid.NB : b + 1) : onBeat ? b - 1 : b;
+    target = grid.pre[E.clamp(nb, 0, grid.NB)]!;
+  }
+  // growing = moving the edge outwards
+  const delta = side === 'end' ? target - edge : edge - target;
+  const r = E.trimEdge(d, x.id, side, delta);
+  if (r.report.reason === 'out-of-range' || r.report.reason === 'no-change') return sfx.nope();
+  if (!run(r, { label: `trim ${side}`, select: 'keep' })) return;
+  const now = E.findItem(r.doc, x.id);
+  const parts: string[] = [];
+  if (r.report.shortened.length)
+    parts.push(`${plural(r.report.shortened.length, 'group')} shortened`);
+  if (r.report.covered.length) parts.push(`${plural(r.report.covered.length, 'group')} covered`);
+  if (parts.length) toast(`Trimmed to ${now?.n}. ${parts.join(', ')}.`, { undo: true });
+  else announce(`${now?.n} pulses`);
+}
+
+/** B: paint the brush subdivision on the beats under the selection. */
+export function brushSelection(): void {
+  const d = doc();
+  const idx = E.selectedIndices(d.items, ui().selection);
+  if (!idx.length) return sfx.nope();
+  const grid = E.buildGrid(d.meter);
+  const s0 = E.startOf(d.items, idx[0]!);
+  const e0 = E.startOf(d.items, idx[idx.length - 1]!) + d.items[idx[idx.length - 1]!]!.n;
+  const b0 = E.beatOfPulse(grid, s0);
+  const b1 = E.beatOfPulse(grid, Math.max(s0, e0 - 1));
+  const beats: number[] = [];
+  for (let b = b0; b <= b1; b++) beats.push(b);
+  paintSubdivision(beats);
 }

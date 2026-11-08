@@ -13,6 +13,7 @@ import {
   undo,
 } from '../state/actions';
 import {
+  brushSelection,
   copySelection,
   cursorHome,
   deleteAtCursor,
@@ -23,6 +24,7 @@ import {
   playFromCaret,
   resizeSelection,
   reverseSelection,
+  trimSelection,
   typeDigit,
 } from '../state/editing';
 import { useUiStore } from '../state/store';
@@ -78,7 +80,14 @@ export function useKeyboard() {
         }
         return;
       }
-      if (e.altKey) return;
+      if (e.altKey) {
+        // ⌥←/→ trim the end edge, ⌥⇧←/→ the start edge (preventDefault also stops Alt+← = Back)
+        if (hasSel && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+          e.preventDefault();
+          return trimSelection(e.shiftKey ? 'start' : 'end', e.key === 'ArrowLeft' ? -1 : 1);
+        }
+        return;
+      }
 
       // digits: type a size (Shift+digit types a silence)
       const digit =
@@ -122,6 +131,7 @@ export function useKeyboard() {
       if (e.key === '+' || e.key === '=') return resizeSelection(1);
       if (e.key === '-' || e.key === '_') return resizeSelection(-1);
       if (e.key === 'R' && e.shiftKey) return reverseSelection();
+      if (k === 'b') return brushSelection();
       if (k === 's') splitSelection();
       else if (k === 'm') mergeSelection();
       else if (k === 'r') toggleSelectionKind();

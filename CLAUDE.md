@@ -43,7 +43,7 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/move.ts      reorder (Place), slide (Pulse/Beat), stepDelta, clampSlide
   ops/meter.ts     setSubdivision, resizeMeter
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
-                   copyGroups, formatGroups / parseGroups ("3 (2) 4")
+                   copyGroups, formatGroups / parseGroups ("3 (2) 4"), trimEdge
 src/state/         Zustand store: document (undo/redo) + ui; actions.ts, editing.ts (caret)
 src/audio/         AudioContext unlock, scheduler, voices, interface sounds
 src/score/         canvas: geometry, draw, hit-testing, gestures
@@ -121,7 +121,21 @@ G3 by size), rests silent.
   Home/End and ⌘←/→ caret to the ends; Backspace/Delete beside the caret; +/− resize; ⇧R
   reverse; ⇧Space play from the caret.
 
+### Trimming (trimEdge)
+
+- Trim one edge of a group like a DAW clip; the opposite edge stays fixed in time. Growing eats
+  into neighbours (space, rests, sounds; used-up = covered), shrinking leaves silence (joins a
+  neighbouring rest/space, else a new rest). Property-tested.
+- UI: a single selected group shows grips on its edges (they win over line handles there).
+  Keys: ⌥←/→ end edge, ⌥⇧←/→ start edge; by pulse, or beat line in Beat mode. A run of selected
+  groups trims its outer edges.
+
 ### Score layout (src/score/rows.ts)
+
+- Each row: beat numbers (cycle downbeats red, ratio of differing beats as an accent label) →
+  tiles → the dotted subdivision band (a pill per beat, a dot per pulse; red mark at each
+  downbeat). The band is both the display and the paint target (everything below the tiles).
+  There is no separate lane above. B paints the brush on the beats under the selection.
 
 - Rows show whole cycles: `ui.perRow` (default 1) plus optional custom `ui.rows` (cycles per
   row from the top), normalised by `normalizeRows`. Saved with the piece (not undoable).
@@ -157,7 +171,8 @@ G3 by size), rests silent.
 - Default tray: 2, 3, 4, 5, 7. Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
-  D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A select all · Esc clear · 1–9 type · ⌘C/X/V.
+  D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A select all · Esc clear · 1–9 type · ⌘C/X/V ·
+  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.
 

@@ -4,6 +4,7 @@ import type { Doc, ItemId, OpResult } from '../engine';
 import { ui as sfx } from '../audio/voices';
 import {
   announce,
+  flash,
   paintSubdivision,
   reportSlide,
   run,
@@ -16,7 +17,7 @@ import { cursorIndex, useDocStore, useUiStore } from '../state/store';
 import { readPalette } from './colors';
 import type { Palette } from './colors';
 import { drawScore } from './draw';
-import { geometry, hit, hitBoundary, itemAt, slotAt } from './geometry';
+import { geometry, hit, hitBoundary, hitTrimGrip, itemAt, slotAt } from './geometry';
 import type { Boundary, Geo } from './geometry';
 import { scoreRegistry } from './registry';
 import { normalizeRows } from './rows';
@@ -28,6 +29,15 @@ const DRAG_THRESHOLD = 8;
 type Gesture =
   | { kind: 'lane'; beats: Set<number> }
   | { kind: 'boundary'; b: Boundary; base: Doc; result: OpResult | null }
+  | {
+      kind: 'trim';
+      base: Doc;
+      id: ItemId;
+      side: 'start' | 'end';
+      edge: number;
+      result: OpResult | null;
+      delta: number;
+    }
   | {
       kind: 'press';
       id: ItemId;
@@ -103,6 +113,11 @@ export function Score() {
         playhead: s.playhead,
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
         focusedId: s.focusedId,
+        grips:
+          s.selection.length === 1 && gs?.kind !== 'slide' && gs?.kind !== 'place'
+            ? s.selection[0]!
+            : null,
+        activeGrip: gs?.kind === 'trim' ? gs.side : null,
       },
       palette.current,
     );
@@ -167,7 +182,29 @@ export function Score() {
       request();
       return;
     }
-    const b = hitBoundary(g, doc.items, x, y);
+    const touch = e.pointerType === 'touch';
+    // a single selected group shows trim grips on its edges; they win over the line handles
+    const sel = E.selectedIndices(doc.items, ui().selection);
+    if (sel.length === 1) {
+      const si = sel[0]!;
+      const side = hitTrimGrip(g, doc.items, si, x, y, touch);
+      if (side) {
+        const s0 = E.startOf(doc.items, si);
+        gesture.current = {
+          kind: 'trim',
+          base: doc,
+          id: doc.items[si]!.id,
+          side,
+          edge: side === 'end' ? s0 + doc.items[si]!.n : s0,
+          result: null,
+          delta: 0,
+        };
+        sfx.lift();
+        request();
+        return;
+      }
+    }
+    const b = hitBoundary(g, doc.items, x, y, touch);
     if (b) {
       gesture.current = { kind: 'boundary', b, base: doc, result: null };
       request();
@@ -207,12 +244,15 @@ export function Score() {
     if (!gs) {
       const doc = useDocStore.getState().doc;
       const h = hit(g, x, y);
-      const b = h.zone === 'tiles' ? hitBoundary(g, doc.items, x, y) : null;
+      const sel = E.selectedIndices(doc.items, ui().selection);
+      const grip =
+        h.zone === 'tiles' && sel.length === 1 ? hitTrimGrip(g, doc.items, sel[0]!, x, y) : null;
+      const b = h.zone === 'tiles' && !grip ? hitBoundary(g, doc.items, x, y) : null;
       const i = itemAt(g, doc.items, x, y);
       cv.style.cursor =
         h.zone === 'lane'
           ? 'cell'
-          : b
+          : b || grip
             ? 'ew-resize'
             : i >= 0 && !E.isSpace(doc.items[i]!)
               ? 'grab'
@@ -302,6 +342,27 @@ export function Score() {
       return onPointerMove(e);
     }
 
+    if (gs.kind === 'trim') {
+      const { base, id, side, edge } = gs;
+      const gridB = E.buildGrid(base.meter);
+      const t = hit(g, x, y).t;
+      // Beat mode moves the edge from beat line to beat line
+      const k =
+        ui().moveMode === 'beat'
+          ? gridB.pre[E.clamp(Math.round(t), 0, gridB.NB)]!
+          : E.nearestPulse(gridB, E.clamp(t, 0, gridB.NB));
+      const delta = side === 'end' ? k - edge : edge - k;
+      if (delta === gs.delta) return;
+      gs.delta = delta;
+      const r = E.trimEdge(base, id, side, delta);
+      gs.result = r.report.ok ? r : null;
+      setUi({ preview: gs.result?.doc ?? base });
+      sfx.snap();
+      const it = (gs.result?.doc ?? base).items.find((z) => z.id === id);
+      if (it) announce(`${it.n} pulses`);
+      return;
+    }
+
     if (gs.kind === 'slide') {
       const { base, ids, s0 } = gs;
       const t = hit(g, x, y).t - gs.offT;
@@ -364,6 +425,24 @@ export function Score() {
         label: gs.b.kind === 'line' ? 'reshape' : `stretch ${it ? E.describeItem(it) : ''}`,
         select: 'keep',
       });
+      return;
+    }
+    if (gs.kind === 'trim') {
+      clearDrag();
+      if (cancelled) return;
+      if (!gs.result) {
+        // a tap on a grip without dragging behaves like a tap on the tile
+        select(gs.id);
+        return;
+      }
+      if (run(gs.result, { label: `trim ${gs.side}`, select: [gs.id], sound: sfx.drop })) {
+        const r = gs.result.report;
+        flash(r.shortened);
+        const parts: string[] = [];
+        if (r.shortened.length) parts.push(`${plural(r.shortened.length, 'group')} shortened`);
+        if (r.covered.length) parts.push(`${plural(r.covered.length, 'group')} covered`);
+        if (parts.length) toast(`Trimmed. ${parts.join(', ')}.`, { undo: true });
+      }
       return;
     }
     if (gs.kind === 'slide') {
@@ -432,7 +511,7 @@ export function Score() {
         className="score"
         data-testid="score"
         tabIndex={0}
-        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, paint the lane above a row to change subdivision. Use the group list after this for keyboard and screen reader access."
+        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={() => end(false)}
