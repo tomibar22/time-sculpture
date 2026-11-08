@@ -71,9 +71,11 @@ iPhones; if you hear nothing, flip the switch.
 
 The “How to use it” section in the app lists every gesture and key. In short: tap a group to
 select it, drag to move it (by Pulse, Beat, or Place), drag the line between two groups to
-reshape them, drag a green edge into the open space to stretch, and paint the dotted lane above a
-row to change the subdivision. The Library menu (top right) creates, duplicates, renames,
-deletes, exports, imports, and shares compositions.
+reshape them, drag a green edge into the open space to stretch, and paint the dotted
+band under a row to change the subdivision. Write by placing a caret and typing numbers (or the
+number pad, **123**, on a phone). The Library menu (top right) creates, duplicates, renames,
+deletes, opens and shares compositions, and saves them as a **PDF score** or a **JSON** file
+([format](docs/file-format.md)).
 
 ## Code map
 

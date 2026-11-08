@@ -1,24 +1,26 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, drag, expectSeq, laneAt, P, score, tap } from './helpers';
+import { at, DEFAULT_SEQ, drag, expectSeq, laneAt, P, score, showPad, tap, ready } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+  await ready(page);
   await expectSeq(page, DEFAULT_SEQ);
 });
 
-test('add a piece from the tray, then undo and redo', async ({ page }) => {
-  await page.getByTestId('piece-2').click();
-  await expectSeq(page, '(2) 3 3 2 │ 2 3 (1) 3 2 4');
+test('type on the number pad, then undo and redo', async ({ page }) => {
+  await showPad(page);
+  await page.getByTestId('key-2').click();
+  await expectSeq(page, '(2) 3 3 2 2 │ 3 (1) 3 2 4');
   await page.getByRole('button', { name: 'Undo', exact: true }).first().click();
   await expectSeq(page, DEFAULT_SEQ);
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
-  await expectSeq(page, '(2) 3 3 2 │ 2 3 (1) 3 2 4');
+  await expectSeq(page, '(2) 3 3 2 2 │ 3 (1) 3 2 4');
 });
 
-test('add at the start as silence', async ({ page }) => {
-  await page.getByRole('button', { name: '⇤ Start' }).click();
-  await page.getByRole('button', { name: 'Silence', exact: true }).click();
-  await page.getByTestId('piece-3').click();
+test('the number pad writes silence too', async ({ page }) => {
+  await showPad(page);
+  await page.locator('.keypad').getByRole('button', { name: 'Silence', exact: true }).click();
+  await page.getByTestId('key-3').click();
   await expectSeq(page, '(2) 3 3 2 (3) │ 3 (1) 3 2 4');
 });
 

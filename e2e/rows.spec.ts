@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, score } from './helpers';
+import { DEFAULT_SEQ, expectSeq, score, ready } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+  await ready(page);
   await expectSeq(page, DEFAULT_SEQ);
 });
 

@@ -47,7 +47,9 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
 src/state/         Zustand store: document (undo/redo) + ui; actions.ts, editing.ts (caret)
 src/audio/         AudioContext unlock, scheduler, voices, interface sounds
 src/score/         canvas: geometry, draw, hit-testing, gestures
-src/components/    header, toolbar, selection bar, status, pieces, options, help, transport, toasts
+src/components/    header, toolbar, selection bar, status, keypad (number pad) + transport dock,
+                   library, rows, options, help, toasts
+src/export/        printed score sheet (sheet.ts) and a tiny PDF writer (pdfWriter.ts)
 src/persistence/   IndexedDB library, JSON import/export, share links
 src/styles/        tokens.css, global.css
 e2e/               Playwright specs (iPhone 14 + desktop)
@@ -133,8 +135,8 @@ G3 by size), rests silent.
 ### Score layout (src/score/rows.ts)
 
 - Each row: beat numbers (cycle downbeats red, ratio of differing beats as an accent label) →
-  tiles → the dotted subdivision band (a pill per beat, a dot per pulse; red mark at each
-  downbeat). The band is both the display and the paint target (everything below the tiles).
+  tiles → the subdivision band: a ruler with a tick where every pulse begins (aligned with tile
+  edges), taller beat ticks, red cycle ticks; differing beats tinted. The band is both the display and the paint target (everything below the tiles).
   There is no separate lane above. B paints the brush on the beats under the selection.
 
 - Rows show whole cycles: `ui.perRow` (default 1) plus optional custom `ui.rows` (cycles per
@@ -151,8 +153,13 @@ G3 by size), rests silent.
 
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
   `current`. Autosave 400 ms after any change, and on `pagehide`.
-- File format v1 (`src/persistence/serialize.ts`): items as `"3"` sound, `"r3"` rest, `"|"` space,
-  plus meter, tray, tempo and the row layout (`perRow`, `rows`; optional, default 1 / []). Imports are validated with `checkInvariants`.
+- File format **v2** (`src/persistence/serialize.ts`, documented in `docs/file-format.md`):
+  plain JSON with title, tempo, beatsPerCycle, cycles, subdivision[], start[] / ending[] of
+  `{pulses, rest?}`, layout, and derived `sounds[]` ({at, length} in beats) for other programs.
+  v1 files still load. Imports are validated with `checkInvariants`.
+- PDF: `src/export/sheet.ts` renders A4 pages (≈216 dpi) with the print palette and
+  `drawScore(noClear)`; `pdfWriter.ts` packs them as FlateDecode images. Loaded on demand.
+  Files are delivered with the share sheet on touch devices, else downloaded.
 - Share links: `#s=` + `z` + base64url(deflate-raw(JSON)), or `j` + base64url(JSON) without
   CompressionStream. Opening one saves it to the library as "<name> (shared)".
 
@@ -168,7 +175,12 @@ G3 by size), rests silent.
 ## UI conventions
 
 - Mobile-first, max content width 800 px, 16 px gutters + safe areas, generous gaps (24 px).
-- Default tray: 2, 3, 4, 5, 7. Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
+- Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
+- Writing is by digits (keyboard, or the docked number pad: 1–9, ⌫, Sound/Silence, caret ←/→;
+  toggled by **123** in the transport, on by default for coarse pointers). Without a caret,
+  digits go to the end of the start and the caret follows. There is no tray/Pieces panel any
+  more (removed at the user's request); the engine's tray/count/fill functions remain unused
+  by the UI except `fillWithSilence` (link in the status line). Clear lives in the Library.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A select all · Esc clear · 1–9 type · ⌘C/X/V ·

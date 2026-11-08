@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, score, tap } from './helpers';
+import { at, clearAll, DEFAULT_SEQ, expectSeq, P, score, showPad, tap, ready } from './helpers';
 
 // Default: (2) 3 3 2 │ 3 (1) 3 2 4 — lines at pulses 2, 5, 8; open space 10–19.
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+  await ready(page);
   await expectSeq(page, DEFAULT_SEQ);
 });
 
@@ -19,7 +20,7 @@ test('tap a line to place a caret, then type sizes and silences', async ({ page 
 });
 
 test('quick digits are separate groups', async ({ page }) => {
-  await page.getByRole('button', { name: 'Clear all' }).click();
+  await clearAll(page);
   const s = await score(page);
   await tap(page, at(s, P(3)));
   await page.keyboard.press('1');
@@ -89,10 +90,11 @@ test('resize and reverse a selection', async ({ page }) => {
   await expectSeq(page, '(2) 4 3 2 │ 2 3 (1) 3 4');
 });
 
-test('touch: tray pieces and the Paste button work at the caret', async ({ page }) => {
+test('touch: the number pad and the Paste button work at the caret', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(8)));
-  await page.getByTestId('piece-4').click();
+  await showPad(page);
+  await page.getByTestId('key-4').click();
   await expectSeq(page, '(2) 3 3 4 2 │ 3 (1) 3 2 4');
   const s2 = await score(page); // the tray click scrolled the page
   await tap(page, at(s2, P(3.5)));
@@ -105,7 +107,7 @@ test('touch: tray pieces and the Paste button work at the caret', async ({ page 
 test('paste a phrase typed as text', async ({ page, context, browserName }) => {
   test.skip(browserName !== 'chromium');
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.getByRole('button', { name: 'Clear all' }).click();
+  await clearAll(page);
   const s = await score(page);
   await tap(page, at(s, P(3)));
   await page.evaluate(() => {

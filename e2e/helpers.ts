@@ -66,3 +66,20 @@ export const expectSeq = (page: Page, text: string) => expect(seq(page)).toHaveT
 /** Default doc: (2) 3 3 2 │ 3 (1) 3 2 4 in 4×2 at 4:1. Pulse p is at t = p / 4. */
 export const P = (p: number) => p / 4;
 export const DEFAULT_SEQ = '(2) 3 3 2 │ 3 (1) 3 2 4';
+
+/** Show the number pad (it starts hidden on desktop, shown on phones). */
+export async function showPad(page: Page) {
+  const toggle = page.getByRole('button', { name: /^123/ });
+  if ((await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click();
+  await expect(page.getByTestId('key-1')).toBeVisible();
+}
+
+/** Clear the composition (from the Library dialog). */
+export async function clearAll(page: Page) {
+  await page.locator('.lib-btn').click();
+  await page.getByRole('button', { name: 'Clear this composition' }).click();
+}
+
+/** Wait until the app has loaded its composition from storage. */
+export const ready = (page: Page) =>
+  page.waitForSelector('html[data-ready]', { state: 'attached' });

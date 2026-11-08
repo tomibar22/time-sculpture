@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, drag, expectSeq, P, score, tap } from './helpers';
+import { at, DEFAULT_SEQ, drag, expectSeq, P, score, tap, ready } from './helpers';
 
 // Default: (2) 3 3 2 │ 3 (1) 3 2 4 — the first 3 spans pulses 2–5.
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+  await ready(page);
   await expectSeq(page, DEFAULT_SEQ);
 });
 
