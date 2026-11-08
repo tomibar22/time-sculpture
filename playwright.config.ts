@@ -13,7 +13,10 @@ export default defineConfig({
     timeout: 120_000,
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1100, height: 900 } } },
+    {
+      name: 'desktop',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1100, height: 900 } },
+    },
     { name: 'iphone', use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium' } },
   ],
 });

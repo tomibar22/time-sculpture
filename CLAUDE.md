@@ -104,6 +104,20 @@ subdivision changes during playback apply immediately without jumps. Sounds: lan
 cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (pentatonic from
 G3 by size), rests silent.
 
+## Persistence
+
+- IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
+  `current`. Autosave 400 ms after any change, and on `pagehide`.
+- File format v1 (`src/persistence/serialize.ts`): items as `"3"` sound, `"r3"` rest, `"|"` space,
+  plus meter, tray and tempo. Imports are validated with `checkInvariants`.
+- Share links: `#s=` + `z` + base64url(deflate-raw(JSON)), or `j` + base64url(JSON) without
+  CompressionStream. Opening one saves it to the library as "<name> (shared)".
+
+## Testing notes
+
+- e2e coordinates come from `e2e/helpers.ts`, which mirrors `src/score/geometry.ts` constants —
+  update both together. Each Playwright test gets fresh storage.
+
 ## UI conventions
 
 - Mobile-first, max content width 800 px, 16 px gutters + safe areas, generous gaps (24 px).
@@ -127,12 +141,14 @@ G3 by size), rests silent.
 | --soft                | #f5f7f9 | #1e2228 |
 | --accent              | #0d7a72 | #3cc4b6 |
 | --accent-ink          | #ffffff | #0b1413 |
-| --land (downbeat red) | #e5484d | #ff6369 |
-| --warn                | #b7791f | #e2b04a |
+| --land (downbeat red) | #c9302c | #ff6369 |
+| --warn                | #9a6516 | #e2b04a |
 | --sel                 | #2b59d9 | #7ea2ff |
 
 Size colours (index = size, cycling 1–12): 1 #7d8794, 2 #159a90, 3 #4b5fd3, 4 #d4961c,
-5 #d64a6b, 6 #3c9550, 7 #8657d3, 8 #d97424, 9 #2399bd, 10 #a8448a, 11 #66792a, 12 #bf432a.
+5 #c43a5c, 6 #3c9550, 7 #8657d3, 8 #d97424, 9 #2399bd, 10 #a8448a, 11 #66792a, 12 #bf432a.
 Fonts: Bricolage Grotesque (display), Atkinson Hyperlegible (body), IBM Plex Mono (numbers).
+Tile text colour is picked per size colour by contrast (`inkFor`). Light --land/--warn and size 5
+were darkened from the prototype to meet WCAG AA for text.
 Radii: panels 20 px, controls 12 px, tiles 9 px. Theme: follows system; `data-theme` on `<html>`
 overrides.

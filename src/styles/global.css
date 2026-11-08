@@ -42,12 +42,16 @@ body {
 /* ---------------------------------------------------------------- header */
 .title-row {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.title-row h1 {
+  margin-top: 0;
 }
 .header-actions {
   display: flex;
+  justify-content: flex-end;
+  margin-right: -10px;
   gap: 4px;
   align-items: center;
   position: relative;
@@ -496,10 +500,12 @@ canvas.score:focus-visible {
   margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: 8px 14px;
   align-items: center;
+  flex-wrap: nowrap;
 }
 .bigplay {
+  flex-shrink: 0;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -511,8 +517,11 @@ canvas.score:focus-visible {
   justify-content: center;
 }
 .now {
-  flex: 1 1 120px;
+  flex: 1 1 auto;
   min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--f-mono);
   font-size: 0.86rem;
   color: var(--muted);
@@ -532,7 +541,7 @@ canvas.score:focus-visible {
 }
 .tempo input {
   accent-color: var(--accent);
-  width: 120px;
+  width: clamp(84px, 24vw, 160px);
 }
 
 /* ---------------------------------------------------------------- feedback */
@@ -630,10 +639,123 @@ canvas.score:focus-visible {
 }
 .segs.ratios {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
-  flex: 1 1 280px;
-  max-width: 440px;
+  grid-template-columns: repeat(8, minmax(44px, 1fr));
+  flex: 1 1 auto;
+  max-width: 460px;
+}
+@media (max-width: 560px) {
+  .segs.ratios {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    flex-basis: 100%;
+    max-width: none;
+  }
 }
 .segs.ratios button {
   padding: 0;
+}
+
+/* ---------------------------------------------------------------- library */
+.lib-btn {
+  max-width: 46vw;
+  gap: 6px;
+  color: var(--fg);
+}
+.lib-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+dialog.library {
+  border: 0;
+  padding: 0;
+  border-radius: var(--r-panel);
+  background: var(--card);
+  color: var(--fg);
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 48px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+dialog.library::backdrop {
+  background: rgba(10, 12, 15, 0.45);
+  backdrop-filter: blur(2px);
+}
+.lib-inner {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.lib-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lib-head h2 {
+  font-family: var(--f-display);
+  margin: 0;
+  font-size: 1.3rem;
+}
+.lib-rename label {
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.lib-rename .row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.lib-rename input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch);
+  border-radius: var(--r-control);
+  border: 1.5px solid var(--line);
+  background: var(--soft);
+  color: var(--fg);
+  font: inherit;
+  padding: 0 12px;
+}
+.lib-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lib-list li {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.lib-open {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  font-weight: 400;
+}
+.lib-list li.current .lib-open {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.lib-open .t {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lib-open .d {
+  color: var(--muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+button.danger {
+  background: var(--land);
+  color: var(--card);
 }

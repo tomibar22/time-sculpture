@@ -3,8 +3,6 @@ import { at, DEFAULT_SEQ, drag, expectSeq, laneAt, P, score, tap } from './helpe
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await page.evaluate(() => indexedDB.deleteDatabase('keyval-store'));
-  await page.goto('/?fresh');
   await expectSeq(page, DEFAULT_SEQ);
 });
 
