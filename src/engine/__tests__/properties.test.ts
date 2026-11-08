@@ -156,6 +156,46 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
     return E.fillWithPieces(d, tray, () => (s = (s * 16807) % 2147483647) / 2147483647);
   }),
   fc.constant((d: Doc) => E.fillWithSilence(d)),
+  fc
+    .record({
+      at: fc.nat(),
+      ns: fc.array(fc.record({ n: fc.integer({ min: 1, max: 6 }), rest: fc.boolean() }), {
+        minLength: 1,
+        maxLength: 4,
+      }),
+    })
+    .map(
+      ({ at, ns }) =>
+        (d: Doc) =>
+          E.insertGroups(
+            d,
+            at % (d.items.length + 1),
+            ns.map((g) => ({ n: g.n, kind: g.rest ? 'rest' : 'sound' })),
+          ),
+    ),
+  fc
+    .record({ i: fc.nat(), len: fc.integer({ min: 1, max: 3 }), n: fc.integer({ min: 1, max: 9 }) })
+    .map(
+      ({ i, len, n }) =>
+        (d: Doc) =>
+          E.replaceGroups(d, pickRun(d, i, len), [{ n, kind: 'sound' }]),
+    ),
+  fc
+    .record({
+      i: fc.nat(),
+      len: fc.integer({ min: 1, max: 3 }),
+      dlt: fc.integer({ min: -2, max: 2 }),
+    })
+    .map(
+      ({ i, len, dlt }) =>
+        (d: Doc) =>
+          E.resizeGroups(d, pickRun(d, i, len), dlt),
+    ),
+  fc.record({ i: fc.nat(), len: fc.integer({ min: 2, max: 4 }) }).map(
+    ({ i, len }) =>
+      (d: Doc) =>
+        E.reverseGroups(d, pickRun(d, i, len)),
+  ),
   fc.constant((d: Doc) => E.clear(d)),
 );
 

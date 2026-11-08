@@ -9,3 +9,4 @@ export * from './ops/items';
 export * from './ops/shape';
 export * from './ops/move';
 export * from './ops/meter';
+export * from './ops/edit';
