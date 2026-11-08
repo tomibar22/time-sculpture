@@ -28,6 +28,8 @@ export interface Row {
   k1: number;
   /** It starts at a manual line break. */
   manual: boolean;
+  /** Beat width in this row (wider than `Geo.bw` when short rows are fitted to the width). */
+  bw: number;
 }
 
 export interface Geo {
@@ -45,7 +47,7 @@ export interface Geo {
 }
 
 /** Rows wrap every `perRow` bars and at the document's manual line breaks (see rows.ts). */
-export function geometry(width: number, doc: Doc, perRow = 1): Geo {
+export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo {
   const B = doc.meter.beatsPerCycle;
   const rows: Row[] = rowLayout(doc.meter, perRow).map((r) => ({
     b0: r.t0,
@@ -53,9 +55,12 @@ export function geometry(width: number, doc: Doc, perRow = 1): Geo {
     k0: r.k0,
     k1: r.k1,
     manual: r.manual,
+    bw: 0,
   }));
   const widest = Math.max(...rows.map((r) => r.nb));
   const bw = (width - 2 * L.margin) / widest;
+  // fitted rows stretch to the full width; otherwise every row shares one beat width
+  for (const row of rows) row.bw = fit ? (width - 2 * L.margin) / row.nb : bw;
   const stride = L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + L.gapR;
   return {
     w: width,
@@ -83,7 +88,7 @@ export function rowStartingAt(g: Geo, t: number): number {
 }
 
 /** Right edge x of a row. */
-export const rowEndX = (g: Geo, r: number) => L.margin + g.rows[r]!.nb * g.bw;
+export const rowEndX = (g: Geo, r: number) => L.margin + g.rows[r]!.nb * g.rows[r]!.bw;
 
 export const rowTop = (g: Geo, r: number) => L.top + r * g.stride;
 export const tileY = (g: Geo, r: number) => rowTop(g, r) + L.numH + L.gap1;
@@ -93,7 +98,7 @@ export const bandY = (g: Geo, r: number) => tileY(g, r) + L.tileH + L.bandGap;
 /** x position and row of a time in beats. A time on a row boundary belongs to the next row. */
 export function xOf(g: Geo, t: number): { x: number; r: number } {
   const r = rowOf(g, t);
-  return { x: L.margin + (t - g.rows[r]!.b0) * g.bw, r };
+  return { x: L.margin + (t - g.rows[r]!.b0) * g.rows[r]!.bw, r };
 }
 
 export type Zone = 'lane' | 'tiles';
@@ -113,7 +118,7 @@ export function hit(g: Geo, x: number, y: number): Hit {
   const r = clamp(Math.floor((y - L.top + L.gapR / 2) / g.stride), 0, g.R - 1);
   const row = g.rows[r]!;
   const ry = y - rowTop(g, r);
-  const raw = (x - L.margin) / g.bw;
+  const raw = (x - L.margin) / row.bw;
   const local = clamp(raw, 0, row.nb);
   const t = row.b0 + local;
   // the beat under the pointer, kept inside the row (rows may start or end mid-beat)
@@ -217,7 +222,7 @@ export function hitBoundary(
   const h = hit(g, x, y);
   if (h.zone !== 'tiles') return null;
   const d = g.grid.pre[h.beat + 1]! - g.grid.pre[h.beat]!;
-  const pw = g.bw / d;
+  const pw = g.rows[h.r]!.bw / d;
   let best: Boundary | null = null;
   // fingers get a wider grab, but never more than ~half a pulse so narrow tiles stay tappable
   let bd = touch ? Math.max(7, Math.min(15, pw * 0.42)) : Math.max(6, Math.min(11, pw * 0.32));

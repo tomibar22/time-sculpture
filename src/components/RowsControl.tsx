@@ -11,6 +11,7 @@ export function RowsControl() {
   const cycles = useDocStore((s) => s.doc.meter.cycles);
   const breaks = useDocStore((s) => s.doc.meter.breaks?.length ?? 0);
   const perRow = useUiStore((s) => s.perRow);
+  const fitRows = useUiStore((s) => s.fitRows);
   const set = useUiStore((s) => s.set);
   const max = Math.min(MAX_PER_ROW, cycles);
   return (
@@ -28,6 +29,22 @@ export function RowsControl() {
             announce(`${n} bar${n === 1 ? '' : 's'} per row`);
           }}
         />
+      )}
+      {(breaks > 0 || cycles > 1) && (
+        <button
+          type="button"
+          className="ghost rows-btn"
+          aria-pressed={fitRows}
+          title="Stretch rows that end early to the full width"
+          onClick={() => {
+            set({ fitRows: !fitRows });
+            announce(
+              fitRows ? 'Rows keep a common beat width' : 'Short rows stretch to the full width',
+            );
+          }}
+        >
+          Fit rows
+        </button>
       )}
       {breaks > 0 && (
         <button

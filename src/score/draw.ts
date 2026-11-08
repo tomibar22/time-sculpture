@@ -61,15 +61,16 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   // Rows may start and end anywhere (manual line breaks), so everything is drawn from pulse and
   // beat *times* clipped to the row, not from whole beats.
   const B = g.B;
-  const showNumbers = g.bw >= 15;
   const { times, pre } = g.grid;
   for (let r = 0; r < g.R; r++) {
     const row = g.rows[r]!;
     const top = rowTop(g, r);
     const ty = tileY(g, r);
     const by = bandY(g, r);
-    const xAt = (t: number) => L.margin + (t - row.b0) * g.bw;
-    const rowW = row.nb * g.bw;
+    const bw = row.bw;
+    const showNumbers = bw >= 15;
+    const xAt = (t: number) => L.margin + (t - row.b0) * bw;
+    const rowW = row.nb * bw;
     const bFirst = Math.floor(row.b0 + EPS_D);
     const bLast = Math.ceil(row.b0 + row.nb - EPS_D) - 1;
 
@@ -81,7 +82,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       c.textBaseline = 'alphabetic';
       c.textAlign = 'center';
       c.fillStyle = inCycle === 0 ? P.land : P.muted;
-      c.font = `${inCycle === 0 ? 700 : 500} ${g.bw >= 24 ? 13 : 11}px ${MONO}`;
+      c.font = `${inCycle === 0 ? 700 : 500} ${bw >= 24 ? 13 : 11}px ${MONO}`;
       c.fillText(String(inCycle + 1), Math.max(xAt(gb), 5), top + 14);
     }
     // a row that starts at a manual break, in the middle of a beat, says where it is
@@ -132,7 +133,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         rr(c, x0 + 1, by, Math.max(0, x1 - x0 - 2), L.bandH, 6);
         c.fill();
         c.globalAlpha = 1;
-        if (g.bw >= 40 && gb >= row.b0 - EPS_D) {
+        if (bw >= 40 && gb >= row.b0 - EPS_D) {
           c.fillStyle = P.accent;
           c.font = `700 11px ${MONO}`;
           c.textAlign = 'left';
@@ -188,7 +189,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       const dy = lifted ? -5 : 0;
       for (const seg of segments(g, a, x.n)) {
         const p0 = xOf(g, seg.t0);
-        const p1x = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.bw;
+        const p1x = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.rows[seg.r]!.bw;
         const ty = tileY(g, seg.r) + dy;
         const X = p0.x + (seg.first ? 2 : 0);
         const W = p1x - p0.x - (seg.first ? 2 : 0) - (seg.last ? 2 : 0);
@@ -296,7 +297,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       const ty = tileY(g, p.r);
       const on = s.activeBoundary === b.key || s.hoverBoundary === b.key;
       if (b.kind === 'line') {
-        if (!on && g.bw / maxD < 9) continue;
+        if (!on && g.rows[p.r]!.bw / maxD < 9) continue;
         c.fillStyle = on ? P.fg : P.card;
         rr(c, p.x - 3.5, ty + L.tileH / 2 - 12, 7, 24, 3.5);
         c.fill();
@@ -332,7 +333,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     // a translucent band over the selected pulses, row by row, with clear edges
     for (const seg of segments(g, s.range.a, s.range.b - s.range.a)) {
       const x0 = xOf(g, seg.t0).x;
-      const x1 = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.bw;
+      const x1 = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.rows[seg.r]!.bw;
       const ty = tileY(g, seg.r);
       c.fillStyle = P.sel;
       c.globalAlpha = 0.16;

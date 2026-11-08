@@ -53,3 +53,25 @@ test('line breaks are saved with the piece', async ({ page }) => {
   await page.getByRole('button', { name: /Join rows/ }).click();
   await expect(page.getByRole('button', { name: /Join rows/ })).toHaveCount(0);
 });
+
+test('Fit rows stretches a row cut short by a break to the full width', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  // the first row now holds only 1¼ beats; its right side is empty
+  const s1 = await score(page);
+  const right = { x: s1.x + s1.w - 30, y: s1.y + 54 };
+  await page.mouse.click(right.x, right.y);
+  await expect(page.getByTestId('selname')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Fit rows' }).click();
+  await expect(page.getByRole('button', { name: 'Fit rows' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  // stretched: the first 3 (pulses 2–5) now reaches the right edge
+  const s2 = await score(page);
+  await page.mouse.click(s2.x + s2.w - 30, s2.y + 54);
+  await expect(page.getByTestId('selname')).toContainText('Group 3');
+});

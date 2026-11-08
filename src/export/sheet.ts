@@ -29,6 +29,7 @@ export interface SheetInput {
   title: string;
   tempo: number;
   perRow: number;
+  fitRows?: boolean;
 }
 
 function newPage(): { canvas: HTMLCanvasElement; c: CanvasRenderingContext2D } {
@@ -70,7 +71,7 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
   const P = PRINT_PALETTE;
   const contentW = PAGE.w - 2 * M.x;
   const scale = contentW / SCORE_W;
-  const g = geometry(SCORE_W, doc, input.perRow);
+  const g = geometry(SCORE_W, doc, input.perRow, input.fitRows);
   const rowH = g.stride * scale;
   const footerY = PAGE.h - M.bottom + 22;
 

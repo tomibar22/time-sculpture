@@ -85,6 +85,8 @@ export interface UiState {
   addKind: GroupKind;
   /** Bars per row before the score wraps (manual line breaks live in the document). */
   perRow: number;
+  /** Stretch rows that end early (at a line break, or the last row) to the full width. */
+  fitRows: boolean;
   ticks: boolean;
   tempo: number;
   playing: boolean;
@@ -130,6 +132,7 @@ export const useUiStore = create<UiState>((set) => ({
   brush: 4,
   addKind: 'sound',
   perRow: 1,
+  fitRows: false,
   ticks: true,
   tempo: DEFAULT_TEMPO,
   playing: false,

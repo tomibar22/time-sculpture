@@ -65,6 +65,12 @@ describe('the Time Sculpture file (v2)', () => {
     expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.breaks).toEqual([1 + 2 / 3]);
   });
 
+  it('remembers fitted rows', () => {
+    const f = toSaved(doc, 'F', { ...settings, fitRows: true });
+    expect(f.layout.fitRows).toBe(true);
+    expect(fromSaved(JSON.parse(JSON.stringify(f))).settings.fitRows).toBe(true);
+  });
+
   it('turns an old bars-per-row layout into line breaks', () => {
     const old = { ...toSaved(doc, 'Old', settings), layout: { cyclesPerRow: 1, rows: [1, 1] } };
     expect(fromSaved(old).doc.meter.breaks).toEqual([4]);

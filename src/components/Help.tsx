@@ -52,7 +52,9 @@ export function Help() {
             Per row sets how many bars a row holds before the score wraps. Press Enter (or Break
             line) at the caret to start a new row there, on any pulse, even inside a beat; press it
             again at the same place to join the rows. Wrapping restarts after a break, so a phrase
-            that does not start on beat 1 lines up row under row. Join rows removes every break.
+            that does not start on beat 1 lines up row under row. Join rows removes every break. Fit
+            rows stretches rows that end early to the full width (their beats get wider, so they no
+            longer line up with full rows).
           </dd>
           <dt>Select time</dt>
           <dd>

@@ -158,6 +158,9 @@ G3 by size), rests silent.
   break on a bar line realigns). Breaks are undoable and saved (`layout.breaks`); they snap to the
   nearest pulse when the subdivision changes and are dropped when the piece gets shorter. Old
   `rows` (bars per row) layouts load as breaks. "Join rows (N)" clears them.
+- **Fit rows** (`ui.fitRows`, saved as `layout.fitRows`): every row gets its own beat width
+  (`Row.bw`) so short rows stretch to the full width; off = one shared width (aligned beats).
+  Always use `g.rows[r].bw`, never a global beat width, in geometry and drawing.
 - Beat width is the same in every row (set by the widest row), so beats align vertically.
   Drawing works from pulse/beat _times_ clipped to each row. A row starting at a manual break
   mid-beat shows where it starts ("2+1/4") and an accent mark at its left. No "cycle N" labels.

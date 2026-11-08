@@ -12,6 +12,8 @@ export interface PieceSettings {
   tempo: number;
   /** Score layout: bars per row before it wraps (line breaks are part of the document). */
   perRow?: number;
+  /** Stretch short rows to the full width. */
+  fitRows?: boolean;
 }
 
 /** One group of the phrase: `pulses` long; `rest: true` for silence. */
@@ -44,7 +46,7 @@ export interface SavedPiece {
   /** The phrase as written to the end; it ends exactly on the next beat 1. */
   ending: FileGroup[];
   /** Bars per row, and manual line breaks (times in beats where a new row starts). */
-  layout: { cyclesPerRow: number; breaks: number[] };
+  layout: { cyclesPerRow: number; breaks: number[]; fitRows?: boolean };
   sounds?: FileSound[];
 }
 
@@ -69,7 +71,11 @@ export function toSaved(
     subdivision: [...doc.meter.subdivision],
     start: doc.items.slice(0, si).map(fg),
     ending: doc.items.slice(si + 1).map(fg),
-    layout: { cyclesPerRow: settings.perRow ?? 1, breaks: [...(doc.meter.breaks ?? [])] },
+    layout: {
+      cyclesPerRow: settings.perRow ?? 1,
+      breaks: [...(doc.meter.breaks ?? [])],
+      ...(settings.fitRows ? { fitRows: true } : {}),
+    },
   };
   if (opts.sounds) {
     const { times } = buildGrid(doc.meter);
@@ -114,7 +120,12 @@ export function fromSaved(raw: unknown): Parsed {
   const start = Array.isArray(p.start) ? p.start.map(toItem) : [];
   const ending = Array.isArray(p.ending) ? p.ending.map(toItem) : [];
   const items: Item[] = [...start, { id: SPACE_ID, kind: 'space', n: 0 }, ...ending];
-  const layout = (p.layout ?? {}) as { cyclesPerRow?: unknown; rows?: unknown; breaks?: unknown };
+  const layout = (p.layout ?? {}) as {
+    cyclesPerRow?: unknown;
+    rows?: unknown;
+    breaks?: unknown;
+    fitRows?: unknown;
+  };
   return finish(
     meter,
     items,
@@ -124,6 +135,7 @@ export function fromSaved(raw: unknown): Parsed {
     layout.cyclesPerRow,
     layout.rows,
     layout.breaks,
+    layout.fitRows,
   );
 }
 
@@ -147,6 +159,7 @@ function fromV1(p: Record<string, unknown>): Parsed {
     p.tempo,
     p.perRow,
     p.rows,
+    undefined,
     undefined,
   );
 }
@@ -172,6 +185,7 @@ function finish(
   perRow0: unknown,
   rows0: unknown,
   breaks0: unknown,
+  fit0: unknown,
 ): Parsed {
   if (!Number.isInteger(meter.beatsPerCycle) || !Number.isInteger(meter.cycles))
     throw new Error('This file is damaged: the meter is missing');
@@ -190,7 +204,7 @@ function finish(
   if (errs.length) throw new Error(`This file is damaged: ${errs[0]}`);
   const tempo = Number.isFinite(tempo0) ? Math.min(160, Math.max(40, Number(tempo0))) : 72;
   const perRow = Number.isInteger(perRow0) ? Math.min(8, Math.max(1, Number(perRow0))) : 1;
-  return { doc, name, settings: { tempo, perRow } };
+  return { doc, name, settings: { tempo, perRow, ...(fit0 === true ? { fitRows: true } : {}) } };
 }
 
 /* ------------------------------------------------------------------ share links */

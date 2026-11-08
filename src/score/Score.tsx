@@ -77,7 +77,7 @@ export function Score() {
     if (!cv || !width.current) return;
     const s = ui();
     const doc = activeDoc();
-    const g = geometry(width.current, doc, s.perRow);
+    const g = geometry(width.current, doc, s.perRow, s.fitRows);
     geo.current = g;
     const dpr = window.devicePixelRatio || 1;
     if (cv.style.height !== `${g.h}px`) cv.style.height = `${g.h}px`;
