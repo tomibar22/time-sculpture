@@ -1,78 +1,166 @@
-import { buildGrid, checkInvariants, group, syncSpace } from '../engine';
+import { buildGrid, checkInvariants, group, spaceIndex, syncSpace } from '../engine';
 import type { Doc, Item } from '../engine';
 import { SPACE_ID } from '../engine';
 
+/**
+ * The Time Sculpture file (version 2): plain, readable JSON meant to be easy to use elsewhere.
+ * See docs/file-format.md. Version 1 files (and library entries) still load.
+ */
+
 /** Settings saved with a composition (not part of the undoable document). */
 export interface PieceSettings {
-  tray: number[];
   tempo: number;
   /** Score layout: cycles per row, and custom per-row counts. */
   perRow?: number;
   rows?: number[];
 }
 
-/** File format v1. Items are written compactly: "3" sound, "r3" rest, "|" space. */
+/** One group of the phrase: `pulses` long; `rest: true` for silence. */
+export interface FileGroup {
+  pulses: number;
+  rest?: true;
+}
+
+/** A sounding group in time, derived for other programs (ignored when reading). */
+export interface FileSound {
+  /** Onset in beats from the top of the phrase (0 = beat 1 of cycle 1). */
+  at: number;
+  /** Length in beats. */
+  length: number;
+  pulses: number;
+}
+
 export interface SavedPiece {
   format: 'time-sculpture';
-  version: 1;
-  name: string;
-  beats: number;
-  cycles: number;
-  subdivision: number[];
-  items: string[];
-  tray: number[];
+  version: 2;
+  title: string;
+  /** Beats per minute. */
   tempo: number;
-  perRow?: number;
-  rows?: number[];
+  beatsPerCycle: number;
+  cycles: number;
+  /** Pulses per beat, one number for every beat of the piece. */
+  subdivision: number[];
+  /** The phrase as written from the top; the open space comes next. */
+  start: FileGroup[];
+  /** The phrase as written to the end; it ends exactly on the next beat 1. */
+  ending: FileGroup[];
+  layout: { cyclesPerRow: number; rows: number[] };
+  sounds?: FileSound[];
 }
 
-export function toSaved(doc: Doc, name: string, settings: PieceSettings): SavedPiece {
-  return {
+const round = (x: number) => Math.round(x * 1e6) / 1e6;
+
+export function toSaved(
+  doc: Doc,
+  title: string,
+  settings: PieceSettings,
+  opts: { sounds?: boolean } = { sounds: true },
+): SavedPiece {
+  const si = spaceIndex(doc.items);
+  const fg = (x: Item): FileGroup =>
+    x.kind === 'rest' ? { pulses: x.n, rest: true } : { pulses: x.n };
+  const piece: SavedPiece = {
     format: 'time-sculpture',
-    version: 1,
-    name,
-    beats: doc.meter.beatsPerCycle,
+    version: 2,
+    title,
+    tempo: settings.tempo,
+    beatsPerCycle: doc.meter.beatsPerCycle,
     cycles: doc.meter.cycles,
     subdivision: [...doc.meter.subdivision],
-    items: doc.items.map((x) =>
-      x.kind === 'space' ? '|' : x.kind === 'rest' ? `r${x.n}` : `${x.n}`,
-    ),
-    tray: [...settings.tray],
-    tempo: settings.tempo,
-    perRow: settings.perRow ?? 1,
-    rows: [...(settings.rows ?? [])],
+    start: doc.items.slice(0, si).map(fg),
+    ending: doc.items.slice(si + 1).map(fg),
+    layout: { cyclesPerRow: settings.perRow ?? 1, rows: [...(settings.rows ?? [])] },
   };
+  if (opts.sounds) {
+    const { times } = buildGrid(doc.meter);
+    const sounds: FileSound[] = [];
+    let k = 0;
+    for (const x of doc.items) {
+      if (x.kind === 'sound')
+        sounds.push({
+          at: round(times[k]!),
+          length: round(times[k + x.n]! - times[k]!),
+          pulses: x.n,
+        });
+      k += x.n;
+    }
+    piece.sounds = sounds;
+  }
+  return piece;
 }
 
-/** Parse and validate. Throws with a readable message on bad input. */
-export function fromSaved(raw: unknown): { doc: Doc; name: string; settings: PieceSettings } {
-  const p = raw as Partial<SavedPiece>;
-  if (!p || p.format !== 'time-sculpture' || p.version !== 1)
-    throw new Error('Not a Time Sculpture file');
+interface Parsed {
+  doc: Doc;
+  name: string;
+  settings: PieceSettings;
+}
+
+/** Parse and validate a file (v2, or the older v1). Throws with a readable message. */
+export function fromSaved(raw: unknown): Parsed {
+  const p = raw as Record<string, unknown> | null;
+  if (!p || p.format !== 'time-sculpture') throw new Error('Not a Time Sculpture file');
+  if (p.version === 1) return fromV1(p);
+  if (p.version !== 2) throw new Error('This file is from a newer version of Time Sculpture');
+  const meter = {
+    beatsPerCycle: Number(p.beatsPerCycle),
+    cycles: Number(p.cycles),
+    subdivision: Array.isArray(p.subdivision) ? p.subdivision.map(Number) : [],
+  };
+  let next = 1;
+  const toItem = (g: unknown): Item => {
+    const x = g as Partial<FileGroup> | null;
+    return group(`g${next++}`, Number(x?.pulses), x?.rest ? 'rest' : 'sound');
+  };
+  const start = Array.isArray(p.start) ? p.start.map(toItem) : [];
+  const ending = Array.isArray(p.ending) ? p.ending.map(toItem) : [];
+  const items: Item[] = [...start, { id: SPACE_ID, kind: 'space', n: 0 }, ...ending];
+  const layout = (p.layout ?? {}) as { cyclesPerRow?: unknown; rows?: unknown };
+  return finish(
+    meter,
+    items,
+    next,
+    String(p.title ?? 'Untitled'),
+    p.tempo,
+    layout.cyclesPerRow,
+    layout.rows,
+  );
+}
+
+function fromV1(p: Record<string, unknown>): Parsed {
   const meter = {
     beatsPerCycle: Number(p.beats),
     cycles: Number(p.cycles),
-    subdivision: (p.subdivision ?? []).map(Number),
+    subdivision: Array.isArray(p.subdivision) ? p.subdivision.map(Number) : [],
   };
   let next = 1;
-  const items: Item[] = (p.items ?? []).map((s) => {
+  const items: Item[] = (Array.isArray(p.items) ? (p.items as string[]) : []).map((s) => {
     if (s === '|') return { id: SPACE_ID, kind: 'space', n: 0 };
     const rest = s.startsWith('r');
     return group(`g${next++}`, Number(rest ? s.slice(1) : s), rest ? 'rest' : 'sound');
   });
-  const doc: Doc = { meter, items: syncSpace(items, buildGrid(meter).TS), nextId: next };
+  return finish(meter, items, next, String(p.name ?? 'Untitled'), p.tempo, p.perRow, p.rows);
+}
+
+function finish(
+  meter: Doc['meter'],
+  items: Item[],
+  nextId: number,
+  name: string,
+  tempo0: unknown,
+  perRow0: unknown,
+  rows0: unknown,
+): Parsed {
+  if (!Number.isInteger(meter.beatsPerCycle) || !Number.isInteger(meter.cycles))
+    throw new Error('This file is damaged: the meter is missing');
+  const doc: Doc = { meter, items: syncSpace(items, buildGrid(meter).TS), nextId };
   const errs = checkInvariants(doc);
   if (errs.length) throw new Error(`This file is damaged: ${errs[0]}`);
-  const tray =
-    Array.isArray(p.tray) && p.tray.length
-      ? p.tray.map(Number).filter((n) => n >= 1 && n <= 12)
-      : [2, 3, 4, 5, 7];
-  const tempo = Number.isFinite(p.tempo) ? Math.min(160, Math.max(40, Number(p.tempo))) : 72;
-  const perRow = Number.isInteger(p.perRow) ? Math.min(8, Math.max(1, Number(p.perRow))) : 1;
-  const rows = Array.isArray(p.rows)
-    ? p.rows.map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 8)
+  const tempo = Number.isFinite(tempo0) ? Math.min(160, Math.max(40, Number(tempo0))) : 72;
+  const perRow = Number.isInteger(perRow0) ? Math.min(8, Math.max(1, Number(perRow0))) : 1;
+  const rows = Array.isArray(rows0)
+    ? rows0.map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 8)
     : [];
-  return { doc, name: String(p.name ?? 'Untitled'), settings: { tray, tempo, perRow, rows } };
+  return { doc, name, settings: { tempo, perRow, rows } };
 }
 
 /* ------------------------------------------------------------------ share links */
@@ -99,7 +187,10 @@ async function pipe(
 
 /** Encode a piece for the URL hash: "z" + deflate + base64url, or "j" + base64url JSON if compression is unavailable. */
 export async function encodeShare(piece: SavedPiece): Promise<string> {
-  const json = new TextEncoder().encode(JSON.stringify(piece));
+  // the derived sounds are left out to keep links short
+  const lean: SavedPiece = { ...piece };
+  delete lean.sounds;
+  const json = new TextEncoder().encode(JSON.stringify(lean));
   if (typeof CompressionStream !== 'undefined')
     return `z${b64url.encode(await pipe(json, new CompressionStream('deflate-raw')))}`;
   return `j${b64url.encode(json)}`;

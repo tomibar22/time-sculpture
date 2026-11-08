@@ -26,7 +26,7 @@ export async function loadPiece(id: string): Promise<SavedPiece | undefined> {
 export async function savePiece(id: string, piece: SavedPiece): Promise<void> {
   await set(`piece:${id}`, piece, store);
   const idx = ((await get<LibraryEntry[]>(INDEX, store)) ?? []).filter((e) => e.id !== id);
-  idx.push({ id, name: piece.name, updated: Date.now() });
+  idx.push({ id, name: piece.title, updated: Date.now() });
   await set(INDEX, idx, store);
   await set(CURRENT, id, store);
 }

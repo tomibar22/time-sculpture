@@ -19,18 +19,20 @@ import type { SavedPiece } from './serialize';
 const ui = () => useUiStore.getState();
 
 export function currentSaved(): SavedPiece {
-  const { tray, tempo, currentName, perRow, rows } = ui();
-  return toSaved(useDocStore.getState().doc, currentName, { tray, tempo, perRow, rows });
+  const { tempo, currentName, perRow, rows } = ui();
+  return toSaved(useDocStore.getState().doc, currentName, { tempo, perRow, rows });
 }
 
-function adopt(id: string, piece: SavedPiece): void {
-  const { doc, name, settings } = fromSaved(piece);
+/** Make a parsed file (any version) the open composition. Returns its name. */
+function adopt(id: string, raw: unknown, rename?: (name: string) => string): string {
+  const parsed = fromSaved(raw);
+  const { doc, settings } = parsed;
+  const name = rename ? rename(parsed.name) : parsed.name;
   useDocStore.getState().load(doc);
   clearSelection();
   ui().set({
     currentId: id,
     currentName: name,
-    tray: settings.tray,
     tempo: settings.tempo,
     perRow: settings.perRow ?? 1,
     rows: settings.rows ?? [],
@@ -38,6 +40,7 @@ function adopt(id: string, piece: SavedPiece): void {
     selection: [],
     cursor: null,
   });
+  return name;
 }
 
 export async function saveNow(): Promise<void> {
@@ -59,7 +62,7 @@ export async function initSession(): Promise<void> {
     try {
       const piece = await decodeShare(decodeURIComponent(hash.slice(3)));
       const id = newId();
-      adopt(id, { ...piece, name: `${piece.name} (shared)` });
+      adopt(id, piece, (n) => `${n} (shared)`);
       await savePiece(id, currentSaved());
       toast('Opened a shared composition. It is saved in your library.');
       loaded = true;
@@ -87,7 +90,6 @@ export async function initSession(): Promise<void> {
   });
   useUiStore.subscribe((s, prev) => {
     if (
-      s.tray !== prev.tray ||
       s.tempo !== prev.tempo ||
       s.currentName !== prev.currentName ||
       s.perRow !== prev.perRow ||
@@ -96,6 +98,8 @@ export async function initSession(): Promise<void> {
       scheduleSave();
   });
   window.addEventListener('pagehide', () => void saveNow());
+  // lets tests (and anything else) know the composition is loaded and edits are safe
+  document.documentElement.dataset.ready = '1';
 }
 
 /* ------------------------------------------------------------------ library actions */
@@ -104,9 +108,9 @@ export async function openPiece(id: string): Promise<void> {
   await saveNow();
   const piece = await loadPiece(id);
   if (!piece) return toast('That composition is gone.');
-  adopt(id, piece);
+  const name = adopt(id, piece);
   await setCurrentPieceId(id);
-  announce(`Opened ${piece.name}`);
+  announce(`Opened ${name}`);
 }
 
 export async function createPiece(doc: Doc = blankDoc(), name = 'Untitled'): Promise<void> {
@@ -140,26 +144,49 @@ export async function removePiece(id: string): Promise<void> {
 
 export { listPieces };
 
-export function exportFile(): void {
-  const piece = currentSaved();
-  const blob = new Blob([JSON.stringify(piece, null, 2)], { type: 'application/json' });
+/** A safe file name from a title (keeps letters in any script). */
+export const fileName = (title: string, ext: string) =>
+  `${title.replace(/[\\/:*?"<>|]+/g, '').trim() || 'composition'}.${ext}`;
+
+/**
+ * Hand a file to the user. On phones the share sheet ("Save to Files", AirDrop…) is the natural
+ * way; elsewhere it downloads.
+ */
+export async function deliverFile(blob: Blob, name: string): Promise<void> {
+  const file = new File([blob], name, { type: blob.type });
+  const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+  if (coarse && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name });
+      return;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+    }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${piece.name.replace(/[^\w\- ]+/g, '').trim() || 'composition'}.timesculpture.json`;
+  a.download = name;
+  document.body.append(a);
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+export async function exportFile(): Promise<void> {
+  const piece = currentSaved();
+  const blob = new Blob([JSON.stringify(piece, null, 2) + '\n'], { type: 'application/json' });
+  await deliverFile(blob, fileName(piece.title, 'timesculpture.json'));
 }
 
 export async function importFile(file: File): Promise<void> {
   try {
     const raw: unknown = JSON.parse(await file.text());
-    const piece = raw as SavedPiece;
-    fromSaved(piece); // validate
+    fromSaved(raw); // validate before touching anything
     await saveNow();
     const id = newId();
-    adopt(id, piece);
+    const name = adopt(id, raw);
     await savePiece(id, currentSaved());
-    toast(`Imported ${piece.name}`);
+    toast(`Imported ${name}`);
   } catch (e) {
     toast(e instanceof Error ? e.message : 'That file could not be read.');
   }
@@ -168,4 +195,20 @@ export async function importFile(file: File): Promise<void> {
 export async function shareLink(): Promise<string> {
   const code = await encodeShare(currentSaved());
   return `${location.origin}${location.pathname}#s=${code}`;
+}
+
+/** Save the composition as a printed score sheet (PDF). The renderer loads on demand. */
+export async function exportPdf(): Promise<void> {
+  const { sheetPdf } = await import('../export/sheet');
+  const { tempo, currentName, perRow, rows } = ui();
+  toast('Preparing the PDF…');
+  const blob = await sheetPdf({
+    doc: useDocStore.getState().doc,
+    title: currentName,
+    tempo,
+    perRow,
+    rows,
+  });
+  await deliverFile(blob, fileName(currentName, 'pdf'));
+  toast('PDF ready');
 }
