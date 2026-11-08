@@ -6,6 +6,9 @@ import { SPACE_ID } from '../engine';
 export interface PieceSettings {
   tray: number[];
   tempo: number;
+  /** Score layout: cycles per row, and custom per-row counts. */
+  perRow?: number;
+  rows?: number[];
 }
 
 /** File format v1. Items are written compactly: "3" sound, "r3" rest, "|" space. */
@@ -19,6 +22,8 @@ export interface SavedPiece {
   items: string[];
   tray: number[];
   tempo: number;
+  perRow?: number;
+  rows?: number[];
 }
 
 export function toSaved(doc: Doc, name: string, settings: PieceSettings): SavedPiece {
@@ -34,6 +39,8 @@ export function toSaved(doc: Doc, name: string, settings: PieceSettings): SavedP
     ),
     tray: [...settings.tray],
     tempo: settings.tempo,
+    perRow: settings.perRow ?? 1,
+    rows: [...(settings.rows ?? [])],
   };
 }
 
@@ -61,7 +68,11 @@ export function fromSaved(raw: unknown): { doc: Doc; name: string; settings: Pie
       ? p.tray.map(Number).filter((n) => n >= 1 && n <= 12)
       : [2, 3, 4, 5, 7];
   const tempo = Number.isFinite(p.tempo) ? Math.min(160, Math.max(40, Number(p.tempo))) : 72;
-  return { doc, name: String(p.name ?? 'Untitled'), settings: { tray, tempo } };
+  const perRow = Number.isInteger(p.perRow) ? Math.min(8, Math.max(1, Number(p.perRow))) : 1;
+  const rows = Array.isArray(p.rows)
+    ? p.rows.map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 8)
+    : [];
+  return { doc, name: String(p.name ?? 'Untitled'), settings: { tray, tempo, perRow, rows } };
 }
 
 /* ------------------------------------------------------------------ share links */

@@ -4,44 +4,8 @@ import { ui as sfx } from '../audio/voices';
 import { useDocStore, useUiStore } from '../state/store';
 import type { MoveMode } from '../state/store';
 import { RedoIcon, UndoIcon } from './Icons';
-
-function Stepper(props: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-  fewer: string;
-  more: string;
-}) {
-  const { label, value, min, max, onChange } = props;
-  return (
-    <div className="field">
-      <span id={`lbl-${label}`}>{label}</span>
-      <div className="stepper" role="group" aria-labelledby={`lbl-${label}`}>
-        <button
-          type="button"
-          aria-label={props.fewer}
-          disabled={value <= min}
-          onClick={() => onChange(value - 1)}
-        >
-          −
-        </button>
-        <output aria-live="polite" data-testid={`${label.toLowerCase()}-value`}>
-          {value}
-        </output>
-        <button
-          type="button"
-          aria-label={props.more}
-          disabled={value >= max}
-          onClick={() => onChange(value + 1)}
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
+import { RowsControl } from './RowsControl';
+import { Stepper } from './Stepper';
 
 const MODES: { m: MoveMode; label: string }[] = [
   { m: 'pulse', label: 'Pulse' },
@@ -78,6 +42,7 @@ export function Toolbar() {
           more="More cycles"
           onChange={(c) => setMeter(meter.beatsPerCycle, c)}
         />
+        {meter.cycles > 1 && <RowsControl />}
         <div className="field push">
           <button
             type="button"

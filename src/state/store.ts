@@ -109,6 +109,9 @@ export interface UiState {
   addAt: 'start' | 'end';
   addKind: GroupKind;
   tray: number[];
+  /** Cycles per row by default, and custom per-row counts (see score/rows.ts). */
+  perRow: number;
+  rows: number[];
   snap: boolean;
   ticks: boolean;
   tempo: number;
@@ -151,6 +154,8 @@ export const useUiStore = create<UiState>((set) => ({
   addAt: 'end',
   addKind: 'sound',
   tray: DEFAULT_TRAY,
+  perRow: 1,
+  rows: [],
   snap: false,
   ticks: true,
   tempo: DEFAULT_TEMPO,

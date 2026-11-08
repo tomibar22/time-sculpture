@@ -19,8 +19,8 @@ import type { SavedPiece } from './serialize';
 const ui = () => useUiStore.getState();
 
 export function currentSaved(): SavedPiece {
-  const { tray, tempo, currentName } = ui();
-  return toSaved(useDocStore.getState().doc, currentName, { tray, tempo });
+  const { tray, tempo, currentName, perRow, rows } = ui();
+  return toSaved(useDocStore.getState().doc, currentName, { tray, tempo, perRow, rows });
 }
 
 function adopt(id: string, piece: SavedPiece): void {
@@ -32,6 +32,8 @@ function adopt(id: string, piece: SavedPiece): void {
     currentName: name,
     tray: settings.tray,
     tempo: settings.tempo,
+    perRow: settings.perRow ?? 1,
+    rows: settings.rows ?? [],
     preview: null,
     selection: [],
     cursor: null,
@@ -84,7 +86,13 @@ export async function initSession(): Promise<void> {
     if (s.version !== prev.version) scheduleSave();
   });
   useUiStore.subscribe((s, prev) => {
-    if (s.tray !== prev.tray || s.tempo !== prev.tempo || s.currentName !== prev.currentName)
+    if (
+      s.tray !== prev.tray ||
+      s.tempo !== prev.tempo ||
+      s.currentName !== prev.currentName ||
+      s.perRow !== prev.perRow ||
+      s.rows !== prev.rows
+    )
       scheduleSave();
   });
   window.addEventListener('pagehide', () => void saveNow());

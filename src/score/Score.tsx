@@ -19,6 +19,7 @@ import { drawScore } from './draw';
 import { geometry, hit, hitBoundary, itemAt, slotAt } from './geometry';
 import type { Boundary, Geo } from './geometry';
 import { scoreRegistry } from './registry';
+import { normalizeRows } from './rows';
 
 const LONG_PRESS_MS = 450;
 const DOUBLE_TAP_MS = 330;
@@ -68,7 +69,7 @@ export function Score() {
     if (!cv || !width.current) return;
     const s = ui();
     const doc = activeDoc();
-    const g = geometry(width.current, doc);
+    const g = geometry(width.current, doc, normalizeRows(s.rows, doc.meter.cycles, s.perRow));
     geo.current = g;
     const dpr = window.devicePixelRatio || 1;
     if (cv.style.height !== `${g.h}px`) cv.style.height = `${g.h}px`;

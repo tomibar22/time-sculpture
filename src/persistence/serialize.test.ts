@@ -6,11 +6,13 @@ const doc = docFrom(makeMeter(4, 2, [4, 3, 4, 4, 2, 4, 4, 4]), [[2], 3, '|', 5, 
 
 describe('serialisation', () => {
   it('round-trips through the file format', () => {
-    const saved = toSaved(doc, 'Phrase', { tray: [2, 3], tempo: 96 });
+    const saved = toSaved(doc, 'Phrase', { tray: [2, 3], tempo: 96, perRow: 2, rows: [1, 1] });
     const back = fromSaved(JSON.parse(JSON.stringify(saved)));
     expect(sequence(back.doc)).toEqual(sequence(doc));
     expect(back.doc.meter.subdivision).toEqual(doc.meter.subdivision);
-    expect(back.settings).toEqual({ tray: [2, 3], tempo: 96 });
+    expect(back.settings).toEqual({ tray: [2, 3], tempo: 96, perRow: 2, rows: [1, 1] });
+    const old = { ...saved, perRow: undefined, rows: undefined };
+    expect(fromSaved(old).settings).toMatchObject({ perRow: 1, rows: [] });
     expect(back.name).toBe('Phrase');
   });
 
