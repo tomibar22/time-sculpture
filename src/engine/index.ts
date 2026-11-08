@@ -10,3 +10,5 @@ export * from './ops/shape';
 export * from './ops/move';
 export * from './ops/meter';
 export * from './ops/edit';
+export * from './ops/range';
+export * from './fills';
