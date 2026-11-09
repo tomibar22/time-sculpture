@@ -273,6 +273,10 @@ G3 by size), rests silent.
   `beatsHere()` = beats under the selection / range / caret; `subdivideBeats` re-aims the range
   or caret at the same beats; the panel takes the number pad's place while open) and, with the
   caret at 0, **Bar before**. Keep-in-view also runs when the dock grows.
+- Caret at the ends: `edgeSlot` (geometry.ts) makes a tap at the very start (first row, ≤ half
+  a pulse / 14 px in) or the very end (last row) put the caret there, and a tap right of a short
+  row puts it at that row's end (trim grips and lines win first). The number pad (and the caret
+  bar without it) has ⇤ / ⇥ ("Caret to the start / end") around ← →.
 - `prependBars(doc, n)` (engine/ops/meter.ts): n bars before the beginning, copying the first
   bar's subdivision, become the open space; everything written moves into the ending (old open
   space → silence, reported in `created`); breaks, marks, sections and repeats shift with it.

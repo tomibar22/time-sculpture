@@ -1,6 +1,6 @@
 import { ui as sfx } from '../audio/voices';
 import { removeSelection } from '../state/actions';
-import { deleteAtCaret, moveCaret, typeDigit } from '../state/editing';
+import { caretHome, deleteAtCaret, moveCaret, typeDigit } from '../state/editing';
 import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 
@@ -35,6 +35,15 @@ export function Keypad() {
           <button
             type="button"
             className="icon"
+            aria-label="Caret to the start"
+            title="Caret to the very start (Home)"
+            onClick={() => caretHome(false)}
+          >
+            ⇤
+          </button>
+          <button
+            type="button"
+            className="icon"
             aria-label="Caret left"
             onClick={() => moveCaret(-1)}
           >
@@ -47,6 +56,15 @@ export function Keypad() {
             onClick={() => moveCaret(1)}
           >
             →
+          </button>
+          <button
+            type="button"
+            className="icon"
+            aria-label="Caret to the end"
+            title="Caret to the very end (End)"
+            onClick={() => caretHome(true)}
+          >
+            ⇥
           </button>
         </div>
       </div>

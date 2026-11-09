@@ -20,6 +20,7 @@ import { drawScore } from './draw';
 import {
   geometry,
   hit,
+  edgeSlot,
   hitBoundary,
   hitTrimGrip,
   itemAt,
@@ -295,6 +296,12 @@ export function Score() {
     if (b) {
       gesture.current = { kind: 'boundary', b, base: doc, result: null };
       request();
+      return;
+    }
+    // the very start and end of the piece (and the end of a short row) take the caret
+    const edge = edgeSlot(g, x, y, touch);
+    if (edge !== null) {
+      gesture.current = { kind: 'empty', slot: edge };
       return;
     }
     const i = itemAt(g, doc.items, x, y);

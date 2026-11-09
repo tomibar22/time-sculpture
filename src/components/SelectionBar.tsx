@@ -20,6 +20,7 @@ import {
   selectAll,
 } from '../state/actions';
 import {
+  caretHome,
   openSubdivision,
   selectedRegion,
   copyButton,
@@ -309,11 +310,17 @@ function CaretBar() {
       <div className="selbar-actions">
         {!keypad && (
           <>
+            <button type="button" aria-label="Caret to the start" onClick={() => caretHome(false)}>
+              ⇤
+            </button>
             <button type="button" aria-label="Caret left" onClick={() => moveCaret(-1)}>
               ←
             </button>
             <button type="button" aria-label="Caret right" onClick={() => moveCaret(1)}>
               →
+            </button>
+            <button type="button" aria-label="Caret to the end" onClick={() => caretHome(true)}>
+              ⇥
             </button>
           </>
         )}

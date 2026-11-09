@@ -254,6 +254,26 @@ export function hitBoundary(
   return best;
 }
 
+/**
+ * A tap that should put the caret at an edge: the very start of the piece (its first row's left
+ * end), the very end (the last row's right end), or the empty part right of a row that ends
+ * early (its end). The reach into the first/last tile is at most half a pulse there, so narrow
+ * tiles stay tappable. Returns the pulse, or null.
+ */
+export function edgeSlot(g: Geo, x: number, y: number, touch = false): number | null {
+  const h = hit(g, x, y);
+  if (h.zone !== 'tiles') return null;
+  const row = g.rows[h.r]!;
+  const reach = touch ? 14 : 8;
+  const pulseW = (beat: number) => row.bw / (g.grid.pre[beat + 1]! - g.grid.pre[beat]!);
+  if (h.r === 0 && x <= L.margin + Math.min(reach, pulseW(0) * 0.5)) return 0;
+  const endX = rowEndX(g, h.r);
+  const lastBeat = Math.ceil(row.b0 + row.nb - EPS) - 1;
+  if (h.r === g.R - 1 && x >= endX - Math.min(reach, pulseW(lastBeat) * 0.5)) return row.k1;
+  if (x > endX + 2) return row.k1;
+  return null;
+}
+
 /** Screen edges of item i: where its start sits and where its end sits (end of a row if it ends there). */
 export function itemEdges(
   g: Geo,

@@ -62,3 +62,20 @@ test('+ Bar at the end in the settings', async ({ page }) => {
   await expect(page.getByTestId('bars-value')).toHaveText('3');
   await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 │ ·');
 });
+
+test('a tap at the very start or end of the piece puts the caret there', async ({ page }) => {
+  const s = await score(page);
+  const row2 = at(s, 4); // y of the second (last) row
+  await tap(page, { x: s.x + 2, y: at(s, 0).y });
+  await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1');
+  await tap(page, { x: s.x + s.w - 2, y: row2.y });
+  await expect(page.getByTestId('caretname')).toContainText('the very end');
+});
+
+test('⇤ and ⇥ on the number pad take the caret to the start and the end', async ({ page }) => {
+  await showPad(page);
+  await page.getByRole('button', { name: 'Caret to the end' }).click();
+  await expect(page.getByTestId('caretname')).toContainText('the very end');
+  await page.getByRole('button', { name: 'Caret to the start' }).click();
+  await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1');
+});

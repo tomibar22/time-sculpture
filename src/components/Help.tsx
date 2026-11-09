@@ -48,7 +48,8 @@ export function Help() {
             space to place it, ⌥-click to place it inside a tile, and move it with ← → (one pulse)
             or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there (Shift+number writes
             a silence). Inside the open space the gap before the caret becomes silence; inside a
-            tile, the tile is split. On a phone, use the number pad (123). To write an opening
+            tile, the tile is split. On a phone, use the number pad (123). Tap the very start or end
+            of the score, or use ⇤ and ⇥ on the pad, to put the caret there. To write an opening
             before what is already there, put the caret at the very start and tap Bar before (or +
             Bar at the start in the settings): an open bar is added in front, and what was written
             moves on with it, still landing on 1. To go on after the end, put the caret at the very
