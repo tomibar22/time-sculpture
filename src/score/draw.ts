@@ -188,10 +188,14 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         rr(c, x0 + 1, by, Math.max(0, x1 - x0 - 2), L.bandH, 6);
         c.fill();
         c.globalAlpha = 1;
-        const startsRun = gb === 0 || ratioAt(gb - 1) !== d;
-        if (startsRun && bw >= 26 && gb >= row.b0 - EPS_D)
-          labels.push({ x: xAt(gb) + 4, text: `${d}:1` });
+
       }
+      // named at the start of the piece and of each section, and wherever the ratio changes
+      // (back to the main one too)
+      const startsRun =
+        gb === 0 || bm.sections.some((x) => x.at === gb) || ratioAt(gb - 1) !== d;
+      if (startsRun && bw >= 26 && gb >= row.b0 - EPS_D)
+        labels.push({ x: xAt(gb) + 4, text: `${d}:1` });
       const kEnd = Math.min(pre[gb + 1]!, row.k1);
       const dense = bw / (pre[gb + 1]! - pre[gb]!) < 3;
       for (let k = Math.max(pre[gb]!, row.k0); k < kEnd; k++) {

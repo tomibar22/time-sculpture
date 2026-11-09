@@ -149,7 +149,8 @@ G3 by size), rests silent.
 - Each row: beat numbers (cycle downbeats red) → tiles → the subdivision band: a ruler with a
   tick where every pulse begins (aligned with tile edges, upper half), taller beat ticks, red
   cycle ticks; beats whose ratio differs from the most common one are tinted, and a run of
-  beats with the same ratio is named once ("3:1"), where it starts, in the band's lower half
+  beats with the same ratio is named once ("3:1") where it starts (also at the piece's and each
+  section's start, and when it returns to the main ratio), in the band's lower half
   (not repeated per bar or row; user request). The band is both the display and the paint target (everything below the tiles).
   There is no separate lane above. B paints the brush on the beats under the selection.
 
