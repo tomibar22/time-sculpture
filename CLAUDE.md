@@ -36,6 +36,7 @@ Plain CSS with custom-property tokens. @fontsource fonts. vite-plugin-pwa. idb-k
 
 ```
 src/engine/        pure TS, no React/DOM. Fully unit + property tested.
+  vary.ts          variations of a passage (same length): reverse, rotate, regroup, shuffle
   types.ts         Doc, Meter, Item (Group | Space), Report, OpResult
   grid.ts          meter → pulse grid (times in beats), nearest/floor/ceil pulse
   doc.ts           helpers, syncSpace, invariants (checkInvariants/assertValid), docFrom (tests)
@@ -53,7 +54,8 @@ src/audio/         AudioContext unlock, scheduler, voices, interface sounds
 src/score/         canvas: geometry, draw, hit-testing, gestures
 src/components/    header, toolbar, selection bar, status, keypad (number pad) + transport dock,
                    library, rows, options, help, toasts
-src/export/        printed score sheet (sheet.ts) and a tiny PDF writer (pdfWriter.ts)
+src/export/        printed score sheet (sheet.ts, also the PNG picture), a tiny PDF writer
+                   (pdfWriter.ts), MusicXML (musicxml.ts) and MIDI (midi.ts) writers
 src/persistence/   IndexedDB library, JSON import/export, share links
 src/styles/        tokens.css, global.css
 e2e/               Playwright specs (iPhone 14 + desktop)
@@ -112,6 +114,20 @@ subdivision changes during playback apply immediately without jumps. Sounds: lan
 cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (by size, longer
 = lower: 1 → G5, down the major pentatonic, 11 → G3, 16 and longer → G2), rests silent.
 
+- **Voices** (audio/voices.ts): groups are mallet-like (sine + quick partials) and ring with the
+  group's length (`playGroup(t, n, seconds)`); clicks are a soft woodblock; a limiter sits on the
+  master. `ui.click` (Options) turns the beat click off; the landing (the 1) always sounds.
+- **Practice loop**: `ui.loop {a, b}` (beats). `startPlayback(from, loop)`; ⇧Space or "↻ Loop"
+  with tiles or a range selected loops that stretch (`playFromCaret`), with only a caret it plays
+  on from it. The player's plan is then that one span; the piece's "1" inside it is a downbeat.
+  Its ends are bracketed in the score. `stopPlayback` clears it.
+- In the editor the sounding group gets a light ring (stage has its own, heavier look).
+- iOS: `navigator.audioSession.type = 'playback'` (the silent switch does not mute), resume on
+  any non-running state ('interrupted'), and playback **stops when the page is hidden** (timers
+  are throttled there; catching up would play a burst).
+- Tempo 30–240 (`MIN_TEMPO`/`MAX_TEMPO`), slider in the transport; the number opens
+  `TempoDialog` (±1, ±5, tap tempo over the last ≤ 6 taps).
+
 ### Text-editor editing (ops/edit.ts, ops/range.ts, state/editing.ts)
 
 - The **caret is a pulse** (`ui.caret`, 0..TS), like a caret between letters, and a **range** is
@@ -149,6 +165,18 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   `shapeFills` builds them directly (≤ 40 per family) and `fillOptions` adds them to the list
   (`FillOption.shape`). UI: family chips with counts (`ui.fillShape`), "Anything" = every fill
   with the old sorts, 🎲 Surprise applies a random one from the chosen family.
+
+- **Tihai** (`tihaiFills`, first in `SHAPE_FAMILIES`): a phrase of 1–4 tiles three times with
+  the same silence (1–9) between, 3 × phrase + 2 × gap = R. Fills may hold silences:
+  `FillOption.rests` (indices), `fillGroups(o)` → GroupSpec[]; `key` shows them as "(n)".
+  `sortFills` ("Anything") lists plain tilings only.
+- **Vary** (engine/vary.ts, third tab of the fill panel, `ui.fillPanel === 'vary'`, ⇧V / "Vary…"):
+  `variations(groups)` of the selected passage (`regionGroups()` = `sliceRange` of the region):
+  backwards, every rotation, growing / shrinking, halves swapped, pairs turned, joined in pairs,
+  every group halved, only the attacks, every other one silent, shuffles. Always the same total,
+  applied with `fillRange`, so everything outside stays put. The panel keeps its base passage
+  (list holds still while entries are tried); "As it was" restores, "↻ From here" rebases.
+- On phones an open fill panel replaces the selection bar and the number pad in the dock.
 
 ### Trimming (trimEdge)
 
@@ -296,6 +324,27 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
 
 ## Persistence
 
+- **Library writes are serialized** (`serial` in persistence/library.ts): every read-modify-write
+  of the index waits for the one before. Never call idb `get`/`set` on the index outside it.
+- Index entries carry a picture (`strip`: sizes, negative = silence, n + 0.5 = open space) and
+  `meta` ("4 × 2 · ♩72"), made by `stripOf` on every save (older entries on the next list).
+- `saveNow` keeps a piece's date when nothing changed (`touch: false`); deleting the open piece
+  clears `currentId` first (otherwise the next save brings it back).
+- Device preferences (`time-sculpture/prefs` in localStorage): theme, ticks, click, moveMode,
+  fillSizes. Stage settings have their own key.
+- Exports (Library → Save and share, all loaded on demand): PDF, Picture (PNG of the sheet's
+  first page, cropped under the last row), **MusicXML** (as written: one pitch B4, a beat = a
+  quarter, 3/5/6/7 pulses as tuplets, groups tied across beats, whole beats as plain quarters;
+  time signature per bar size, tempo + equation at sections; repeat barlines / endings only when
+  they sit on bar lines; named phrase marks as rehearsal marks), **MIDI** (format 0, PPQ 840, as
+  heard via `playOrder`, pitch by size, tempo + time signature metas per section), JSON, share
+  link, Copy as text (`phraseText`).
+- Backup: "Back up everything" writes `{format: 'time-sculpture-library', version: 1, saved,
+  pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchanged pieces are
+  skipped, changed ones come in as "… (from backup)"; nothing is replaced).
+- New piece: Blank, Same grid (`sameGridDoc`), Duplicate, Surprise me (`surpriseDoc`: a meter and
+  a shaped fill that lands).
+
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
   `current`. Autosave 400 ms after any change, and on `pagehide`.
 - File format **v2** (`src/persistence/serialize.ts`, documented in `docs/file-format.md`):
@@ -323,6 +372,21 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
 
 ## UI conventions
 
+- **Header**: small mark + wordmark ("Time Sculpture" stays the h1), and the composition's name
+  as the page title: an input (`PieceTitle`, label "Name of the composition") that renames on
+  blur / Enter (Esc restores). On phones and touch-landscape it is one row: mark · title · icons
+  (labels visually hidden). The library button is labelled "Library".
+- The caret and the range are clamped into the piece after every document change (subscription
+  in state/actions.ts), and the selection is pruned there too.
+- Tiles have a faint top light and bottom weight (not in print); completing a piece sets
+  `ui.completedAt` and a light sweeps over the tiles once (not with reduced motion); an empty
+  piece says "Type / Tap a number to begin" in the open space.
+- Number-pad keys longer than the room left (range, or selection + open space) are dimmed
+  (`.key.big`), still tappable (the toast says why).
+- The tile bar's actions are grouped: select · place and size · the groups · hear / vary ·
+  clipboard · marks.
+- Help: four lines to start, then one `<details class="help-topic">` per topic; `?` opens it.
+
 - **Wording: the UI says "bars", not "cycles"** (user's choice). The code/model keeps `cycles`.
 - Beat numbers are centred on their beat's tick; a differing ratio is named in the band below.
 - PDF sheet: title + one meta line (beats × bars · ratios · pulses) + score rows + footer. No
@@ -343,7 +407,7 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   buttons are `user-select: none` (no text selection on long press). Undo/redo live in the transport on every size. The score
   scrolls the caret / range / selection into view above the dock (`keepInView` in `Score.tsx`).
   e2e: `openSetup(page)` unfolds the settings; `score()` scrolls the score to the top.
-- Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.
+- Default meter 4 × 2 at 4:1. Tempo 30–240, default 72.
 - Writing is by digits (keyboard, or the docked number pad: 1–9, ⌫, Sound/Silence, caret ←/→;
   toggled by **123** in the transport, on by default for coarse pointers). Without a caret,
   digits go to the end of the start and the caret follows. There is no tray/Pieces panel any
@@ -352,7 +416,7 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   silence" and "Fill randomly…", whose dialog picks the allowed sizes 1–9, `ui.fillSizes`;
   the toast offers "Another" roll). Clear lives in the Library.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
-- Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
+- Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
   [ ] repeat signs · V ending · +/− on an end sign: times · F stage · G total · ⇧P name mark.

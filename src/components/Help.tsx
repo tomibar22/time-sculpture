@@ -1,6 +1,6 @@
 export function Help() {
   return (
-    <details className="disclosure">
+    <details className="disclosure help-panel">
       <summary>How to use it</summary>
       <div className="dbody">
         <ol className="help-start">
@@ -247,8 +247,8 @@ export function Help() {
               phrase mark · T modulate · ← → move the selection or the caret · ⇧← ⇧→ select like
               text · Home / End caret to the start or end · 1–9 type · Delete remove · M merge · S
               split · R silence · D duplicate · + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs
-              · V ending · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ⇧P name a
-              phrase mark · F stage · Esc clear
+              · V ending · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ? this help ·
+              ⇧P name a phrase mark · F stage · Esc clear
             </p>
           </details>
           <details className="help-topic">

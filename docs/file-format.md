@@ -56,3 +56,33 @@ To turn the phrase into time yourself: pulse _j_ of beat _b_ (with _d_ pulses) s
 pulse; `sounds` already does this for you.
 
 Version 1 files (from before this format) still open.
+
+## Other files the app writes
+
+- **Library backup** (`Time Sculpture library YYYY-MM-DD.json`): every composition in one file.
+
+  ```json
+  {
+    "format": "time-sculpture-library",
+    "version": 1,
+    "saved": "2026-11-09T20:00:00.000Z",
+    "pieces": [
+      { "id": "c…", "updated": 1794000000000, "piece": { "format": "time-sculpture", "…": "…" } }
+    ]
+  }
+  ```
+
+  Each `piece` is a composition file as described above. Opening a backup in the app adds its
+  pieces to the library; pieces that are already there unchanged are skipped, and nothing is
+  replaced.
+
+- **MusicXML** (`.musicxml`): the piece as written, for notation programs. One staff, every
+  sounding group on the pitch B4 (ready to be given notes), a beat is a quarter note; beats of 3,
+  5, 6 or 7 pulses are tuplets, groups that cross a beat are tied, silences and the open space
+  are rests. Bars follow the meter (and each modulation's bar size, with its tempo); repeat signs
+  and endings are written when they sit on bar lines; named phrase marks become rehearsal marks.
+
+- **MIDI** (`.mid`, format 0, 840 ticks per beat): the piece as heard, with repeats and endings
+  played out. One note per sounding group, from its onset to its end, pitched by its size as in
+  the app (longer = lower). A modulation is a tempo change with its bar size as the time
+  signature.

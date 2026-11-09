@@ -95,6 +95,8 @@ export function SelectionBar() {
             Select all
           </button>
         )}
+        <span className="selbar-sep" aria-hidden="true" />
+        {/* place and size */}
         <button
           type="button"
           aria-label="Move left"
@@ -111,32 +113,66 @@ export function SelectionBar() {
         >
           →
         </button>
+        <button
+          type="button"
+          aria-label="−1 pulse"
+          title="Shorter by one pulse (−)"
+          disabled={!sel.length || sel.some((x) => x.n < 2)}
+          onClick={() => resizeSelection(-1)}
+        >
+          −1
+        </button>
+        <button
+          type="button"
+          aria-label="+1 pulse"
+          title="Longer by one pulse (+)"
+          disabled={!sel.length || free < sel.length}
+          onClick={() => resizeSelection(1)}
+        >
+          +1
+        </button>
+        <span className="selbar-sep" aria-hidden="true" />
+        {/* the groups themselves */}
+        <button
+          type="button"
+          title="Split in two (S, or double-tap the group)"
+          disabled={!sel.some((x) => x.n >= 2)}
+          onClick={splitSelection}
+        >
+          Split
+        </button>
         {contiguous && (
-          <button type="button" onClick={mergeSelection}>
+          <button type="button" title="Merge into one group (M)" onClick={mergeSelection}>
             Merge
           </button>
         )}
-        <button type="button" disabled={!sel.some((x) => x.n >= 2)} onClick={splitSelection}>
-          Split
-        </button>
-        <button type="button" disabled={!sel.length} onClick={toggleSelectionKind}>
+        <button
+          type="button"
+          title="Sound or silence (R)"
+          disabled={!sel.length}
+          onClick={toggleSelectionKind}
+        >
           {allRest ? 'Sound' : 'Silence'}
         </button>
-        <button type="button" disabled={!sel.length || total > free} onClick={duplicateSelection}>
+        <button
+          type="button"
+          title="A copy right after (D)"
+          disabled={!sel.length || total > free}
+          onClick={duplicateSelection}
+        >
           Duplicate
         </button>
-        <button type="button" disabled={!sel.length} onClick={removeSelection}>
+        <button
+          type="button"
+          title="Remove (Delete)"
+          disabled={!sel.length}
+          onClick={removeSelection}
+        >
           Remove
         </button>
         <span className="selbar-sep" aria-hidden="true" />
+        {/* hear it, say it another way */}
         {sel.length > 0 && <LoopButton />}
-        <button
-          type="button"
-          disabled={!contiguous && sel.length !== 1}
-          onClick={() => openFill('browse')}
-        >
-          Refill…
-        </button>
         <button
           type="button"
           disabled={!sel.length || !E.isContiguous(idx)}
@@ -147,21 +183,22 @@ export function SelectionBar() {
         </button>
         <button
           type="button"
-          disabled={!sel.length || !E.isContiguous(idx)}
-          title="Ending bracket over the selection: 1., 2. … (V)"
-          onClick={() => openVolta(selectedRegion())}
+          disabled={!contiguous && sel.length !== 1}
+          title="Fill this stretch again: shapes, or every way to do it"
+          onClick={() => openFill('browse')}
         >
-          Ending…
+          Refill…
         </button>
-        <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
-        <button
-          type="button"
-          disabled={!sel.length}
-          title="Subdivision of the beats under the selection (B paints the brush)"
-          onClick={openSubdivision}
-        >
-          Subdivision…
-        </button>
+        {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
+          <button
+            type="button"
+            title="Retrograde: reverse the order (⇧R)"
+            onClick={reverseSelection}
+          >
+            Reverse
+          </button>
+        )}
+        <span className="selbar-sep" aria-hidden="true" />
         <button
           type="button"
           disabled={!sel.length}
@@ -188,32 +225,24 @@ export function SelectionBar() {
             Paste
           </button>
         )}
-        {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
-          <button
-            type="button"
-            title="Retrograde: reverse the order (⇧R)"
-            onClick={reverseSelection}
-          >
-            Reverse
-          </button>
-        )}
+        <span className="selbar-sep" aria-hidden="true" />
+        {/* marks on the score */}
+        <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
         <button
           type="button"
-          aria-label="−1 pulse"
-          title="Shorter by one pulse (−)"
-          disabled={!sel.length || sel.some((x) => x.n < 2)}
-          onClick={() => resizeSelection(-1)}
+          disabled={!sel.length || !E.isContiguous(idx)}
+          title="Ending bracket over the selection: 1., 2. … (V)"
+          onClick={() => openVolta(selectedRegion())}
         >
-          −1
+          Ending…
         </button>
         <button
           type="button"
-          aria-label="+1 pulse"
-          title="Longer by one pulse (+)"
-          disabled={!sel.length || free < sel.length}
-          onClick={() => resizeSelection(1)}
+          disabled={!sel.length}
+          title="Subdivision of the beats under the selection (B paints the brush)"
+          onClick={openSubdivision}
         >
-          +1
+          Subdivision…
         </button>
       </div>
     </div>

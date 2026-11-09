@@ -1794,3 +1794,21 @@ dialog.tempo-dialog {
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
+
+/* phones: the three fill tabs take the row; where it fills is said in the list's own line */
+@media (max-width: 560px) {
+  .fillpanel .fill-where {
+    display: none;
+  }
+  .fillpanel .fill-head {
+    justify-content: space-between;
+  }
+  .fillpanel .fill-list {
+    max-height: min(30vh, 260px);
+  }
+}
+
+/* a size that does not fit in the room that is left is quieter on the pad */
+.key.big {
+  opacity: 0.38;
+}

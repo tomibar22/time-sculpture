@@ -167,6 +167,17 @@ export function useKeyboard() {
         e.preventDefault();
         return typeDigit(Number(digit), e.shiftKey ? 'rest' : 'sound');
       }
+      if (e.key === '?') {
+        // the help, opened and brought into view
+        const help = document.querySelector<HTMLDetailsElement>('details.help-panel');
+        if (help) {
+          e.preventDefault();
+          help.open = true;
+          help.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          help.querySelector('summary')?.focus({ preventScroll: true });
+        }
+        return;
+      }
       if (k === 'a' && e.shiftKey) return void (e.preventDefault(), selectAll());
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
