@@ -162,3 +162,23 @@ test('drag in the open space, or ⌥-drag over tiles, selects a range', async ({
   await page.keyboard.press('Backspace');
   await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
 });
+
+test('drag along the beat numbers selects a range, even over tiles', async ({ page }) => {
+  const s = await score(page);
+  await drag(page, at(s, P(2), -40), at(s, P(8), -40));
+  await page.keyboard.press('Backspace');
+  await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
+});
+
+test('long-press a tile, then drag, selects a range', async ({ page }) => {
+  const s = await score(page);
+  const a = at(s, P(3.4)); // inside the first 3 (pulses 2–5)
+  const b = at(s, P(8));
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  for (let i = 1; i <= 8; i++) await page.mouse.move(a.x + ((b.x - a.x) * i) / 8, a.y);
+  await page.mouse.up();
+  await page.keyboard.press('Backspace');
+  await expectSeq(page, '(2) 1 (5) 2 │ 3 (1) 3 2 4'); // from pulse 3, where the press began
+});

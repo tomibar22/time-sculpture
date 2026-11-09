@@ -130,7 +130,9 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   caret inside a tile; Home/End/⌘← → ends; Esc collapses to a caret, then removes it.
 - **Drag to select a range** (`sweep` gesture in Score.tsx): press in the open space or a row's
   gutter and drag (any pointer; a tap still places the caret); ⌥-drag anywhere, even over tiles
-  (⌥-click alone = caret); ⇧-drag extends the range. Plain drags on tiles still move them.
+  (⌥-click alone = caret); ⇧-drag extends the range; drag along the beat-number row (a ruler,
+  click = caret); long-press then drag (touch) from where the press began. Plain drags on tiles
+  still move them.
 - The sequence line under the score is visually hidden (user request); it stays for screen
   readers and as the e2e `sequence` test id.
 

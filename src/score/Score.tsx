@@ -452,6 +452,16 @@ export function Score() {
       const i = voltas.findIndex((v) => t >= v.a - 0.05 && t <= v.b + 0.05);
       if (i >= 0) return void setUi({ voltaDialog: { index: i } });
     }
+    // the beat-number row above the tiles is a ruler: drag along it to select a range (a click
+    // there puts the caret on the nearest pulse)
+    if (h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH && !e.shiftKey) {
+      const k = slotAt(g, x, y);
+      gesture.current = sweep(k, x, y, () => {
+        sfx.snap();
+        setCaret(k);
+      });
+      return;
+    }
     // Shift-click with a caret or range (and no tiles selected) selects a pulse range, like text;
     // ⌥-click puts the caret on any pulse, even inside a tile
     const st = ui();
@@ -586,8 +596,10 @@ export function Score() {
         h.zone === 'tiles' && sel.length === 1 ? hitTrimGrip(g, doc.items, sel[0]!, x, y) : null;
       const b = h.zone === 'tiles' && !grip ? hitBoundary(g, doc.items, x, y) : null;
       const i = itemAt(g, doc.items, x, y);
-      cv.style.cursor =
-        h.zone === 'lane'
+      const ruler = h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH;
+      cv.style.cursor = ruler
+        ? 'text'
+        : h.zone === 'lane'
           ? 'cell'
           : h.zone === 'totals'
             ? 'pointer'
@@ -657,7 +669,19 @@ export function Score() {
     if (gs.kind === 'press') {
       if (Math.hypot(x - gs.x0, y - gs.y0) <= DRAG_THRESHOLD) return;
       clearTimeout(gs.timer);
-      if (gs.long) return; // long-press then move: stay in selection mode, no drag
+      // long-press then drag: select a pulse range from where the press began
+      if (gs.long) {
+        const k0 = slotAt(g, gs.x0, gs.y0);
+        gesture.current = {
+          kind: 'sweep',
+          anchor: k0,
+          x0: gs.x0,
+          y0: gs.y0,
+          moved: true,
+          tap: () => {},
+        };
+        return onPointerMove(e);
+      }
       const base = useDocStore.getState().doc;
       let sel = ui().selection;
       if (!sel.includes(gs.id)) {
@@ -861,7 +885,7 @@ export function Score() {
         className="score"
         data-testid="score"
         tabIndex={0}
-        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag in the open space (or alt-drag anywhere) to select a range of pulses, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
+        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag in the open space or along the beat numbers (or alt-drag anywhere, or long-press and drag) to select a range of pulses, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={(e) => {
