@@ -42,6 +42,42 @@ export function saveStage(p: StagePrefs): void {
   }
 }
 
+/** Choices remembered on this device between sessions (not part of any piece). */
+export interface DevicePrefs {
+  theme: Theme;
+  ticks: boolean;
+  click: boolean;
+  moveMode: MoveMode;
+  fillSizes: number[];
+}
+const PREFS_KEY = 'time-sculpture/prefs';
+function loadPrefs(): Partial<DevicePrefs> {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    const p = raw ? (JSON.parse(raw) as Partial<DevicePrefs>) : {};
+    const out: Partial<DevicePrefs> = {};
+    if (p.theme === 'system' || p.theme === 'light' || p.theme === 'dark') out.theme = p.theme;
+    if (typeof p.ticks === 'boolean') out.ticks = p.ticks;
+    if (typeof p.click === 'boolean') out.click = p.click;
+    if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
+      out.moveMode = p.moveMode;
+    if (Array.isArray(p.fillSizes)) {
+      const sizes = p.fillSizes.filter((n) => Number.isInteger(n) && n >= 1 && n <= 9);
+      if (sizes.length) out.fillSizes = [...new Set(sizes)].sort((a, b) => a - b);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+function savePrefs(p: DevicePrefs): void {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    /* private mode: the choices last for this session only */
+  }
+}
+
 const HISTORY_LIMIT = 200;
 const LOG_LIMIT = 8;
 
@@ -131,6 +167,15 @@ export interface UiState {
   /** Stretch rows that end early (at a line break, or the last row) to the full width. */
   fitRows: boolean;
   ticks: boolean;
+  /** Hear the click on every beat (off: only the groups and the landing on 1). */
+  click: boolean;
+  /**
+   * Practice loop: while playing, only this stretch of written time (beats) goes round and
+   * round. Null = the whole piece in its play order.
+   */
+  loop: { a: number; b: number } | null;
+  /** The tempo dialog (tap tempo, exact steps). */
+  tempoDialog: boolean;
   tempo: number;
   playing: boolean;
   /** The docked number pad (shown by default on touch screens). */
@@ -206,6 +251,9 @@ export const useUiStore = create<UiState>((set) => ({
   zoomHud: null,
   fitRows: false,
   ticks: true,
+  click: true,
+  loop: null,
+  tempoDialog: false,
   tempo: DEFAULT_TEMPO,
   playing: false,
   fillSizes: [2, 3, 4, 5, 7],
@@ -238,4 +286,22 @@ export const useUiStore = create<UiState>((set) => ({
   currentId: null,
   currentName: 'Untitled',
   set: (patch) => set(patch),
+  ...loadPrefs(),
 }));
+
+useUiStore.subscribe((s, p) => {
+  if (
+    s.theme !== p.theme ||
+    s.ticks !== p.ticks ||
+    s.click !== p.click ||
+    s.moveMode !== p.moveMode ||
+    s.fillSizes !== p.fillSizes
+  )
+    savePrefs({
+      theme: s.theme,
+      ticks: s.ticks,
+      click: s.click,
+      moveMode: s.moveMode,
+      fillSizes: s.fillSizes,
+    });
+});

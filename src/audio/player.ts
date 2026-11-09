@@ -53,6 +53,15 @@ const playOrderOf = (m: Meter) => {
   return order;
 };
 
+/** Practice loop (written time, beats): only this stretch plays, round and round. */
+const loopPlan = (NB: number): Span[] | null => {
+  const l = useUiStore.getState().loop;
+  if (!l) return null;
+  const a = Math.max(0, Math.min(l.a, NB));
+  const b = Math.min(l.b, NB);
+  return b - a > EPS ? [{ a, b, pass: 1 }] : null;
+};
+
 /** What is heard: everything, only the click, or nothing (stage settings; elsewhere all). */
 const soundMode = () => {
   const ui = useUiStore.getState();
@@ -72,7 +81,7 @@ function schedule(): void {
   }
   for (let guard = 0; next < now + LOOKAHEAD_S && guard < 10_000; guard++) {
     const doc = activeDoc();
-    const plan = playOrderOf(doc.meter);
+    const plan = loopPlan(doc.meter.subdivision.length) ?? playOrderOf(doc.meter);
     // durations go through main time, so modulated sections play at their own tempo
     const span = (a: number, b: number) => (toMain(doc.meter, b) - toMain(doc.meter, a)) * beatDur;
     if (seg >= plan.length) seg = 0;
@@ -97,9 +106,11 @@ function schedule(): void {
       next += span(T, ev.t0);
       T = ev.t0;
     }
-    if (sound !== 'off') playClick(next, ev.click, ui.ticks);
-    if (ev.onset && sound === 'all') playGroup(next, ev.onset.n);
+    // inside a practice loop the piece's own "1" is just a bar line
+    const click = ev.click === 'landing' && ui.loop ? 'downbeat' : ev.click;
+    if (sound !== 'off') playClick(next, click, ui.ticks, ui.click || ui.stage);
     const dur = span(ev.t0, ev.t1);
+    if (ev.onset && sound === 'all') playGroup(next, ev.onset.n, dur * ev.onset.n);
     queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur });
     next += dur;
     T = ev.t1;
@@ -130,12 +141,18 @@ function frame(): void {
   raf = requestAnimationFrame(frame);
 }
 
-/** Start playing from beat-time `from` (default: the top). */
-export function startPlayback(from = 0): void {
+/**
+ * Start playing from beat-time `from` (default: the top). With `loop`, only that stretch of
+ * written time plays, again and again (for practising a passage).
+ */
+export function startPlayback(from = 0, loop: { a: number; b: number } | null = null): void {
   if (timer) return;
   if (!ensureAudio()) return;
+  useUiStore.getState().set({ loop });
   // start in the first stretch of the play order that holds `from`
-  const plan = playOrderOf(activeDoc().meter);
+  const meter = activeDoc().meter;
+  const plan = loopPlan(meter.subdivision.length) ?? playOrderOf(meter);
+  if (loop) from = plan[0]!.a;
   seg = Math.max(
     0,
     plan.findIndex((s) => from >= s.a - EPS && from < s.b - EPS),
@@ -173,7 +190,18 @@ export function stopPlayback(): void {
   endAt = null;
   countBar = 0;
   countClicks = [];
-  useUiStore.getState().set({ playing: false, playhead: null, countdown: null });
+  useUiStore.getState().set({ playing: false, playhead: null, countdown: null, loop: null });
+}
+
+// A hidden page's timers are throttled, so the scheduler would fall behind and then play
+// everything it missed at once when the app comes back: stop instead (as a music app would
+// when it loses the screen), and wake the audio again on return.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (timer) stopPlayback();
+    } else if (audioNow() > 0) ensureAudio();
+  });
 }
 
 export function togglePlayback(): void {

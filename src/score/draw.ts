@@ -55,6 +55,8 @@ export interface DrawState {
    * has been played fades back and the sounding group lights up.
    */
   stage?: boolean;
+  /** Practice loop (beats): its ends are marked while it plays. */
+  loop?: { a: number; b: number } | null;
   /**
    * Stage build: only this stretch of time [a, b] (beats) is filled in; groups, marks and totals
    * outside it are not drawn yet. `pop` is the group that just appeared (alpha 1 → 0).
@@ -259,6 +261,8 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   /* ---------------- tiles */
   let a = 0;
   const ph = s.stage ? s.playhead : null;
+  // in the editor the sounding group answers too (a lighter ring), so playing feels alive
+  const live = s.stage ? null : s.playhead;
   for (const x of doc.items) {
     if (x.n > 0) {
       const lifted = s.lifted.has(x.id);
@@ -383,6 +387,15 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.globalAlpha = pop;
           c.lineWidth = 1.5 + 4 * pop;
           rr(c, X - 2 - 3 * pop, ty - 3 * pop, W + 4 + 6 * pop, L.tileH + 6 * pop, 11);
+          c.stroke();
+          c.globalAlpha = 1;
+        }
+        if (live !== null && x.kind === 'sound' && t0 <= live + EPS_D && live < t1 - EPS_D) {
+          const hit = Math.max(0, 1 - (live - t0) / ONSET_BEATS);
+          c.strokeStyle = P.fg;
+          c.globalAlpha = 0.55 + 0.45 * hit;
+          c.lineWidth = 1.5 + 2 * hit;
+          rr(c, X - 1.5 - hit, ty + 0.5 - hit, W + 3 + 2 * hit, L.tileH - 1 + 2 * hit, 10.5);
           c.stroke();
           c.globalAlpha = 1;
         }
@@ -559,6 +572,21 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   drawTotals(c, g, doc, P, s.reveal ?? null);
 
   drawForm(c, g, doc, P);
+
+  if (s.loop && s.playhead !== null) {
+    // the practice loop: a bracket over the number row at both ends
+    for (const [t, dir] of [
+      [s.loop.a, 1],
+      [s.loop.b, -1],
+    ] as const) {
+      const p = dir === 1 ? xOf(g, Math.min(t, g.grid.NB - 1e-6)) : endPoint(g, t);
+      const ty = tileY(g, p.r);
+      c.fillStyle = P.accent;
+      c.fillRect(p.x - 1, ty - 10, 2, L.tileH + 20);
+      c.fillRect(dir === 1 ? p.x : p.x - 8, ty - 10, 8, 2);
+      c.fillRect(dir === 1 ? p.x : p.x - 8, ty + L.tileH + 8, 8, 2);
+    }
+  }
 
   if (s.playhead !== null) {
     // a playhead on the very end (the landing) stays on the last row, in the downbeat red

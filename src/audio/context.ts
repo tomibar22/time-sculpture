@@ -12,9 +12,26 @@ export function ensureAudio(): AudioContext | null {
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = 0.9;
-    master.connect(ctx.destination);
+    // a gentle limiter: many voices on one pulse (click + tone + landing) never clip
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -10;
+    limiter.knee.value = 12;
+    limiter.ratio.value = 6;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.12;
+    master.connect(limiter).connect(ctx.destination);
+    // iPhone / iPad: play like a music app, so the ring/silent switch does not mute the piece
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (session) {
+      try {
+        session.type = 'playback';
+      } catch {
+        /* an older Safari: the switch keeps muting, nothing else changes */
+      }
+    }
   }
-  if (ctx.state === 'suspended') void ctx.resume();
+  // 'suspended' before the first gesture; iOS also reports 'interrupted' after a call or Siri
+  if (ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume().catch(() => undefined);
   return ctx;
 }
 

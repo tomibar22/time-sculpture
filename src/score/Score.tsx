@@ -178,6 +178,7 @@ export function Score() {
         cursor: stage ? null : s.caret,
         range: stage ? null : s.range,
         playhead: s.playhead,
+        loop: stage ? null : s.loop,
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
         focusedId: stage ? null : s.focusedId,
         grips:

@@ -5,6 +5,7 @@ import { LibraryMenu } from './components/LibraryMenu';
 import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
 import { MarkDialog } from './components/MarkDialog';
+import { TempoDialog } from './components/TempoDialog';
 import { ZoomHud } from './components/ZoomControl';
 import { Options } from './components/Options';
 import { SelectionBar } from './components/SelectionBar';
@@ -67,6 +68,7 @@ export function App() {
       <ModulationDialog />
       <VoltaDialog />
       <MarkDialog />
+      <TempoDialog />
       <ZoomHud />
     </>
   );

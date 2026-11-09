@@ -33,6 +33,7 @@ import {
   paste,
   resizeSelection,
   reverseSelection,
+  playFromCaret,
 } from '../state/editing';
 import { openFill } from '../state/fill';
 import { useDocStore, useUiStore } from '../state/store';
@@ -128,6 +129,7 @@ export function SelectionBar() {
           Remove
         </button>
         <span className="selbar-sep" aria-hidden="true" />
+        {sel.length > 0 && E.isContiguous(idx) && <LoopButton />}
         <button
           type="button"
           disabled={!contiguous && sel.length !== 1}
@@ -253,6 +255,7 @@ function CaretBar() {
           <button type="button" aria-label="Select one pulse more" onClick={() => extendRange(1)}>
             ⇥
           </button>
+          <LoopButton />
           <button type="button" onClick={() => openFill('random')}>
             Fill randomly
           </button>
@@ -465,6 +468,22 @@ function TotalButton({ disabled = false }: { disabled?: boolean }) {
       onClick={() => toggleTotalOver(selectedRegion())}
     >
       {has ? 'Remove total' : 'Total'}
+    </button>
+  );
+}
+
+/** Play the selected stretch round and round, to hear or practise it (⇧Space). */
+function LoopButton() {
+  const playing = useUiStore((s) => s.playing);
+  return (
+    <button
+      type="button"
+      className="loop-btn"
+      aria-pressed={playing}
+      title="Play the selection round and round (⇧Space)"
+      onClick={playFromCaret}
+    >
+      {playing ? '■ Stop' : '↻ Loop'}
     </button>
   );
 }

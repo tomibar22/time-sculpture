@@ -2,8 +2,8 @@ import { docFrom, makeMeter } from '../engine';
 import type { Doc } from '../engine';
 
 export const DEFAULT_TEMPO = 72;
-export const MIN_TEMPO = 40;
-export const MAX_TEMPO = 160;
+export const MIN_TEMPO = 30;
+export const MAX_TEMPO = 240;
 
 /** The composition a new user sees: a phrase planned from both ends with some open space. */
 export function defaultDoc(): Doc {

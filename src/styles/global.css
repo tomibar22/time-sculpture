@@ -1581,3 +1581,71 @@ input.mark-name {
 .stage-mode button {
   font-family: var(--f-body);
 }
+
+/* ---------------------------------------------------------------- tempo */
+.tempo-num {
+  min-width: 44px;
+  padding: 8px 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-left: -8px;
+}
+dialog.tempo-dialog {
+  width: min(380px, calc(100vw - 24px));
+}
+.tempo-big {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--f-display);
+}
+.tempo-big output {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.tempo-note {
+  font-size: 1.4rem;
+  color: var(--muted);
+}
+.tempo-name {
+  font-family: var(--f-body);
+  font-size: 0.9rem;
+  color: var(--muted);
+  min-width: 5.5em;
+}
+.tempo-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.tempo-steps button {
+  font-family: var(--f-mono);
+}
+.tempo-slide input {
+  width: 100%;
+  accent-color: var(--accent);
+  min-height: var(--touch);
+}
+.tempo-tap {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 1.05rem;
+}
+.tempo-tap-hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+.loop-btn[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}

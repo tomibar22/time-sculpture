@@ -8,7 +8,7 @@ export function Help() {
           <dd>
             Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. On a phone, press
             and hold a group, or turn on “Select several”, then tap more. ⌘A or ⇧A (or Select all)
-            selects every group, Esc clear · ⌥− ⌥= zoom · ⌥0 everythings. On a phone, swipe up and
+            selects every group; Esc clears the selection. On a phone, swipe up and
             down over the score to scroll; drags that start sideways move and shape tiles.
           </dd>
           <dt>Move</dt>

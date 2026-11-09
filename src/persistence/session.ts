@@ -90,10 +90,21 @@ export async function initSession(): Promise<void> {
     if (s.version !== prev.version) scheduleSave();
   });
   useUiStore.subscribe((s, prev) => {
-    if (s.tempo !== prev.tempo || s.currentName !== prev.currentName || s.perRow !== prev.perRow)
+    if (
+      s.tempo !== prev.tempo ||
+      s.currentName !== prev.currentName ||
+      s.perRow !== prev.perRow ||
+      s.fitRows !== prev.fitRows
+    )
       scheduleSave();
   });
   window.addEventListener('pagehide', () => void saveNow());
+  // iOS may suspend a home-screen app without `pagehide`: save when it leaves the screen too
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void saveNow();
+  });
+  // ask the browser to keep the library (otherwise it may be evicted when storage runs low)
+  void navigator.storage?.persist?.().catch(() => undefined);
   // lets tests (and anything else) know the composition is loaded and edits are safe
   document.documentElement.dataset.ready = '1';
 }
@@ -130,8 +141,14 @@ export function renamePiece(name: string): void {
 }
 
 export async function removePiece(id: string): Promise<void> {
+  const wasOpen = id === ui().currentId;
+  // forget it first: opening the next piece saves "the current one", which would bring it back
+  if (wasOpen) {
+    clearTimeout(saveTimer);
+    ui().set({ currentId: null });
+  }
   await deletePiece(id);
-  if (id === ui().currentId) {
+  if (wasOpen) {
     const rest = await listPieces();
     if (rest[0]) await openPiece(rest[0].id);
     else await createPiece();

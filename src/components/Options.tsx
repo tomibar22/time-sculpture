@@ -3,6 +3,7 @@ import { useDocStore, useUiStore } from '../state/store';
 
 export function Options() {
   const ticks = useUiStore((s) => s.ticks);
+  const click = useUiStore((s) => s.click);
   const brush = useUiStore((s) => s.brush);
   const set = useUiStore((s) => s.set);
   const log = useDocStore((s) => s.log);
@@ -10,6 +11,14 @@ export function Options() {
     <details className="disclosure">
       <summary>Options</summary>
       <div className="dbody">
+        <label className="opt">
+          <input
+            type="checkbox"
+            checked={click}
+            onChange={(e) => set({ click: e.target.checked })}
+          />{' '}
+          Hear the beat (a click on every beat; the 1 always sounds)
+        </label>
         <label className="opt">
           <input
             type="checkbox"

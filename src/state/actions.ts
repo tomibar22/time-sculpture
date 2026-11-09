@@ -99,6 +99,25 @@ function pruneSelection(): void {
   if (sel.length !== uiState().selection.length) setUi({ selection: sel, anchor: sel[0] ?? null });
 }
 
+/**
+ * Whatever changed the document (an edit, undo, a shorter meter, another subdivision, opening a
+ * piece): the caret and the range stay inside the piece, and ids that are gone leave the selection.
+ */
+useDocStore.subscribe((s, prev) => {
+  if (s.doc === prev.doc) return;
+  pruneSelection();
+  const TS = E.buildGrid(s.doc.meter).TS;
+  const u = uiState();
+  if (u.range && u.range.b > TS) {
+    const a = Math.min(u.range.a, TS);
+    setUi(
+      a < TS
+        ? { range: { a, b: TS }, rangeAnchor: Math.min(u.rangeAnchor ?? a, TS), caret: TS }
+        : { range: null, rangeAnchor: null, caret: TS },
+    );
+  } else if (u.caret !== null && u.caret > TS) setUi({ caret: TS });
+});
+
 export function undo(): void {
   if (useDocStore.getState().undo()) {
     sfx.remove();

@@ -97,8 +97,17 @@ function Transport() {
             value={tempo}
             onChange={(e) => set({ tempo: +e.target.value })}
           />
-          <span className="mono">{tempo}</span>
         </label>
+        <button
+          type="button"
+          className="ghost tempo-num mono"
+          title="Tempo: tap it, or set it exactly"
+          aria-haspopup="dialog"
+          onClick={() => set({ tempoDialog: true })}
+        >
+          <span className="sr-only">Tempo </span>
+          {tempo}
+        </button>
         <div className="undo-redo">
           <button
             type="button"

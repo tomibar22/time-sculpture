@@ -333,13 +333,22 @@ export function reverseSelection(): void {
 
 /* ------------------------------------------------------------------ playback */
 
-/** Shift+Space: play from the caret (or the selection's start). */
+/**
+ * Shift+Space: with tiles or a range selected, loop that stretch (to practise or hear a passage
+ * again and again); with only a caret, play on from it.
+ */
 export function playFromCaret(): void {
   if (ui().playing) return stopPlayback();
   const d = doc();
   const region = selectedRegion();
-  const k = region ? region.a : (ui().caret ?? 0);
   const grid = E.buildGrid(d.meter);
+  if (region && region.b > region.a) {
+    const loop = { a: grid.times[region.a]!, b: grid.times[Math.min(region.b, grid.TS)]! };
+    startPlayback(loop.a, loop);
+    announce(`Looping ${plural(region.b - region.a, 'pulse')}. Space stops.`);
+    return;
+  }
+  const k = ui().caret ?? 0;
   startPlayback(k >= grid.TS ? 0 : grid.times[k]!);
 }
 
