@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { addSection, docFrom, makeMeter, sequence, toggleBreak, toggleMark } from '../engine';
+import {
+  addSection,
+  docFrom,
+  makeMeter,
+  sequence,
+  setVolta,
+  toggleBreak,
+  toggleMark,
+  toggleRepeatEnd,
+  toggleRepeatStart,
+} from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
 // 4 beats × 2 cycles; beat 2 is 3:1, beat 5 is 2:1, the rest 4:1 (29 pulses)
@@ -71,6 +81,36 @@ describe('the Time Sculpture file (v2)', () => {
     expect(f.phraseStarts).toEqual([0, 1 + 2 / 3]);
     expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.marks).toEqual([0, 1 + 2 / 3]);
     expect(toSaved(doc, 'none', settings).phraseStarts).toBeUndefined();
+  });
+
+  it('saves repeats and endings, with the play order for other programs', () => {
+    // pulses: beat 0 = 0–4, beat 1 = 4–7, beat 2 = 7–11, beat 3 = 11–15, beat 4 = 15–17
+    let d = toggleRepeatStart(doc, 4).doc; // |: at beat 1
+    d = toggleRepeatEnd(d, 15, 3).doc; // :| ×3 at beat 4
+    d = setVolta(d, 11, 15, [1, 2]).doc;
+    d = setVolta(d, 15, 17, [3]).doc;
+    const f = toSaved(d, 'R', settings);
+    expect(f.repeats).toEqual({
+      starts: [1],
+      ends: [{ atBeat: 4, times: 3 }],
+      endings: [
+        { fromBeat: 3, toBeat: 4, passes: [1, 2] },
+        { fromBeat: 4, toBeat: 5, passes: [3] },
+      ],
+    });
+    expect(f.playOrder).toEqual([
+      { fromBeat: 0, toBeat: 4 },
+      { fromBeat: 1, toBeat: 4 },
+      { fromBeat: 1, toBeat: 3 },
+      { fromBeat: 4, toBeat: 8 },
+    ]);
+    const back = fromSaved(JSON.parse(JSON.stringify(f))).doc.meter;
+    expect(back.repeatStarts).toEqual(d.meter.repeatStarts);
+    expect(back.repeatEnds).toEqual(d.meter.repeatEnds);
+    expect(back.voltas).toEqual(d.meter.voltas);
+    const plain = toSaved(doc, 'none', settings);
+    expect(plain.repeats).toBeUndefined();
+    expect(plain.playOrder).toBeUndefined();
   });
 
   it('saves modulations, and gives sounds in main-tempo beats', () => {

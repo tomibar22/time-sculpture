@@ -43,8 +43,17 @@ export interface Geo {
   /** Beat width: the same in every row, so beats line up vertically like a score. */
   bw: number;
   stride: number;
+  /** Extra space above every row for endings and repeat counts (0 when the piece has none). */
+  lane: number;
   grid: Grid;
 }
+
+/** Height of the lane above the rows that holds ending brackets and "×3" repeat counts. */
+export const LANE_H = 18;
+
+/** Does the piece need the lane above its rows? */
+export const needsLane = (doc: Doc) =>
+  !!doc.meter.voltas?.length || (doc.meter.repeatEnds ?? []).some((e) => e.times > 2);
 
 /** Rows wrap every `perRow` bars and at the document's manual line breaks (see rows.ts). */
 export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo {
@@ -61,7 +70,8 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
   const bw = (width - 2 * L.margin) / widest;
   // fitted rows stretch to the full width; otherwise every row shares one beat width
   for (const row of rows) row.bw = fit ? (width - 2 * L.margin) / row.nb : bw;
-  const stride = L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + L.gapR;
+  const lane = needsLane(doc) ? LANE_H : 0;
+  const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + L.gapR;
   return {
     w: width,
     h: L.top + rows.length * stride - L.gapR + 8,
@@ -70,6 +80,7 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
     rows,
     bw,
     stride,
+    lane,
     grid: buildGrid(doc.meter),
   };
 }
@@ -90,7 +101,8 @@ export function rowStartingAt(g: Geo, t: number): number {
 /** Right edge x of a row. */
 export const rowEndX = (g: Geo, r: number) => L.margin + g.rows[r]!.nb * g.rows[r]!.bw;
 
-export const rowTop = (g: Geo, r: number) => L.top + r * g.stride;
+/** Top of a row's number line (below the lane, when there is one). */
+export const rowTop = (g: Geo, r: number) => L.top + r * g.stride + g.lane;
 export const tileY = (g: Geo, r: number) => rowTop(g, r) + L.numH + L.gap1;
 /** Top of the subdivision band under the tiles. */
 export const bandY = (g: Geo, r: number) => tileY(g, r) + L.tileH + L.bandGap;

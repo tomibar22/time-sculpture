@@ -1,3 +1,4 @@
+import { formErrors } from './form';
 import {
   buildGrid,
   EPS,
@@ -207,6 +208,7 @@ export function checkInvariants(doc: Doc): string[] {
       prev = b;
     }
   }
+  errs.push(...formErrors(meter));
   const spaces = doc.items.filter(isSpace).length;
   if (spaces !== 1) errs.push(`expected exactly one space, found ${spaces}`);
   const ids = new Set<string>();

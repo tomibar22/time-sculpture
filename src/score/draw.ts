@@ -5,6 +5,7 @@ import {
   sectionAt,
   toMain,
   isSpace,
+  passesLabel,
   startOf,
 } from '../engine';
 import type { Doc, ItemId } from '../engine';
@@ -15,6 +16,7 @@ import {
   L,
   bandY,
   rowEndX,
+  rowOf,
   rowStartingAt,
   rowTop,
   segments,
@@ -483,10 +485,94 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.fillText(label, fx + 6, top + 10);
   });
 
+  drawForm(c, g, doc, P);
+
   if (s.playhead !== null) {
     const p = xOf(g, s.playhead);
     const ty = tileY(g, p.r);
     c.fillStyle = P.fg;
     c.fillRect(p.x - 1, ty - 4, 2, L.tileH + 8);
+  }
+}
+
+/** Where an end-type sign at time t sits: at the end of the row before when t starts a row. */
+export function endPoint(g: Geo, t: number): { x: number; r: number } {
+  const r = rowOf(g, t - 1e-6);
+  const row = g.rows[r]!;
+  return { x: L.margin + (t - row.b0) * row.bw, r };
+}
+
+/**
+ * Repeat signs through the tiles (thick and thin bar with two dots, drawn over a card-coloured
+ * halo so they read on any tile), "×3" counts and ending brackets in the lane above the rows.
+ */
+function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): void {
+  const { repeatStarts = [], repeatEnds = [], voltas = [] } = doc.meter;
+  const sign = (x: number, r: number, dir: 1 | -1) => {
+    const ty = tileY(g, r);
+    const y0 = ty - 3;
+    const h = L.tileH + 6;
+    const bars: [number, number][] = [
+      [0, 3.5],
+      [6, 1.5],
+    ];
+    const dots = [ty + L.tileH * 0.36, ty + L.tileH * 0.64];
+    for (const [colour, grow] of [
+      [P.card, 1.5],
+      [P.fg, 0],
+    ] as const) {
+      c.fillStyle = colour;
+      for (const [off, w] of bars) {
+        const x0 = dir === 1 ? x + off : x - off - w;
+        c.fillRect(x0 - grow, y0 - grow, w + 2 * grow, h + 2 * grow);
+      }
+      for (const dy of dots) {
+        c.beginPath();
+        c.arc(x + dir * 12.5, dy, 2.4 + grow, 0, Math.PI * 2);
+        c.fill();
+      }
+    }
+  };
+  for (const t of repeatStarts) {
+    const p = xOf(g, t);
+    sign(p.x, p.r, 1);
+  }
+  for (const e of repeatEnds) {
+    const p = endPoint(g, e.at);
+    sign(p.x, p.r, -1);
+    if (e.times > 2 && g.lane) {
+      c.font = `700 12px ${MONO}`;
+      c.fillStyle = P.fg;
+      c.textAlign = 'right';
+      c.textBaseline = 'middle';
+      // just left of the sign, under a closing ending bracket's line and clear of its hook
+      c.fillText(`×${e.times}`, p.x - 7, rowTop(g, p.r) - g.lane + 11);
+    }
+  }
+  if (!g.lane) return;
+  const closes = (b: number) => repeatEnds.some((e) => Math.abs(e.at - b) < EPS_D);
+  for (const v of voltas) {
+    const ra = rowOf(g, v.a);
+    const rb = rowOf(g, v.b - 1e-6);
+    for (let r = ra; r <= rb; r++) {
+      const row = g.rows[r]!;
+      const t0 = Math.max(v.a, row.b0);
+      const t1 = Math.min(v.b, row.b0 + row.nb);
+      const x0 = L.margin + (t0 - row.b0) * row.bw + (r === ra ? 2 : 0);
+      const x1 = L.margin + (t1 - row.b0) * row.bw - (r === rb ? 2 : 0);
+      const top = rowTop(g, r) - g.lane + 2;
+      const bottom = rowTop(g, r) - 1;
+      c.fillStyle = P.fg;
+      c.fillRect(x0, top, x1 - x0, 1.5);
+      if (r === ra) {
+        c.fillRect(x0, top, 1.5, bottom - top);
+        c.font = `700 11px ${BODY}`;
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.fillText(passesLabel(v.passes), x0 + 5, top + 8.5);
+      }
+      // a first ending closes where its repeat sign is; the last one stays open
+      if (r === rb && closes(v.b)) c.fillRect(x1 - 1.5, top, 1.5, bottom - top);
+    }
   }
 }

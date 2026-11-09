@@ -8,7 +8,8 @@ import {
   withBreaks,
   withMarks,
 } from '../engine';
-import type { Doc, Item } from '../engine';
+import type { Doc, Item, Meter } from '../engine';
+import { hasForm, playOrder, refitForm } from '../engine';
 import { SPACE_ID } from '../engine';
 
 /**
@@ -57,6 +58,17 @@ export interface SavedPiece {
    * pulse of `to`:1 after, and bars have `beatsPerBar` beats.
    */
   modulations?: { atBeat: number; from: number; to: number; beatsPerBar: number }[];
+  /**
+   * Repeats (optional): start signs `|:` and end signs `:|` (times in beats; `times` = how often
+   * the passage is played in all), and endings (brackets over [fromBeat, toBeat) played on the
+   * listed passes: 1., 2. …). An end sign without a start repeats from the previous end sign or
+   * from the top.
+   */
+  repeats?: {
+    starts: number[];
+    ends: { atBeat: number; times: number }[];
+    endings: { fromBeat: number; toBeat: number; passes: number[] }[];
+  };
   /** The phrase as written from the top; the open space comes next. */
   start: FileGroup[];
   /** The phrase as written to the end; it ends exactly on the next beat 1. */
@@ -64,6 +76,11 @@ export interface SavedPiece {
   /** Bars per row, and manual line breaks (times in beats where a new row starts). */
   layout: { cyclesPerRow: number; breaks: number[]; fitRows?: boolean };
   sounds?: FileSound[];
+  /**
+   * Derived for other programs (ignored when reading): the order the piece is heard in, as
+   * stretches of written time in beats, with every repeat and ending played out.
+   */
+  playOrder?: { fromBeat: number; toBeat: number }[];
 }
 
 const round = (x: number) => Math.round(x * 1e6) / 1e6;
@@ -96,6 +113,19 @@ export function toSaved(
           })),
         }
       : {}),
+    ...(hasForm(doc.meter)
+      ? {
+          repeats: {
+            starts: [...(doc.meter.repeatStarts ?? [])],
+            ends: (doc.meter.repeatEnds ?? []).map((e) => ({ atBeat: e.at, times: e.times })),
+            endings: (doc.meter.voltas ?? []).map((v) => ({
+              fromBeat: v.a,
+              toBeat: v.b,
+              passes: [...v.passes],
+            })),
+          },
+        }
+      : {}),
     start: doc.items.slice(0, si).map(fg),
     ending: doc.items.slice(si + 1).map(fg),
     layout: {
@@ -119,6 +149,16 @@ export function toSaved(
       k += x.n;
     }
     piece.sounds = sounds;
+    if (hasForm(doc.meter)) {
+      // contiguous stretches joined, so the list reads like the jumps a player makes
+      const order: { fromBeat: number; toBeat: number }[] = [];
+      for (const x of playOrder(doc.meter)) {
+        const last = order[order.length - 1];
+        if (last && Math.abs(last.toBeat - round(x.a)) < 1e-6) last.toBeat = round(x.b);
+        else order.push({ fromBeat: round(x.a), toBeat: round(x.b) });
+      }
+      piece.playOrder = order;
+    }
   }
   return piece;
 }
@@ -152,6 +192,7 @@ export function fromSaved(raw: unknown): Parsed {
           })),
         }
       : {}),
+    ...readRepeats(p.repeats),
   };
   let next = 1;
   const toItem = (g: unknown): Item => {
@@ -240,13 +281,35 @@ function finish(
         )
       : [];
   const withB = breaks.length ? withBreaks(meter, breaks) : meter;
-  const m = meter.marks ? withMarks(withB, meter.marks) : withB;
+  const m0 = meter.marks ? withMarks(withB, meter.marks) : withB;
+  const m = refitForm(m0); // also drops empty repeat fields
   const doc: Doc = { meter: m, items: syncSpace(items, buildGrid(m).TS), nextId };
   const errs = checkInvariants(doc);
   if (errs.length) throw new Error(`This file is damaged: ${errs[0]}`);
   const tempo = Number.isFinite(tempo0) ? Math.min(160, Math.max(40, Number(tempo0))) : 72;
   const perRow = Number.isInteger(perRow0) ? Math.min(8, Math.max(1, Number(perRow0))) : 1;
   return { doc, name, settings: { tempo, perRow, ...(fit0 === true ? { fitRows: true } : {}) } };
+}
+
+/** The file's repeats as meter fields (lenient: odd values are cleaned up by refitForm). */
+function readRepeats(raw: unknown): Partial<Meter> {
+  const r = raw as Record<string, unknown> | null | undefined;
+  if (!r || typeof r !== 'object') return {};
+  const list = (x: unknown) => (Array.isArray(x) ? (x as Record<string, unknown>[]) : []);
+  const num = (x: unknown) => Number(x);
+  return {
+    repeatStarts: (Array.isArray(r.starts) ? r.starts : []).map(num).filter(Number.isFinite),
+    repeatEnds: list(r.ends)
+      .map((e) => ({ at: num(e.atBeat), times: num(e.times) }))
+      .filter((e) => Number.isFinite(e.at)),
+    voltas: list(r.endings)
+      .map((v) => ({
+        a: num(v.fromBeat),
+        b: num(v.toBeat),
+        passes: (Array.isArray(v.passes) ? v.passes : []).map(num),
+      }))
+      .filter((v) => Number.isFinite(v.a) && Number.isFinite(v.b)),
+  };
 }
 
 /* ------------------------------------------------------------------ share links */

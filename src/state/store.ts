@@ -101,6 +101,8 @@ export interface UiState {
   fillSort: FillSort;
   /** The modulation dialog: adding one at a beat, or editing one (index into meter.sections). */
   modDialog: { at: number } | { index: number } | null;
+  /** The endings dialog: a new ending over pulses [ka, kb), or editing one (index into voltas). */
+  voltaDialog: { ka: number; kb: number } | { index: number } | null;
   /** Playhead in beats while playing. */
   playhead: number | null;
   theme: Theme;
@@ -144,6 +146,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillPanel: null,
   fillSort: 'onbeat',
   modDialog: null,
+  voltaDialog: null,
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   setupOpen: false,
   playhead: null,

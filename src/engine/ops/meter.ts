@@ -1,3 +1,4 @@
+import { formOf, refitForm, withForm } from '../form';
 import {
   buildGrid,
   EPS,
@@ -45,7 +46,9 @@ export function setSubdivision(doc: Doc, beats: Iterable<number>, d: number): Op
   for (const b of todo) subdivision[b] = d;
   const meter0: Meter = { ...doc.meter, subdivision };
   // line breaks keep their moment too, snapped to the nearest pulse of the new grid
-  const meter: Meter = withMarks(withBreaks(meter0, doc.meter.breaks ?? []), doc.meter.marks ?? []);
+  const meter: Meter = refitForm(
+    withMarks(withBreaks(meter0, doc.meter.breaks ?? []), doc.meter.marks ?? []),
+  );
   const grid = buildGrid(meter);
 
   const idx = bt.map((t) => nearestPulse(grid, t));
@@ -121,9 +124,15 @@ export function resizeMeter(
     else subdivision.push(fill);
   }
   // line breaks that still fall inside the piece are kept (on the nearest pulse)
-  const nm: Meter = withMarks(
-    withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []),
-    meter.marks ?? [],
+  // repeat signs and endings keep their times too, but one at the very end stays at the end
+  const atEnd = (t: number) => (Math.abs(t - oNB) < EPS ? nNB : t);
+  const nm: Meter = withForm(
+    withMarks(
+      withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []),
+      meter.marks ?? [],
+    ),
+    formOf(meter),
+    atEnd,
   );
   const TS = buildGrid(nm).TS;
 

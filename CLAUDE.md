@@ -192,6 +192,24 @@ G3 by size), rests silent.
   through the tiles with a flag in the number row showing the distance from the previous mark
   (`beatsLabel`: "3", "1¾", "1 2/7"). Saved as `phraseStarts` in the file; printed in the PDF.
 
+### Repeats and endings (engine/form.ts)
+
+- `meter.repeatStarts` (`|:`, 0 ≤ t < NB), `meter.repeatEnds` (`{at, times}`, `:|`, 0 < t ≤ NB,
+  times 2–12) and `meter.voltas` (`{a, b, passes}`, endings "1.", "1. 2."), all times in beats on
+  pulses. `withForm`/`refitForm` snap and clean them (same rules as breaks/marks; `resizeMeter`
+  keeps a sign at the very end at the end; `resizeBeats` shifts them, signs inside a cut go,
+  endings shrink). `formErrors` is part of `checkInvariants`.
+- Pairing (`repeatsOf`): an end pairs with the last start since the previous end, else repeats
+  from the previous end / the top. `playOrder(meter)` → stretches `{a, b, pass}` as heard:
+  inside a repeat, endings that don't list the pass are cut out; endings after an end sign are
+  simply played (reached on the last pass). The player (`audio/player.ts`) walks these stretches.
+- Drawing: thick+thin bar with dots through the tiles (card halo), and a lane of `LANE_H` above
+  every row (`g.lane`, only when there is an ending or a ×3+) with ending brackets (closed when
+  they end at an end sign) and "×N". `rowTop` is below the lane. Tapping a bracket edits it.
+- UI: caret bar `|: Start repeat` / `:| End repeat` / ×N stepper, `Ending…` in the range and
+  tile bars (`VoltaDialog`, default passes from `defaultPasses`). Keys `[` `]` (physical
+  Bracket keys), `V`, `+`/`−` on an end sign. File: `repeats` + derived `playOrder`.
+
 ### Silence
 
 - Rests are still items (selectable, movable, shown as "(n)" in the status) but are drawn as
@@ -246,7 +264,8 @@ G3 by size), rests silent.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
-  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate.
+  ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
+  [ ] repeat signs · V ending · +/− on an end sign: times.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.
 

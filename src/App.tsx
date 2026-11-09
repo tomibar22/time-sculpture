@@ -3,6 +3,7 @@ import { Help } from './components/Help';
 import { ItemList } from './components/ItemList';
 import { LibraryMenu } from './components/LibraryMenu';
 import { ModulationDialog } from './components/ModulationDialog';
+import { VoltaDialog } from './components/VoltaDialog';
 import { Options } from './components/Options';
 import { SelectionBar } from './components/SelectionBar';
 import { Status } from './components/Status';
@@ -50,6 +51,7 @@ export function App() {
       <ToastHost />
       <Announcer />
       <ModulationDialog />
+      <VoltaDialog />
     </>
   );
 }

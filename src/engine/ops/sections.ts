@@ -1,4 +1,5 @@
 import { buildGrid, EPS, MAX_BEATS, MAX_CYCLES, MAX_SUBDIVISION, MIN_SUBDIVISION } from '../grid';
+import { formOf, withForm } from '../form';
 import { groupSum, spaceIndex, syncSpace, withBreaks, withMarks } from '../doc';
 import { fail, report } from '../report';
 import { barMap } from '../sections';
@@ -135,9 +136,17 @@ export function resizeBeats(doc: Doc, delta: number, fill: number): OpResult {
     .map((s) => ({ ...s, at: s.at <= at ? s.at : s.at + delta }))
     .filter((s) => s.at > 0 && s.at < nNB);
   const base: Meter = { beatsPerCycle: meter.beatsPerCycle, cycles: meter.cycles, subdivision };
-  const nm = withMarks(
-    withBreaks(withSections(base, sections), shiftTimes(meter.breaks)),
-    shiftTimes(meter.marks),
+  // repeat signs inside a cut disappear; endings shrink with it (and go when nothing is left)
+  const squeeze = (t: number) =>
+    t <= at + EPS ? t : delta > 0 ? t + delta : Math.max(at, t + delta);
+  const nm = withForm(
+    withMarks(
+      withBreaks(withSections(base, sections), shiftTimes(meter.breaks)),
+      shiftTimes(meter.marks),
+    ),
+    formOf(meter),
+    shift,
+    squeeze,
   );
   if (nm.cycles > MAX_CYCLES * 2) return { doc, report: fail('out-of-range') };
 

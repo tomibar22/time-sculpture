@@ -143,9 +143,10 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
     c.save();
     c.translate(M.x, y);
     c.scale(scale, scale);
-    c.translate(0, -rowTop(g, r) + L.top);
+    // a row's block starts with its lane (endings, repeat counts) when there is one
+    c.translate(0, -(rowTop(g, r) - g.lane) + L.top);
     c.beginPath();
-    c.rect(-4, rowTop(g, r) - L.top, g.w + 8, (last - r) * g.stride);
+    c.rect(-4, rowTop(g, r) - g.lane - L.top, g.w + 8, (last - r) * g.stride);
     c.clip();
     drawScore(c, g, state, P);
     c.restore();

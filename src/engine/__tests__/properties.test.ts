@@ -221,9 +221,48 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
   fc.integer({ min: -6, max: 6 }).map((n) => (d: Doc) => E.resizeBeats(d, n, 3)),
   fc.nat().map((k) => (d: Doc) => E.toggleBreak(d, k % (buildGrid(d.meter).TS + 1))),
   fc.nat().map((k) => (d: Doc) => E.toggleMark(d, k % (buildGrid(d.meter).TS + 1))),
+  fc.nat().map((k) => (d: Doc) => E.toggleRepeatStart(d, k % (buildGrid(d.meter).TS + 1))),
+  fc.record({ k: fc.nat(), n: fc.integer({ min: 1, max: 14 }) }).map(
+    ({ k, n }) =>
+      (d: Doc) =>
+        E.toggleRepeatEnd(d, k % (buildGrid(d.meter).TS + 1), n),
+  ),
+  fc.record({ k: fc.nat(), n: fc.integer({ min: 1, max: 14 }) }).map(
+    ({ k, n }) =>
+      (d: Doc) =>
+        E.setRepeatTimes(d, k % (buildGrid(d.meter).TS + 1), n),
+  ),
+  fc
+    .record({
+      a: fc.nat(),
+      len: fc.integer({ min: 0, max: 12 }),
+      ps: fc.array(fc.integer({ min: 0, max: 14 }), { maxLength: 3 }),
+    })
+    .map(({ a, len, ps }) => (d: Doc) => {
+      const TS = buildGrid(d.meter).TS;
+      const ka = a % (TS + 1);
+      return E.setVolta(d, ka, Math.min(TS, ka + len), ps);
+    }),
+  fc.nat().map((i) => (d: Doc) => E.removeVolta(d, i % 3)),
 );
 
 describe('engine invariants (property-based)', () => {
+  it('the play order is a list of non-empty stretches inside the piece', () => {
+    fc.assert(
+      fc.property(docArb, fc.array(opArb, { maxLength: 25 }), (d0, ops) => {
+        const d = ops.reduce((x, op) => op(x).doc, d0);
+        const NB = d.meter.subdivision.length;
+        for (const s of E.playOrder(d.meter)) {
+          expect(s.b).toBeGreaterThan(s.a);
+          expect(s.a).toBeGreaterThanOrEqual(0);
+          expect(s.b).toBeLessThanOrEqual(NB + 1e-9);
+        }
+        // every repeat is played at least once through to its end sign
+        expect(E.playedBeats(d.meter)).toBeGreaterThan(0);
+      }),
+    );
+  });
+
   it('generated documents are valid', () => {
     fc.assert(
       fc.property(docArb, (d) => {

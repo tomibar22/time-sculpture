@@ -12,6 +12,10 @@ import {
   openModulation,
   toggleLineBreak,
   togglePhraseMark,
+  toggleRepeatStartAt,
+  toggleRepeatEndAt,
+  changeRepeatTimes,
+  openVolta,
   splitSelection,
   toggleSelectionKind,
   undo,
@@ -33,7 +37,7 @@ import {
   trimSelection,
   typeDigit,
 } from '../state/editing';
-import { useUiStore } from '../state/store';
+import { useDocStore, useUiStore } from '../state/store';
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.matches('input, textarea, select') || t.isContentEditable);
@@ -133,6 +137,25 @@ export function useKeyboard() {
         }
         e.preventDefault();
         return togglePhraseMark(at);
+      }
+      if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+        // [ and ] : start / end repeat signs at the caret (or the selection's start / end)
+        const region = selectedRegion();
+        const start = e.code === 'BracketLeft';
+        const at = region ? (start ? region.a : region.b) : useUiStore.getState().caret;
+        if (at === null) return void toast('Place the caret where the repeat sign goes');
+        e.preventDefault();
+        return start ? toggleRepeatStartAt(at) : toggleRepeatEndAt(at);
+      }
+      if (k === 'v' && !e.shiftKey) {
+        e.preventDefault();
+        return openVolta(selectedRegion());
+      }
+      if ((e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') && !hasSel) {
+        // with the caret on an end repeat: play the passage one time more / less
+        const caret = useUiStore.getState().caret;
+        if (caret !== null && E.repeatEndAt(useDocStore.getState().doc, caret))
+          return changeRepeatTimes(caret, e.key === '+' || e.key === '=' ? 1 : -1);
       }
       if (e.key === 'Enter' && !isActivatable(e.target)) {
         // a line break at the caret (or where the selection starts), like in a text editor

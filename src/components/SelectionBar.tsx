@@ -11,8 +11,13 @@ import {
   toggleLineBreak,
   togglePhraseMark,
   toggleSelectionKind,
+  changeRepeatTimes,
+  openVolta,
+  toggleRepeatEndAt,
+  toggleRepeatStartAt,
 } from '../state/actions';
 import {
+  selectedRegion,
   copyButton,
   deleteAtCaret,
   describePulse,
@@ -121,6 +126,14 @@ export function SelectionBar() {
         </button>
         <button
           type="button"
+          disabled={!sel.length || !E.isContiguous(idx)}
+          title="Ending bracket over the selection: 1., 2. … (V)"
+          onClick={() => openVolta(selectedRegion())}
+        >
+          Ending…
+        </button>
+        <button
+          type="button"
           disabled={!sel.length}
           title="Copy (⌘C)"
           onClick={() => copyButton(false)}
@@ -194,6 +207,7 @@ function CaretBar() {
   const isBeatLine =
     caret !== null && caret > 0 && caret < gridNow.TS && gridNow.pre[beatHere] === caret;
   const sectionHere = (docNow.meter.sections ?? []).some((s) => s.at === beatHere);
+  const repeatEnd = caret === null ? null : E.repeatEndAt(docNow, caret);
 
   if (range) {
     return (
@@ -224,6 +238,13 @@ function CaretBar() {
           </button>
           <button type="button" onClick={() => openFill('browse')}>
             Browse fills
+          </button>
+          <button
+            type="button"
+            title="Ending bracket over the range: 1., 2. … (V)"
+            onClick={() => openVolta(range)}
+          >
+            Ending…
           </button>
           <button type="button" onClick={() => deleteAtCaret(-1)}>
             Silence
@@ -285,6 +306,47 @@ function CaretBar() {
         >
           {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
         </button>
+        {caret! < gridNow.TS && (
+          <button
+            type="button"
+            title="Start repeat sign here ([)"
+            onClick={() => toggleRepeatStartAt(caret!)}
+          >
+            {E.repeatStartAt(docNow, caret!) ? 'Remove |:' : '|: Start repeat'}
+          </button>
+        )}
+        {caret! > 0 && (
+          <button
+            type="button"
+            title="End repeat sign here (])"
+            onClick={() => toggleRepeatEndAt(caret!)}
+          >
+            {repeatEnd ? 'Remove :|' : ':| End repeat'}
+          </button>
+        )}
+        {repeatEnd && (
+          <div className="stepper repeat-times" role="group" aria-label="Times played">
+            <button
+              type="button"
+              aria-label="Play it one time less"
+              title="One time less (−)"
+              disabled={repeatEnd.times <= E.MIN_REPEAT}
+              onClick={() => changeRepeatTimes(caret!, -1)}
+            >
+              −
+            </button>
+            <output data-testid="repeat-times">×{repeatEnd.times}</output>
+            <button
+              type="button"
+              aria-label="Play it one time more"
+              title="One time more (+)"
+              disabled={repeatEnd.times >= E.MAX_REPEAT}
+              onClick={() => changeRepeatTimes(caret!, 1)}
+            >
+              +
+            </button>
+          </div>
+        )}
         <button
           type="button"
           title="Start a new row here (Enter)"

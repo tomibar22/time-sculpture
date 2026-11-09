@@ -429,6 +429,71 @@ export function togglePhraseMark(k: number): void {
   announce(had ? 'Phrase mark removed' : 'Phrase starts here');
 }
 
+/* ------------------------------------------------------------------ repeats and endings */
+
+/** [ : a start-repeat sign |: at pulse k, or remove it. */
+export function toggleRepeatStartAt(k: number): void {
+  const had = E.repeatStartAt(doc(), k);
+  const r = E.toggleRepeatStart(doc(), k);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast('A start repeat needs music after it: not at the very end');
+  }
+  run(r, { label: had ? 'remove |:' : 'start repeat |:', select: 'keep' });
+  announce(had ? 'Start repeat removed' : 'Start repeat here');
+}
+
+/** ] : an end-repeat sign :| at pulse k (played twice), or remove it. */
+export function toggleRepeatEndAt(k: number): void {
+  const had = E.repeatEndAt(doc(), k);
+  const r = E.toggleRepeatEnd(doc(), k);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast('An end repeat needs music before it: not at the very start');
+  }
+  run(r, { label: had ? 'remove :|' : 'end repeat :|', select: 'keep' });
+  announce(had ? 'End repeat removed' : 'End repeat here: the passage plays twice');
+}
+
+/** Play the passage that ends at pulse k one time more or less (2…12 times in all). */
+export function changeRepeatTimes(k: number, delta: number): void {
+  const cur = E.repeatEndAt(doc(), k);
+  if (!cur) return void sfx.nope();
+  const times = cur.times + delta;
+  if (times < E.MIN_REPEAT || times > E.MAX_REPEAT) return void sfx.nope();
+  if (run(E.setRepeatTimes(doc(), k, times), { label: `×${times}`, select: 'keep' }))
+    announce(`The passage plays ${times} times`);
+}
+
+/** V / "Ending…": open the endings dialog for a pulse region, or for an existing ending. */
+export function openVolta(region: { a: number; b: number } | null): void {
+  if (!region || region.b <= region.a) {
+    sfx.nope();
+    return void toast('Select the bars of the ending first: tiles, or a range (⇧ arrows)');
+  }
+  const grid = E.buildGrid(doc().meter);
+  const a = grid.times[region.a]!;
+  const b = grid.times[region.b]!;
+  // an ending that covers the same stretch opens for editing
+  const index = (doc().meter.voltas ?? []).findIndex(
+    (v) => Math.abs(v.a - a) < E.EPS && Math.abs(v.b - b) < E.EPS,
+  );
+  setUi({ voltaDialog: index >= 0 ? { index } : { ka: region.a, kb: region.b } });
+}
+
+export function saveVolta(ka: number, kb: number, passes: readonly number[]): boolean {
+  const label = E.passesLabel(passes);
+  const r = E.setVolta(doc(), ka, kb, passes);
+  if (!run(r, { label: `ending ${label}`, select: 'keep' })) return false;
+  announce(`Ending ${label}`);
+  return true;
+}
+
+export function removeVoltaAt(index: number): void {
+  if (run(E.removeVolta(doc(), index), { label: 'remove ending', select: 'keep' }))
+    announce('Ending removed');
+}
+
 /* ------------------------------------------------------------------ metric modulation */
 
 export function modulate(at: number, spec: E.SectionSpec): boolean {

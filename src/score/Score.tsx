@@ -229,6 +229,14 @@ export function Score() {
         return;
       }
     }
+    // a click on an ending's bracket (in the lane above a row) opens it for editing
+    if (g.lane && y < rowTop(g, h.r) && y >= rowTop(g, h.r) - g.lane) {
+      const voltas = doc.meter.voltas ?? [];
+      const row = g.rows[h.r]!;
+      const t = row.b0 + (x - L.margin) / row.bw;
+      const i = voltas.findIndex((v) => t >= v.a - 0.05 && t <= v.b + 0.05);
+      if (i >= 0) return void setUi({ voltaDialog: { index: i } });
+    }
     // Shift-click with a caret or range (and no tiles selected) selects a pulse range, like text;
     // ⌥-click puts the caret on any pulse, even inside a tile
     const st = ui();

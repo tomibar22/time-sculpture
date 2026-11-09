@@ -48,6 +48,27 @@ export interface Meter {
    * equation `from`:1 = `to`:1 and bars have `beatsPerBar` beats. See engine/sections.ts.
    */
   readonly sections?: readonly Section[];
+  /**
+   * Repeat structure (see engine/form.ts). Start signs `|:` (0 ≤ t < total), end signs `:|`
+   * (0 < t ≤ total) with how many times the passage is played, and endings ("voltas") that are
+   * played only on some passes. All times in beats, on pulses, ascending.
+   */
+  readonly repeatStarts?: readonly number[];
+  readonly repeatEnds?: readonly RepeatEnd[];
+  readonly voltas?: readonly Volta[];
+}
+
+export interface RepeatEnd {
+  readonly at: number;
+  /** Times the passage is played in all (2 = once more). */
+  readonly times: number;
+}
+
+/** An ending bracket over [a, b), played on these passes of its repeat (1-based). */
+export interface Volta {
+  readonly a: number;
+  readonly b: number;
+  readonly passes: readonly number[];
 }
 
 export interface Section {

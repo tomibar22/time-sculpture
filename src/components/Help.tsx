@@ -63,6 +63,20 @@ export function Help() {
             flag shows how far it is from the previous mark, in beats, so a phrase repeating every
             3½ beats reads at a glance. P again removes it. Marks print in the PDF too.
           </dd>
+          <dt>Repeats</dt>
+          <dd>
+            Put the caret where a repeat starts and press [ (or |: Start repeat), then where it ends
+            and press ] (or :| End repeat): the passage plays twice. On the end sign, + and − (or
+            the ×2 stepper) play it up to 12 times; the count shows above the sign. An end sign with
+            no start before it repeats from the top, or from the previous end sign.
+          </dd>
+          <dt>Endings</dt>
+          <dd>
+            Select the stretch of a 1st ending (tiles, or a range with ⇧ arrows) and press V (or
+            Ending…): pick the passes it is played on, e.g. 1. before the end sign and 2. right
+            after it, or 1. 2. and 3. for a passage played three times. Tap a bracket to change or
+            remove it. Playback follows the repeats and endings; the PDF and the file keep them.
+          </dd>
           <dt>Modulation</dt>
           <dd>
             Put the caret on a beat line (mid-bar is fine) and press T (or Modulate…): choose the
@@ -100,7 +114,8 @@ export function Help() {
             Space play · ⇧Space play from the caret · Enter line break · P phrase mark · T modulate
             · ← → move the selection or the caret · ⇧← ⇧→ select like text · Home / End caret to the
             start or end · 1–9 type · Delete remove · M merge · S split · R silence · D duplicate ·
-            + − resize · ⌥← ⌥→ trim · B brush · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · Esc clear
+            + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs · V ending · ⇧R reverse · Z undo ·
+            Y or ⇧⌘Z redo · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>
