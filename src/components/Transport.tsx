@@ -59,7 +59,7 @@ export function Dock() {
     return () => ro.disconnect();
   }, []);
   return (
-    <div className="dock" ref={ref}>
+    <div className="dock" ref={ref} role="region" aria-label="Tools">
       <div className="dock-inner">
         <FillPanel />
         <SubdivPanel />

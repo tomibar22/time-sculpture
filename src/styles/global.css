@@ -1706,7 +1706,6 @@ dialog.tempo-dialog {
 .tempo-tap-hint {
   font-size: 0.78rem;
   font-weight: 400;
-  opacity: 0.85;
 }
 .loop-btn[aria-pressed='true'] {
   background: var(--accent);
