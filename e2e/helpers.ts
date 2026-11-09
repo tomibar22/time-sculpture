@@ -2,7 +2,8 @@ import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 /** Mirrors src/score/geometry.ts layout constants. */
-const M = 4;
+/** Left/right margin of every row: the caret gutter (geometry L.margin). */
+export const M = 18;
 const STRIDE = 20 + 4 + 52 + 5 + 22 + 24;
 const TILE_TOP = 4 + 20 + 4;
 const BAND_MID = TILE_TOP + 52 + 5 + 11;

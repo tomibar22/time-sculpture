@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, openSetup, P, ready, score, showPad, tap } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, M, openSetup, P, ready, score, showPad, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -63,13 +63,27 @@ test('+ Bar at the end in the settings', async ({ page }) => {
   await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 │ ·');
 });
 
-test('a tap at the very start or end of the piece puts the caret there', async ({ page }) => {
-  const s = await score(page);
-  const row2 = at(s, 4); // y of the second (last) row
-  await tap(page, { x: s.x + 2, y: at(s, 0).y });
+test('the gutters take the caret, even with sound tiles at the very start and end', async ({
+  page,
+}) => {
+  let s = await score(page);
+  // make the opening silence (2) a sounding tile, so tiles touch both ends of the piece
+  await tap(page, at(s, P(1)));
+  await page.keyboard.press('r');
+  await expectSeq(page, '2 3 3 2 │ 3 (1) 3 2 4');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  s = await score(page);
+  const row1 = at(s, 0).y;
+  const row2 = at(s, 4).y;
+  await tap(page, { x: s.x + M / 2, y: row1 });
   await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1');
-  await tap(page, { x: s.x + s.w - 2, y: row2.y });
+  await expect(page.getByTestId('selname')).toHaveCount(0);
+  await tap(page, { x: s.x + s.w - M / 2, y: row2 });
   await expect(page.getByTestId('caretname')).toContainText('the very end');
+  // the left gutter of the second row: the start of bar 2
+  await tap(page, { x: s.x + M / 2, y: row2 });
+  await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1');
 });
 
 test('⇤ and ⇥ on the number pad take the caret to the start and the end', async ({ page }) => {

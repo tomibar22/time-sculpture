@@ -212,8 +212,14 @@ button.icon {
 
 /* ---------------------------------------------------------------- score */
 .score-wrap {
-  width: 100%;
+  /* the score reaches into the panel's padding: its row gutters are caret targets */
+  margin: 0 -20px;
   overscroll-behavior: contain;
+}
+@media (max-width: 520px) {
+  .score-wrap {
+    margin: 0 -16px;
+  }
 }
 canvas.score {
   width: 100%;

@@ -8,7 +8,8 @@ import { rowLayout } from './rows';
  * beat with a dot per pulse). The band both shows the subdivision and is where it is painted.
  */
 export const L = {
-  margin: 4,
+  /** Each row's left and right gutter: a tap there puts the caret at the row's start / end. */
+  margin: 18,
   numH: 20,
   gap1: 4,
   tileH: 52,
@@ -255,10 +256,10 @@ export function hitBoundary(
 }
 
 /**
- * A tap that should put the caret at an edge: the very start of the piece (its first row's left
- * end), the very end (the last row's right end), or the empty part right of a row that ends
- * early (its end). The reach into the first/last tile is at most half a pulse there, so narrow
- * tiles stay tappable. Returns the pulse, or null.
+ * A tap that should put the caret at an edge: in a row's left gutter (its start) or right of its
+ * end (the gutter, or the empty part of a row that ends early), and at the very start / end of
+ * the piece also a little into the first / last tile (at most half a pulse, so narrow tiles stay
+ * tappable). Returns the pulse, or null.
  */
 export function edgeSlot(g: Geo, x: number, y: number, touch = false): number | null {
   const h = hit(g, x, y);
@@ -266,11 +267,14 @@ export function edgeSlot(g: Geo, x: number, y: number, touch = false): number | 
   const row = g.rows[h.r]!;
   const reach = touch ? 14 : 8;
   const pulseW = (beat: number) => row.bw / (g.grid.pre[beat + 1]! - g.grid.pre[beat]!);
-  if (h.r === 0 && x <= L.margin + Math.min(reach, pulseW(0) * 0.5)) return 0;
+  // the gutters left and right of every row belong to the caret: the row's start and end
+  if (x < L.margin) return row.k0;
   const endX = rowEndX(g, h.r);
+  if (x > endX) return row.k1;
+  // at the very start and end of the piece the zone also reaches a little into the tile
+  if (h.r === 0 && x <= L.margin + Math.min(reach, pulseW(0) * 0.5)) return 0;
   const lastBeat = Math.ceil(row.b0 + row.nb - EPS) - 1;
   if (h.r === g.R - 1 && x >= endX - Math.min(reach, pulseW(lastBeat) * 0.5)) return row.k1;
-  if (x > endX + 2) return row.k1;
   return null;
 }
 

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, ready, openSetup, score, tap } from './helpers';
+import { M, at, DEFAULT_SEQ, expectSeq, P, ready, openSetup, score, tap } from './helpers';
 
 const scoreHeight = async (page: Page) => (await page.getByTestId('score').boundingBox())!.height;
 
@@ -16,8 +16,8 @@ test('two cycles per row puts the whole phrase on one row', async ({ page }) => 
   await expect(page.getByTestId('per-row-value')).toHaveText('2');
   const s = await score(page);
   // one row of 8 beats: the 3 that opens cycle 2 sits at beat 4 + 1.0
-  const bw = (s.w - 8) / 8;
-  await page.mouse.click(s.x + 4 + 5.1 * bw, s.y + 54);
+  const bw = (s.w - 2 * M) / 8;
+  await page.mouse.click(s.x + M + 5.1 * bw, s.y + 54);
   await expect(page.getByTestId('selname')).toContainText('Group 3');
   await expect(page.getByTestId('selname')).toContainText('ending');
   // the canvas resizes on its next frame: wait for it rather than reading once
@@ -36,8 +36,8 @@ test('Enter breaks the line at the caret, even in the middle of a beat', async (
   await expect.poll(() => scoreHeight(page)).toBeGreaterThan(h0 + 100);
   // the second row starts with the second 3: tapping its start selects it
   const s2 = await score(page);
-  const bw = (s2.w - 8) / 4;
-  await page.mouse.click(s2.x + 4 + 0.3 * bw, s2.y + 54 + 127);
+  const bw = (s2.w - 2 * M) / 4;
+  await page.mouse.click(s2.x + M + 0.3 * bw, s2.y + 54 + 127);
   await expect(page.getByTestId('selname')).toContainText('Group 3');
   // undo removes the break
   await page.keyboard.press('Escape');

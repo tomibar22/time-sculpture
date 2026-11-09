@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
+import { M, at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -35,7 +35,7 @@ test('modulate mid-bar, see where the piece lands, fix it, edit and remove', asy
   await page.keyboard.press('Escape');
   const s2 = await score(page);
   // the modulation starts a new row: its marker sits right after that row's "1"
-  await page.mouse.click(s2.x + 4 + 40, s2.y + 4 + 127 + 10);
+  await page.mouse.click(s2.x + M + 40, s2.y + 4 + 127 + 10);
   await expect(dialog).toContainText('Modulation');
   await dialog.getByRole('button', { name: 'Remove modulation' }).click();
   await expect(page.getByTestId('landing')).toHaveCount(0);
