@@ -1467,3 +1467,26 @@ input.mark-name {
   flex: 1 1 12em;
   font-size: 16px; /* no zoom-in on iPhone */
 }
+
+/* stage build: back · next · reset, and the Play / Build switch */
+.build-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.build-steps .bigplay {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.build-steps .icon {
+  font-size: 1.2rem;
+  background: var(--soft);
+  border-radius: 50%;
+  width: var(--touch);
+}
+.stage.building .stage-score {
+  cursor: pointer;
+}
+.stage-mode button {
+  font-family: var(--f-body);
+}

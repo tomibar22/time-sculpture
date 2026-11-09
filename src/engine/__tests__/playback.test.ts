@@ -5,9 +5,14 @@ import { sample } from './helpers';
 
 describe('playback helpers', () => {
   it('pitches groups by size on a pentatonic scale', () => {
-    expect(pitchForSize(1)).toBeCloseTo(196);
+    // longer groups sound lower
+    expect(pitchForSize(1)).toBeCloseTo(784);
     expect(pitchForSize(6)).toBeCloseTo(392);
-    expect(pitchForSize(3)).toBeCloseTo(196 * 2 ** (4 / 12));
+    expect(pitchForSize(11)).toBeCloseTo(196);
+    expect(pitchForSize(3)).toBeCloseTo(784 * 2 ** (-5 / 12));
+    expect(pitchForSize(16)).toBeCloseTo(98);
+    expect(pitchForSize(40)).toBeCloseTo(98);
+    for (let n = 1; n < 16; n++) expect(pitchForSize(n + 1)).toBeLessThan(pitchForSize(n));
   });
 
   it('walks beat-time', () => {

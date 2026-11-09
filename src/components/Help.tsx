@@ -140,7 +140,10 @@ export function Help() {
             For filming a performance (F). The score alone, full screen: it follows the music, the
             sounding group lights up and played ones fade back. Count in a bar or two, choose what
             is heard (all, the click only, or nothing), and play once (it stops when it lands on 1)
-            or loop. The controls fade while playing; tap to bring them back. Esc leaves.
+            or loop. The controls fade while playing; tap to bring them back. Esc leaves. Build (B)
+            is a second presentation, for talking it through: the score fills in one group per click
+            (a tap on the score, → or Space, or a presentation remote), from the start or from the
+            end; ← takes the last one back. Totals and phrase marks appear with their groups.
           </dd>
           <dt>Keys</dt>
           <dd>

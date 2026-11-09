@@ -62,3 +62,35 @@ test('a count-in shows the beats before the piece starts', async ({ page }) => {
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 });
+
+test('build: the score fills in group by group, from the start or from the end', async ({
+  page,
+}) => {
+  await page.keyboard.press('f');
+  await page.getByRole('button', { name: 'Build' }).click();
+  const count = page.locator('.stage-bars');
+  await expect(count).toHaveText('0 / 7'); // 3 3 2 · 3 3 2 4: seven sounding groups
+  await page.getByTestId('score').click({ position: { x: 120, y: 40 } });
+  await expect(count).toHaveText('1 / 7');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('PageDown');
+  await expect(count).toHaveText('3 / 7');
+  await page.keyboard.press('ArrowLeft');
+  await expect(count).toHaveText('2 / 7');
+  await page.keyboard.press('End');
+  await expect(count).toHaveText('7 / 7');
+  await page.keyboard.press('ArrowRight'); // nothing more to show
+  await expect(count).toHaveText('7 / 7');
+  // from the end it starts over
+  await page.mouse.click(5, (page.viewportSize()?.height ?? 600) - 20); // brings the controls back
+  await page.getByRole('button', { name: /^From/ }).click();
+  await expect(page.getByRole('button', { name: /^From/ })).toContainText('the end');
+  await expect(count).toHaveText('0 / 7');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(count).toHaveText('1 / 7');
+  // back to playing
+  await page.keyboard.press('b');
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expectSeq(page, DEFAULT_SEQ);
+});

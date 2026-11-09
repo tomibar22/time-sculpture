@@ -17,6 +17,8 @@ import { diveAt, zoomStep } from '../state/zoom';
 import { OVERVIEW_LEVELS, zoomLevels } from './rows';
 import { anchorAtPoint, restoreAnchor, view } from './view';
 import { useDocStore, useUiStore } from '../state/store';
+import type { BuildDir } from '../state/store';
+import { buildReveal } from '../state/stage';
 import { readPalette } from './colors';
 import type { Palette } from './colors';
 import { drawScore } from './draw';
@@ -37,6 +39,12 @@ import {
 import type { Boundary, Geo } from './geometry';
 
 const LONG_PRESS_MS = 450;
+/** How long a group's entrance lasts in a stage build. */
+const POP_MS = 650;
+const reveal = (doc: Doc, step: number, dir: BuildDir) => {
+  const r = buildReveal(doc, dir, step);
+  return { a: r.a, b: r.b };
+};
 const DOUBLE_TAP_MS = 330;
 const DRAG_THRESHOLD = 8;
 
@@ -149,6 +157,7 @@ export function Score() {
     palette.current ??= readPalette();
     const now = performance.now();
     const flashAlpha = s.flash.until > now ? (s.flash.until - now) / 1600 : 0;
+    const popAlpha = s.buildPop ? Math.max(0, 1 - (now - s.buildPop.at) / POP_MS) : 0;
     const gs = gesture.current;
     const stage = s.stage;
     drawScore(
@@ -174,10 +183,13 @@ export function Score() {
             ? s.selection[0]!
             : null,
         activeGrip: gs?.kind === 'trim' ? gs.side : null,
+        reveal:
+          stage && s.build && !s.playing ? reveal(doc, s.build.step, s.stagePrefs.buildDir) : null,
+        pop: stage && s.build && popAlpha > 0 ? { id: s.buildPop!.id, alpha: popAlpha } : null,
       },
       palette.current,
     );
-    if (flashAlpha > 0) request();
+    if (flashAlpha > 0 || popAlpha > 0) request();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -325,8 +337,14 @@ export function Score() {
     const follow = (s: ReturnType<typeof ui>) => {
       const g = geo.current;
       const cv = canvasRef.current;
-      if (!s.stage || s.playhead === null || !g || !cv) return void (lastRow = -1);
-      const r = rowOf(g, Math.min(s.playhead, g.grid.NB - 1e-6));
+      // what to keep in view: the playhead, or in a build the group that appears next to the rest
+      let focus = s.playhead;
+      if (focus === null && s.stage && s.build) {
+        const rv = buildReveal(useDocStore.getState().doc, s.stagePrefs.buildDir, s.build.step);
+        focus = s.stagePrefs.buildDir === 'start' ? Math.max(0, rv.b - 1e-6) : rv.a;
+      }
+      if (!s.stage || focus === null || !g || !cv) return void (lastRow = -1);
+      const r = rowOf(g, Math.min(focus, g.grid.NB - 1e-6));
       if (r === lastRow) return;
       lastRow = r;
       const head = document.querySelector<HTMLElement>('.stage-head')?.offsetHeight ?? 0;
@@ -342,7 +360,13 @@ export function Score() {
       window.scrollTo({ top: y, behavior: still ? 'auto' : 'smooth' });
     };
     return useUiStore.subscribe((s, p) => {
-      if (s.playhead !== p.playhead || s.stage !== p.stage) follow(s);
+      if (
+        s.playhead !== p.playhead ||
+        s.stage !== p.stage ||
+        s.build !== p.build ||
+        s.stagePrefs !== p.stagePrefs
+      )
+        follow(s);
     });
   }, []);
 

@@ -15,9 +15,17 @@ export interface StagePrefs {
   sound: StageSound;
   /** Play the piece again and again, or once (stop when it lands on 1). */
   loop: boolean;
+  /** Build: reveal the groups from the start to the end, or from the end back to the start. */
+  buildDir: BuildDir;
 }
+export type BuildDir = 'start' | 'end';
 const STAGE_KEY = 'time-sculpture/stage';
-export const DEFAULT_STAGE: StagePrefs = { countIn: 1, sound: 'all', loop: false };
+export const DEFAULT_STAGE: StagePrefs = {
+  countIn: 1,
+  sound: 'all',
+  loop: false,
+  buildDir: 'start',
+};
 function loadStage(): StagePrefs {
   try {
     const raw = localStorage.getItem(STAGE_KEY);
@@ -150,6 +158,13 @@ export interface UiState {
    */
   stage: boolean;
   stagePrefs: StagePrefs;
+  /**
+   * The stage's build presentation (null = the play presentation): the score fills in one
+   * sounding group per click, from the start or from the end; `step` groups are shown.
+   */
+  build: { step: number } | null;
+  /** The group just revealed and when (performance.now()), for its entrance. */
+  buildPop: { id: string; at: number } | null;
   /** During a count-in: the beat being counted (1-based) and how many beats a bar has. */
   countdown: { beat: number; of: number } | null;
   theme: Theme;
@@ -203,6 +218,8 @@ export const useUiStore = create<UiState>((set) => ({
   playhead: null,
   stage: false,
   stagePrefs: loadStage(),
+  build: null,
+  buildPop: null,
   countdown: null,
   theme: 'system',
   preview: null,

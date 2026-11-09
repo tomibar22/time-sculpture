@@ -40,7 +40,7 @@ import {
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { toggleOverview, zoomStep } from '../state/zoom';
-import { enterStage, exitStage } from '../state/stage';
+import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/stage';
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.matches('input, textarea, select') || t.isContentEditable);
@@ -72,6 +72,20 @@ export function useKeyboard() {
 
       // the stage only plays: Space, zoom, and Esc / F to leave
       if (useUiStore.getState().stage) {
+        // build: → Space PageDown Enter show the next group, ← PageUp Backspace hide the last
+        // (presentation remotes send these keys), Home / End none / all
+        if (useUiStore.getState().build && !mod && !e.altKey) {
+          // (Space always steps, even with a button focused; Enter still presses that button)
+          if (isActivatable(e.target) && e.key === 'Enter') return;
+          const next = ['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key);
+          const back = ['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key);
+          if (next || back || e.key === 'Home' || e.key === 'End') {
+            e.preventDefault();
+            if (e.key === 'Home' || e.key === 'End') return buildTo(e.key === 'End');
+            return buildStep(next ? 1 : -1);
+          }
+        }
+        if (k === 'b' && !mod && !e.altKey) return setBuild(!useUiStore.getState().build);
         if (e.key === ' ' || e.code === 'Space') {
           if (isActivatable(e.target)) return;
           e.preventDefault();

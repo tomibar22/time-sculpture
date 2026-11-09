@@ -55,6 +55,12 @@ export interface DrawState {
    * has been played fades back and the sounding group lights up.
    */
   stage?: boolean;
+  /**
+   * Stage build: only this stretch of time [a, b] (beats) is filled in; groups, marks and totals
+   * outside it are not drawn yet. `pop` is the group that just appeared (alpha 1 → 0).
+   */
+  reveal?: { a: number; b: number } | null;
+  pop?: { id: ItemId; alpha: number } | null;
 }
 
 /** How long (in beats) a group's ring keeps the extra weight of its onset. */
@@ -263,10 +269,12 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       // stage: played groups fade back, the sounding one lights up
       const past = ph !== null && t1 <= ph + EPS_D;
       const sounding = ph !== null && x.kind === 'sound' && t0 <= ph + EPS_D && ph < t1 - EPS_D;
-      if (s.stage && isSpace(x)) {
+      const hidden = !!s.reveal && (t0 < s.reveal.a - EPS_D || t1 > s.reveal.b + EPS_D);
+      if ((s.stage && isSpace(x)) || hidden) {
         a += x.n;
         continue;
       }
+      const pop = s.pop?.id === x.id ? s.pop.alpha : 0;
       for (const seg of segments(g, a, x.n)) {
         const p0 = xOf(g, seg.t0);
         const p1x = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.rows[seg.r]!.bw;
@@ -367,6 +375,15 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.globalAlpha = 0.68;
           rr(c, X, ty + 2, W, L.tileH - 4, 9);
           c.fill();
+          c.globalAlpha = 1;
+        }
+        if (pop > 0) {
+          // its entrance: a ring that thins and fades
+          c.strokeStyle = P.fg;
+          c.globalAlpha = pop;
+          c.lineWidth = 1.5 + 4 * pop;
+          rr(c, X - 2 - 3 * pop, ty - 3 * pop, W + 4 + 6 * pop, L.tileH + 6 * pop, 11);
+          c.stroke();
           c.globalAlpha = 1;
         }
         if (sounding) {
@@ -503,7 +520,9 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   /* ---------------- phrase marks: a line and a flag (with the mark's name, if it has one) */
   // in the score's ink, so they never read as a tile's colour
   const marks = doc.meter.marks ?? [];
+  const shown = (t: number) => !s.reveal || (t >= s.reveal.a - EPS_D && t < s.reveal.b - EPS_D);
   marks.forEach((t, i) => {
+    if (!shown(t)) return;
     const p = xOf(g, Math.min(t, g.grid.NB - 1e-6));
     const top = rowTop(g, p.r);
     const ty = tileY(g, p.r);
@@ -537,7 +556,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.fillText(label, fx + 6, top + 10);
   });
 
-  drawTotals(c, g, doc, P);
+  drawTotals(c, g, doc, P, s.reveal ?? null);
 
   drawForm(c, g, doc, P);
 
@@ -565,9 +584,17 @@ function fitText(c: CanvasRenderingContext2D, text: string, max: number): string
  * pulses it holds in the middle. Inner totals sit closer to the score, the ones holding them
  * further down (geometry gives each its level).
  */
-function drawTotals(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): void {
+function drawTotals(
+  c: CanvasRenderingContext2D,
+  g: Geo,
+  doc: Doc,
+  P: Palette,
+  reveal: { a: number; b: number } | null,
+): void {
   const totals = doc.meter.totals ?? [];
   totals.forEach((v, i) => {
+    // in a build, a total appears once everything under it has
+    if (reveal && (v.a < reveal.a - EPS_D || v.b > reveal.b + EPS_D)) return;
     const pulses = Math.round(
       g.grid.times.findIndex((t) => Math.abs(t - v.b) < EPS_D) -
         g.grid.times.findIndex((t) => Math.abs(t - v.a) < EPS_D),

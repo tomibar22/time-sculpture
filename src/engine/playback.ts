@@ -3,15 +3,20 @@ import { isSpace } from './doc';
 import type { Doc, Group } from './types';
 import { barMap } from './sections';
 
-/** Pentatonic scale degrees (major pentatonic) used to pitch groups by size. */
-export const PENTATONIC = [0, 2, 4, 7, 9] as const;
-export const BASE_FREQ = 196; // G3
+/** Major pentatonic going down from the top (G E D B A, in semitones below G). */
+export const PENTATONIC_DOWN = [0, 3, 5, 8, 10] as const;
+export const TOP_FREQ = 784; // G5
+/** Groups longer than this all sound the lowest note (G2). */
+export const LOWEST_SIZE = 16;
 
-/** Frequency for a sounding group of n pulses: 1 → G3, then up the major pentatonic. */
+/**
+ * Frequency for a sounding group of n pulses: the longer the group, the lower it sounds.
+ * 1 → G5, then down the major pentatonic (2 → E5, 3 → D5 … 6 → G4, 11 → G3), down to G2 at 16.
+ */
 export function pitchForSize(n: number): number {
-  const i = Math.max(0, n - 1);
-  const semis = PENTATONIC[i % 5]! + 12 * Math.floor(i / 5);
-  return BASE_FREQ * Math.pow(2, semis / 12);
+  const i = Math.min(LOWEST_SIZE, Math.max(1, n)) - 1;
+  const semis = PENTATONIC_DOWN[i % 5]! + 12 * Math.floor(i / 5);
+  return TOP_FREQ * Math.pow(2, -semis / 12);
 }
 
 export type ClickKind = 'landing' | 'downbeat' | 'beat' | 'tick';

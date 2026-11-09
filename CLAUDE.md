@@ -105,8 +105,8 @@ Report: `ok, reason?, moved, shortened, covered, created, removed, startsMoved, 
 
 Walk beat-time, not pulse indices: `nextPulse(doc, T)` = first pulse at or after T. Edits and
 subdivision changes during playback apply immediately without jumps. Sounds: landing (pulse 0),
-cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (pentatonic from
-G3 by size), rests silent.
+cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (by size, longer
+= lower: 1 → G5, down the major pentatonic, 11 → G3, 16 and longer → G2), rests silent.
 
 ### Text-editor editing (ops/edit.ts, ops/range.ts, state/editing.ts)
 
@@ -265,6 +265,14 @@ G3 by size), rests silent.
   player schedules a landing click, holds the end 1.6 s, then stops).
 - Controls fade while playing (`.stage.quiet`), a tap brings them back for 2.6 s. Wake lock while
   the stage is open; desktop browsers go full screen.
+- Two presentations (switch "Perform | Build", key B): **Build** (`ui.build {step}`, direction
+  `stagePrefs.buildDir`) fills the score in one sounding group per click, from the start or from
+  the end, for explaining a piece while talking. `buildSteps` / `buildReveal` (state/stage.ts)
+  give the shown stretch [a, b]; drawScore's `reveal` hides groups, marks and totals outside it
+  (rests reach on to the next hidden group) and `pop` rings the group just shown (`ui.buildPop`,
+  650 ms; its tone sounds unless the stage is silent). Next: a tap on the score, → ↓ Space
+  PageDown Enter (remotes); back: ← ↑ PageUp Backspace; Home / End none / all. Controls fade 1.2 s
+  after a step; a tap near the bottom brings them back. The score follows the newest group.
 
 ### Silence
 
