@@ -245,3 +245,47 @@ export function prependBars(doc: Doc, n: number): OpResult {
     report: report({ created }),
   };
 }
+
+/**
+ * Add `n` bars after the end, to go on writing. They copy the last bar's subdivision (and bar
+ * size, with modulations) and become the open space: everything written keeps its moment in
+ * time and now leads into them, so the new end is the landing. Open space the piece had becomes
+ * silence (reported in `created`). Line breaks, marks, modulations and repeats stay put.
+ */
+export function appendBars(doc: Doc, n: number): OpResult {
+  const { meter } = doc;
+  if (!Number.isInteger(n) || n < 1) return { doc, report: fail('out-of-range') };
+  const sections = meter.sections ?? [];
+  const maxBars = sections.length ? MAX_CYCLES * 2 : MAX_CYCLES;
+  if (meter.cycles + n > maxBars) return { doc, report: fail('out-of-range') };
+  const map = barMap(meter);
+  const size = map.sections[map.sections.length - 1]!.beatsPerBar;
+  const last = meter.subdivision.slice(-size);
+  const tail = Array.from({ length: n * size }, (_, i) => last[i % last.length] ?? 4);
+  const base: Meter = { ...meter, subdivision: [...meter.subdivision, ...tail] };
+  const nm: Meter = {
+    ...base,
+    cycles: sections.length ? barMap(base).barStarts.length : meter.cycles + n,
+  };
+
+  // everything written comes first; the new bars are the open space before the new end
+  const { ids, nextId } = mintIds(doc, 1);
+  const created: ItemId[] = [];
+  const items: Item[] = [];
+  for (const x of doc.items) {
+    if (!isSpace(x)) items.push(x);
+    else if (x.n > 0) {
+      items.push(group(ids[0]!, x.n, 'rest'));
+      created.push(ids[0]!);
+    }
+  }
+  items.push({ id: SPACE_ID, kind: 'space', n: 0 });
+  return {
+    doc: {
+      meter: nm,
+      items: syncSpace(items, buildGrid(nm).TS),
+      nextId: created.length ? nextId : doc.nextId,
+    },
+    report: report({ created }),
+  };
+}

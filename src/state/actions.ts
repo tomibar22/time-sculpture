@@ -450,6 +450,26 @@ export function addBarAtStart(): void {
   announce('Bar added at the start. The caret is at the very beginning.');
 }
 
+/** Add a bar after the end, as open space to go on writing; the caret goes to its start. */
+export function addBarAtEnd(): void {
+  const before = doc();
+  const r = E.appendBars(before, 1);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast(`A piece can have at most ${E.MAX_CYCLES} bars`);
+  }
+  if (!run(r, { label: 'bar at the end', select: 'none' })) return;
+  setUi({ caret: E.buildGrid(before.meter).TS, range: null, rangeAnchor: null });
+  const silenced = r.report.created.length > 0;
+  toast(
+    `A bar was added at the end, open to write in.${
+      silenced ? ' The open space that was left became silence.' : ''
+    }`,
+    { undo: true },
+  );
+  announce('Bar added at the end. The caret is where it begins.');
+}
+
 /* ------------------------------------------------------------------ repeats and endings */
 
 /** [ : a start-repeat sign |: at pulse k, or remove it. */

@@ -245,6 +245,7 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
     }),
   fc.nat().map((i) => (d: Doc) => E.removeVolta(d, i % 3)),
   fc.integer({ min: 0, max: 3 }).map((n) => (d: Doc) => E.prependBars(d, n)),
+  fc.integer({ min: 0, max: 3 }).map((n) => (d: Doc) => E.appendBars(d, n)),
 );
 
 describe('engine invariants (property-based)', () => {

@@ -16,6 +16,7 @@ import {
   toggleRepeatEndAt,
   toggleRepeatStartAt,
   addBarAtStart,
+  addBarAtEnd,
   selectAll,
 } from '../state/actions';
 import {
@@ -339,6 +340,15 @@ function CaretBar() {
             onClick={addBarAtStart}
           >
             Bar before
+          </button>
+        )}
+        {caret === gridNow.TS && (
+          <button
+            type="button"
+            title="Add an empty bar after the end, to go on writing"
+            onClick={addBarAtEnd}
+          >
+            Bar after
           </button>
         )}
         <button

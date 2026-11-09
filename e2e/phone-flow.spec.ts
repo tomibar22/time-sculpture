@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, ready, score, showPad, tap } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, openSetup, P, ready, score, showPad, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -42,4 +42,23 @@ test('Bar before opens a bar at the start to write an opening in', async ({ page
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expectSeq(page, DEFAULT_SEQ);
+});
+
+test('Bar after adds an open bar at the end; what was written stays in place', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('End');
+  await page.getByRole('button', { name: 'Bar after' }).click();
+  await expect(page.getByTestId('status')).toContainText('4×3');
+  await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 │ ·');
+  await showPad(page);
+  await page.getByTestId('key-3').click();
+  await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 3 │ ·');
+});
+
+test('+ Bar at the end in the settings', async ({ page }) => {
+  await openSetup(page);
+  await page.getByRole('button', { name: '+ Bar at the end' }).click();
+  await expect(page.getByTestId('bars-value')).toHaveText('3');
+  await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 │ ·');
 });

@@ -12,7 +12,7 @@ import {
   toggleRepeatEnd,
   toggleRepeatStart,
 } from '../form';
-import { prependBars, resizeMeter, setSubdivision, toggleMark } from '../ops/meter';
+import { appendBars, prependBars, resizeMeter, setSubdivision, toggleMark } from '../ops/meter';
 import { addSection, resizeBeats } from '../ops/sections';
 import type { Doc } from '../types';
 
@@ -167,5 +167,33 @@ describe('bars before the beginning', () => {
     const n = ok(prependBars(d, 1));
     expect(n.meter.sections?.[0]?.at).toBe(8);
     expect(n.meter.marks).toEqual([6]);
+  });
+});
+
+describe('bars after the end', () => {
+  it('become open space at the end; what was written keeps its time', () => {
+    // 4 × 2: bar 1 at 1:1, bar 2 at 2:1; 3 2 | 3 (open 4)
+    let d = docFrom(makeMeter(4, 2, [1, 1, 1, 1, 2, 2, 2, 2]), [3, 2, '|', 3]);
+    d = ok(toggleRepeatEnd(d, 12)); // :| at the old end
+    d = ok(toggleMark(d, 3));
+    const r = appendBars(d, 1);
+    const n = ok(r);
+    expect(n.meter.cycles).toBe(3);
+    // the new bar copies the last bar's subdivision
+    expect(n.meter.subdivision).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]);
+    expect(sequence(n)).toEqual({ start: ['3', '2', '(4)', '3'], ending: [] });
+    expect(r.report.created).toHaveLength(1); // the old open space became silence
+    expect(n.items[n.items.length - 1]).toMatchObject({ kind: 'space', n: 8 });
+    // signs stay where they were in time
+    expect(n.meter.repeatEnds).toEqual([{ at: 8, times: 2 }]);
+    expect(n.meter.marks).toEqual([3]);
+  });
+
+  it('with modulations the new bar has the last section’s bar size; limits hold', () => {
+    const d = ok(addSection(piece(), 4, { from: 2, to: 3, beatsPerBar: 3 }));
+    const n = ok(appendBars(d, 1));
+    expect(n.meter.subdivision).toHaveLength(d.meter.subdivision.length + 3);
+    expect(n.meter.cycles).toBe(d.meter.cycles + 1);
+    expect(appendBars(docFrom(makeMeter(4, 32, 1), ['|']), 1).report.ok).toBe(false);
   });
 });

@@ -277,6 +277,11 @@ G3 by size), rests silent.
   bar's subdivision, become the open space; everything written moves into the ending (old open
   space → silence, reported in `created`); breaks, marks, sections and repeats shift with it.
   UI: "Bar before" (caret at 0) and "+ Bar at the start" in the settings.
+- `appendBars(doc, n)`: the mirror: n bars after the end (copying the last bar's subdivision and,
+  with modulations, the last section's bar size) become the open space; everything written
+  becomes the start and keeps its time; breaks, marks, sections and repeats stay put. UI: "Bar
+  after" (caret at TS) and "+ Bar at the end"; the caret goes to the old end. The Bars stepper
+  still uses `resizeMeter` (bars appear in the middle, in the open space).
 
 ## Design tokens (src/styles/tokens.css)
 

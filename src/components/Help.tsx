@@ -51,7 +51,10 @@ export function Help() {
             tile, the tile is split. On a phone, use the number pad (123). To write an opening
             before what is already there, put the caret at the very start and tap Bar before (or +
             Bar at the start in the settings): an open bar is added in front, and what was written
-            moves on with it, still landing on 1.
+            moves on with it, still landing on 1. To go on after the end, put the caret at the very
+            end (End) and tap Bar after (or + Bar at the end): what was written stays where it is
+            and the new bar is open to write in. (The Bars stepper adds bars in the middle, in the
+            open space.)
           </dd>
           <dt>Rows</dt>
           <dd>

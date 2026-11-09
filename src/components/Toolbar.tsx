@@ -1,5 +1,5 @@
 import { MAX_BEATS, MAX_CYCLES, MAX_SUBDIVISION, MIN_BEATS, MIN_CYCLES } from '../engine';
-import { addBarAtStart, announce, setMeter } from '../state/actions';
+import { addBarAtEnd, addBarAtStart, announce, setMeter } from '../state/actions';
 import { ui as sfx } from '../audio/voices';
 import { useDocStore, useUiStore } from '../state/store';
 import type { MoveMode } from '../state/store';
@@ -69,6 +69,14 @@ export function Toolbar() {
             onClick={addBarAtStart}
           >
             + Bar at the start
+          </button>
+          <button
+            type="button"
+            className="ghost rows-btn"
+            title="Add an empty bar after the end, to go on writing"
+            onClick={addBarAtEnd}
+          >
+            + Bar at the end
           </button>
           <RowsControl />
         </div>
