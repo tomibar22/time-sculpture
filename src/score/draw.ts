@@ -321,7 +321,12 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.font = `600 ${W > 26 ? 16 : 12}px ${MONO}`;
           c.textAlign = 'left';
           c.textBaseline = 'middle';
-          c.fillText(seg.first ? String(x.n) : `…${x.n}`, X + (W > 26 ? 8 : 4), ty + L.tileH / 2);
+          // a start-repeat sign over the tile's beginning pushes the number past its dots
+          const signHere = (doc.meter.repeatStarts ?? []).some(
+            (t) => Math.abs(t - seg.t0) < EPS_D,
+          );
+          const lx = X + (W > 26 ? 8 : 4) + (signHere ? 15 : 0);
+          c.fillText(seg.first ? String(x.n) : `…${x.n}`, lx, ty + L.tileH / 2);
           c.globalAlpha = 1;
         }
         if (s.grips === x.id) {
