@@ -37,6 +37,9 @@ function adopt(id: string, raw: unknown, rename?: (name: string) => string): str
     perRow: settings.perRow ?? 1,
     fitRows: settings.fitRows ?? false,
     preview: null,
+    fillPanel: null,
+    subPanel: false,
+    overview: false,
     selection: [],
     caret: null,
     range: null,
@@ -44,9 +47,16 @@ function adopt(id: string, raw: unknown, rename?: (name: string) => string): str
   return name;
 }
 
+/** What was last written for the open piece, so a save with nothing new keeps its date. */
+let lastSaved = '';
+
 export async function saveNow(): Promise<void> {
   const id = ui().currentId;
-  if (id) await savePiece(id, currentSaved());
+  if (!id) return;
+  const piece = currentSaved();
+  const json = id + JSON.stringify(piece);
+  await savePiece(id, piece, { touch: json !== lastSaved });
+  lastSaved = json;
 }
 
 let saveTimer: number | undefined;
@@ -125,7 +135,16 @@ export async function createPiece(doc: Doc = blankDoc(), name = 'Untitled'): Pro
   const id = newId();
   useDocStore.getState().load(doc);
   clearSelection();
-  ui().set({ currentId: id, currentName: name, caret: null, range: null });
+  ui().set({
+    currentId: id,
+    currentName: name,
+    caret: null,
+    range: null,
+    preview: null,
+    fillPanel: null,
+    subPanel: false,
+    overview: false,
+  });
   await savePiece(id, currentSaved());
   announce(`New composition: ${name}`);
 }
@@ -194,6 +213,14 @@ export async function exportFile(): Promise<void> {
 export async function importFile(file: File): Promise<void> {
   try {
     const raw: unknown = JSON.parse(await file.text());
+    if ((raw as Partial<Backup> | null)?.format === 'time-sculpture-library') {
+      const n = await restoreBackup(raw as Backup);
+      return toast(
+        n
+          ? `${n} composition${n === 1 ? '' : 's'} added from the backup`
+          : 'Everything in that backup is already here',
+      );
+    }
     fromSaved(raw); // validate before touching anything
     await saveNow();
     const id = newId();
@@ -203,6 +230,117 @@ export async function importFile(file: File): Promise<void> {
   } catch (e) {
     toast(e instanceof Error ? e.message : 'That file could not be read.');
   }
+}
+
+/** The piece for a notation program: MusicXML (Dorico, Sibelius, MuseScore, Finale…). */
+export async function exportMusicXml(): Promise<void> {
+  const { musicXml } = await import('../export/musicxml');
+  const { tempo, currentName } = ui();
+  const xml = musicXml(useDocStore.getState().doc, currentName, tempo);
+  await deliverFile(
+    new Blob([xml], { type: 'application/vnd.recordare.musicxml+xml' }),
+    fileName(currentName, 'musicxml'),
+  );
+}
+
+/** The piece as it is heard, for a DAW or any player: a MIDI file. */
+export async function exportMidi(): Promise<void> {
+  const { midiFile } = await import('../export/midi');
+  const { tempo, currentName } = ui();
+  const bytes = midiFile(useDocStore.getState().doc, currentName, tempo);
+  await deliverFile(
+    new Blob([bytes as BlobPart], { type: 'audio/midi' }),
+    fileName(currentName, 'mid'),
+  );
+}
+
+/** The first page of the printed sheet as a picture (PNG), to send or post. */
+export async function exportImage(): Promise<void> {
+  const { renderSheet } = await import('../export/sheet');
+  const { tempo, currentName, perRow, fitRows } = ui();
+  const pages = await renderSheet({
+    doc: useDocStore.getState().doc,
+    title: currentName,
+    tempo,
+    perRow,
+    fitRows,
+    crop: true,
+  });
+  const blob = await new Promise<Blob | null>((res) => pages[0]!.toBlob(res, 'image/png'));
+  if (!blob) return toast('The picture could not be made.');
+  await deliverFile(blob, fileName(currentName, 'png'));
+}
+
+/** The phrase as plain text ("3 3 2 | 3 (1) 3 2 4"): paste it in a message, or back in here. */
+export function phraseText(): string {
+  const doc = useDocStore.getState().doc;
+  const si = doc.items.findIndex((x) => x.kind === 'space');
+  const side = (xs: typeof doc.items) =>
+    xs.map((x) => (x.kind === 'rest' ? `(${x.n})` : `${x.n}`)).join(' ');
+  const open = doc.items[si]!.n;
+  return [side(doc.items.slice(0, si)), open ? `[${open} open]` : '', side(doc.items.slice(si + 1))]
+    .filter(Boolean)
+    .join(open ? '  ' : ' | ');
+}
+
+/* ------------------------------------------------------------------ backup of the whole library */
+
+export interface Backup {
+  format: 'time-sculpture-library';
+  version: 1;
+  saved: string;
+  pieces: { id: string; updated: number; piece: SavedPiece }[];
+}
+
+/** Every composition in one file, to keep somewhere safe or move to another device. */
+export async function exportBackup(): Promise<void> {
+  await saveNow();
+  const entries = await listPieces();
+  const pieces: Backup['pieces'] = [];
+  for (const e of entries) {
+    const piece = await loadPiece(e.id);
+    if (piece) pieces.push({ id: e.id, updated: e.updated, piece });
+  }
+  const backup: Backup = {
+    format: 'time-sculpture-library',
+    version: 1,
+    saved: new Date().toISOString(),
+    pieces,
+  };
+  const day = backup.saved.slice(0, 10);
+  await deliverFile(
+    new Blob([JSON.stringify(backup) + '\n'], { type: 'application/json' }),
+    `Time Sculpture library ${day}.json`,
+  );
+  toast(`${pieces.length} composition${pieces.length === 1 ? '' : 's'} backed up`);
+}
+
+/**
+ * Bring a backup in: every piece in it joins the library. A piece that is still here unchanged
+ * is skipped; one that has changed since comes in beside it as "(from backup)". Nothing is
+ * replaced or deleted. Returns how many were added.
+ */
+async function restoreBackup(raw: Backup): Promise<number> {
+  const have = new Map((await listPieces()).map((e) => [e.id, e]));
+  let added = 0;
+  for (const entry of raw.pieces ?? []) {
+    try {
+      fromSaved(entry.piece); // only pieces that read cleanly
+    } catch {
+      continue;
+    }
+    const here = have.has(entry.id) ? await loadPiece(entry.id) : undefined;
+    if (here && JSON.stringify(here) === JSON.stringify(entry.piece)) continue;
+    const piece = here
+      ? { ...entry.piece, title: `${entry.piece.title} (from backup)` }
+      : entry.piece;
+    await savePiece(here ? newId() : entry.id, piece, {
+      current: false,
+      updated: Number(entry.updated) || Date.now(),
+    });
+    added++;
+  }
+  return added;
 }
 
 export async function shareLink(): Promise<string> {

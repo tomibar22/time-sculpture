@@ -184,8 +184,8 @@ export interface UiState {
   setupOpen: boolean;
   /** Tile sizes the fill panel may use. */
   fillSizes: number[];
-  /** The fill panel: closed, or open on the random or browse tab. */
-  fillPanel: 'random' | 'browse' | null;
+  /** The fill panel: closed, or open on the random, browse or vary tab. */
+  fillPanel: 'random' | 'browse' | 'vary' | null;
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
   fillShape: ShapeFamily | 'shapes' | 'any';
@@ -227,6 +227,8 @@ export interface UiState {
   /** Copied groups (also written to the system clipboard as text). */
   clipboard: GroupSpec[];
   flash: { ids: ItemId[]; until: number };
+  /** When the piece was last completed (performance.now()), for the light that sweeps over it. */
+  completedAt: number;
   toast: Toast | null;
   announcement: string;
   /** Item focused in the screen-reader list (drawn with a dashed outline). */
@@ -280,6 +282,7 @@ export const useUiStore = create<UiState>((set) => ({
   rangeAnchor: null,
   clipboard: [],
   flash: { ids: [], until: 0 },
+  completedAt: 0,
   toast: null,
   announcement: '',
   focusedId: null,

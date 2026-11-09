@@ -30,6 +30,8 @@ export interface SheetInput {
   tempo: number;
   perRow: number;
   fitRows?: boolean;
+  /** A picture rather than a page: the first page only, cut off under the last row. */
+  crop?: boolean;
 }
 
 function newPage(): { canvas: HTMLCanvasElement; c: CanvasRenderingContext2D } {
@@ -152,6 +154,15 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
     c.restore();
     y += (last - r) * rowH;
     r = last;
+    if (input.crop) {
+      // a picture: just the title and the rows that fit, with a little air below
+      const h = Math.min(canvas.height, Math.round((y + 18) * PX_PER_PT));
+      const cut = document.createElement('canvas');
+      cut.width = canvas.width;
+      cut.height = h;
+      cut.getContext('2d')!.drawImage(canvas, 0, 0);
+      return [cut];
+    }
     if (r < g.R) {
       finishPage(pages.length + 1);
       ({ canvas, c } = newPage());

@@ -36,7 +36,7 @@ test('a phrase mark gets a name of your choice, or none', async ({ page }) => {
   await page.keyboard.press('Home'); // caret at the very start
   await page.getByRole('button', { name: 'Phrase mark' }).click();
   await page.getByRole('button', { name: 'Name…' }).click();
-  const name = page.getByRole('textbox', { name: 'Name' });
+  const name = page.getByRole('textbox', { name: 'Name', exact: true });
   await name.fill('Theme');
   await name.press('Enter');
   await expect(page.getByRole('dialog')).toBeHidden();

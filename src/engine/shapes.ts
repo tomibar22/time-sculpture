@@ -5,7 +5,8 @@ import { countWays, sampleTiling } from './count';
  * spreads, mirrors). `shapeOf` names the shape of a fill; `shapeFills` builds shaped fills of R
  * pulses directly, since random sampling almost never finds them.
  */
-export type ShapeFamily = 'repeat' | 'grow' | 'pyramid' | 'refrain' | 'even' | 'cadence' | 'mirror';
+export type ShapeFamily =
+  'tihai' | 'repeat' | 'grow' | 'pyramid' | 'refrain' | 'even' | 'cadence' | 'mirror';
 
 export interface Shape {
   family: ShapeFamily;
@@ -14,6 +15,11 @@ export interface Shape {
 
 /** In order of priority: a fill is named by the first family that fits. */
 export const SHAPE_FAMILIES: { id: ShapeFamily; label: string; hint: string }[] = [
+  {
+    id: 'tihai',
+    label: 'Tihai',
+    hint: 'A phrase three times, with the same breath between: 3 2 (1) 3 2 (1) 3 2',
+  },
   { id: 'repeat', label: 'Repeat', hint: 'A cell repeated: 3 3 2 · 3 3 2' },
   { id: 'grow', label: 'Growing', hint: 'Adds one each time: 3 2 · 3 3 2 · 3 3 3 2' },
   { id: 'pyramid', label: 'Pyramid', hint: 'Rising, falling, arch, valley: 2 3 4 3 2' },
@@ -172,6 +178,47 @@ export function shapeOf(t: number[]): Shape | null {
 }
 
 const sum = (t: number[]) => t.reduce((a, b) => a + b, 0);
+
+/** A shaped fill that has silences in it: `rests` are the indices of the silent tiles. */
+export interface RestedFill {
+  sizes: number[];
+  rests: number[];
+  shape: Shape;
+}
+
+/**
+ * Tihais of exactly R pulses: a phrase (1–4 tiles of `sizes`) played three times with the same
+ * silence between, so the third time ends exactly where the region ends (on 1, when the region
+ * runs to the end). 3 × phrase + 2 × gap = R, gap 1–9. Shorter phrases first.
+ */
+export function tihaiFills(R: number, sizes: number[], limit = 40): RestedFill[] {
+  const S = [...new Set(sizes)].filter((n) => n >= 1).sort((a, b) => a - b);
+  const out: RestedFill[] = [];
+  if (R < 5 || !S.length) return out;
+  let cells: number[][] = [[]];
+  for (let len = 1; len <= 4; len++) {
+    cells = cells.flatMap((c) => S.map((v) => [...c, v]));
+    for (const c of cells) {
+      const p = sum(c);
+      const g = (R - 3 * p) / 2;
+      if (!Number.isInteger(g) || g < 1 || g > 9) continue;
+      // a phrase that is itself a repeat reads as a plain repeat, not as a phrase
+      if (c.length > 1 && period(c)) continue;
+      const n = c.length;
+      out.push({
+        sizes: [...c, g, ...c, g, ...c],
+        rests: [n, 2 * n + 1],
+        shape: { family: 'tihai', label: `${cell(c)} ×3, breath of ${g}` },
+      });
+    }
+  }
+  // the closest to "phrase and breath in proportion" first: short gaps, then shorter phrases
+  out.sort(
+    (a, b) => a.sizes.length - b.sizes.length || a.sizes[a.rests[0]!]! - b.sizes[b.rests[0]!]!,
+  );
+  return out.slice(0, limit);
+}
+
 const times = <T>(t: T[], k: number): T[] => Array.from({ length: k }, () => t).flat();
 const range = (a: number, b: number, d: number): number[] => {
   const out: number[] = [];

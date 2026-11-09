@@ -45,6 +45,8 @@ const reveal = (doc: Doc, step: number, dir: BuildDir) => {
   const r = buildReveal(doc, dir, step);
   return { a: r.a, b: r.b };
 };
+/** How long the light takes to pass over a piece that was just completed. */
+const SWEEP_MS = 900;
 const DOUBLE_TAP_MS = 330;
 const DRAG_THRESHOLD = 8;
 
@@ -162,6 +164,9 @@ export function Score() {
     const popAlpha = s.buildPop ? Math.max(0, 1 - (now - s.buildPop.at) / POP_MS) : 0;
     const gs = gesture.current;
     const stage = s.stage;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sweepT = s.completedAt && !still && !stage ? (now - s.completedAt) / SWEEP_MS : 2;
+    const sweep = sweepT >= 0 && sweepT < 1 ? sweepT : null;
     drawScore(
       c,
       g,
@@ -179,6 +184,12 @@ export function Score() {
         range: stage ? null : s.range,
         playhead: s.playhead,
         loop: stage ? null : s.loop,
+        sweep,
+        invite: stage
+          ? null
+          : matchMedia('(pointer: coarse)').matches || s.keypad
+            ? 'Tap a number to begin'
+            : 'Type a number to begin',
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
         focusedId: stage ? null : s.focusedId,
         grips:
@@ -192,7 +203,7 @@ export function Score() {
       },
       palette.current,
     );
-    if (flashAlpha > 0 || popAlpha > 0) request();
+    if (flashAlpha > 0 || popAlpha > 0 || sweep !== null) request();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

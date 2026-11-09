@@ -39,6 +39,7 @@ import {
   typeDigit,
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
+import { openFill } from '../state/fill';
 import { toggleOverview, zoomStep } from '../state/zoom';
 import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/stage';
 
@@ -212,6 +213,10 @@ export function useKeyboard() {
         if (at === null) return void toast('Place the caret where the repeat sign goes');
         e.preventDefault();
         return start ? toggleRepeatStartAt(at) : toggleRepeatEndAt(at);
+      }
+      if (k === 'v' && e.shiftKey) {
+        e.preventDefault();
+        return openFill('vary');
       }
       if (k === 'v' && !e.shiftKey) {
         e.preventDefault();

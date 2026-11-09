@@ -1,11 +1,14 @@
 import { countWays, sampleTiling } from './count';
 import { buildGrid, isOnBeat } from './grid';
-import { shapeFills, shapeOf, type Shape } from './shapes';
+import { shapeFills, shapeOf, tihaiFills, type Shape } from './shapes';
+import type { GroupSpec } from './ops/edit';
 import type { Meter } from './types';
 
 /** A way to fill a region, with measures to sort by. */
 export interface FillOption {
   sizes: number[];
+  /** Indices of tiles that are silences (only shapes with a breath in them, such as a tihai). */
+  rests?: number[];
   key: string;
   tiles: number;
   /** Onsets that fall on a beat line. */
@@ -91,29 +94,44 @@ export function fillOptions(
     }
   }
   const grid = buildGrid(meter);
-  const options = tilings.map((t) => {
+  const measure = (t: number[], rests: number[] | undefined, shape: Shape | null): FillOption => {
+    const silent = new Set(rests);
     let k = start;
     let onBeat = 0;
-    for (const n of t) {
-      if (isOnBeat(grid, k)) onBeat++;
+    t.forEach((n, i) => {
+      if (!silent.has(i) && isOnBeat(grid, k)) onBeat++;
       k += n;
-    }
-    const mean = R / t.length;
-    const spread = Math.sqrt(t.reduce((a, n) => a + (n - mean) ** 2, 0) / t.length);
+    });
+    const sounds = t.filter((_, i) => !silent.has(i));
+    const mean = sounds.reduce((a, n) => a + n, 0) / sounds.length;
+    const spread = Math.sqrt(sounds.reduce((a, n) => a + (n - mean) ** 2, 0) / sounds.length);
     return {
       sizes: t,
-      key: t.join(' '),
-      tiles: t.length,
+      ...(rests?.length ? { rests } : {}),
+      key: t.map((n, i) => (silent.has(i) ? `(${n})` : `${n}`)).join(' '),
+      tiles: sounds.length,
       onBeat,
-      offBeat: t.length - onBeat,
-      variety: new Set(t).size,
+      offBeat: sounds.length - onBeat,
+      variety: new Set(sounds).size,
       spread,
-      shape: shapeOf(t),
+      shape,
     };
-  });
+  };
+  const options = tilings.map((t) => measure(t, undefined, shapeOf(t)));
+  for (const t of tihaiFills(R, sizes)) options.push(measure(t.sizes, t.rests, t.shape));
   return { options, total };
 }
 
+/** The groups an option writes (its silences as rests). */
+export function fillGroups(o: Pick<FillOption, 'sizes' | 'rests'>): GroupSpec[] {
+  const silent = new Set(o.rests);
+  return o.sizes.map((n, i) => ({
+    n,
+    kind: silent.has(i) ? ('rest' as const) : ('sound' as const),
+  }));
+}
+
+/** Every plain tiling, sorted (shapes with silences in them are listed with the shapes only). */
 export function sortFills(options: FillOption[], by: FillSort): FillOption[] {
   const cmp: Record<FillSort, (a: FillOption, b: FillOption) => number> = {
     fewest: (a, b) => a.tiles - b.tiles,
@@ -123,5 +141,7 @@ export function sortFills(options: FillOption[], by: FillSort): FillOption[] {
     varied: (a, b) => b.variety - a.variety || b.spread - a.spread,
     even: (a, b) => a.spread - b.spread || a.variety - b.variety,
   };
-  return [...options].sort((a, b) => cmp[by](a, b) || a.key.localeCompare(b.key));
+  return options
+    .filter((o) => !o.rests)
+    .sort((a, b) => cmp[by](a, b) || a.key.localeCompare(b.key));
 }

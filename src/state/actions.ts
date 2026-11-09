@@ -83,6 +83,7 @@ export function run(result: OpResult, opts: RunOpts): boolean {
   (opts.sound ?? sfx.snap)();
   if (!wasComplete && E.freePulses(result.doc) === 0 && !uiState().playing) {
     sfx.done();
+    setUi({ completedAt: performance.now() });
     toast('Complete. It lands on 1.', {
       action: {
         label: 'Play',

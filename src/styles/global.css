@@ -20,35 +20,72 @@ body {
   padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
   padding-top: max(12px, env(safe-area-inset-top, 0px));
-  padding-bottom: calc(var(--dock-h, 80px) + 40px);
+  /* room to scroll past the end, so the last rows can come up clear of the dock */
+  padding-bottom: calc(var(--dock-h, 80px) + max(40px, 20vh));
   display: flex;
   flex-direction: column;
   gap: var(--gap);
 }
+/* ---------------------------------------------------------------- header */
+/* the app's name is small; the composition's own name is the title of the page */
+.app-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'brand actions'
+    'title title';
+  align-items: center;
+  gap: 2px 12px;
+}
+.brand {
+  grid-area: brand;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.logo {
+  flex-shrink: 0;
+}
 .app-header h1 {
   font-family: var(--f-display);
   font-weight: 700;
-  font-size: clamp(2rem, 7vw, 2.6rem);
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
   line-height: 1;
-  letter-spacing: -0.02em;
-  margin: 16px 0 6px;
-}
-.app-header p {
   margin: 0;
+  white-space: nowrap;
   color: var(--muted);
-  max-width: 56ch;
 }
-
-/* ---------------------------------------------------------------- header */
-.title-row {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 4px;
+.piece-title {
+  grid-area: title;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 6vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  padding: 4px 8px;
+  margin: 6px -8px 0;
+  text-overflow: ellipsis;
 }
-.title-row h1 {
-  margin-top: 0;
+.piece-title:focus {
+  background: var(--card);
+  box-shadow: 0 0 0 2px var(--sel);
+  outline: none;
+}
+@media (hover: hover) {
+  .piece-title:hover:not(:focus) {
+    background: color-mix(in srgb, var(--fg) 5%, transparent);
+  }
 }
 .header-actions {
+  grid-area: actions;
   display: flex;
   justify-content: flex-end;
   margin-right: -10px;
@@ -354,18 +391,43 @@ canvas.score:focus-visible {
   overflow-wrap: anywhere;
 }
 .help {
-  margin: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr);
-  gap: 8px 14px;
   font-size: 0.92rem;
 }
-.help dt {
-  font-weight: 700;
+.help-start {
+  margin: 0 0 6px;
+  padding-left: 1.3em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 62ch;
 }
-.help dd {
-  margin: 0;
+.help-topic {
+  border-top: 1px solid var(--line);
+}
+.help-topic summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+}
+.help-topic summary::-webkit-details-marker {
+  display: none;
+}
+.help-topic summary::after {
+  content: '+';
   color: var(--muted);
+  font-family: var(--f-mono);
+}
+.help-topic[open] summary::after {
+  content: '−';
+}
+.help-topic p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  max-width: 68ch;
 }
 .legend {
   display: flex;
@@ -564,12 +626,6 @@ canvas.score:focus-visible {
     padding: 16px;
     border-radius: 18px;
   }
-  .help {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .help dd {
-    margin-bottom: 6px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -598,7 +654,6 @@ canvas.score:focus-visible {
 
 /* ---------------------------------------------------------------- library */
 .lib-btn {
-  max-width: 46vw;
   gap: 6px;
   color: var(--fg);
 }
@@ -1248,42 +1303,50 @@ button.switch[aria-checked='true'] .switch-knob {
 /* touch screens held sideways (iPad, iPhone in landscape): height is short, so the header takes
    one line and the score starts high */
 @media (pointer: coarse) and (orientation: landscape) {
-  .title-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+  .app-header {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'brand title actions';
   }
   .app-header h1 {
-    font-size: 1.6rem;
-    margin: 0;
-    white-space: nowrap;
-  }
-  .app-header p {
     display: none;
+  }
+  .piece-title {
+    font-size: 1.5rem;
+    margin: 0;
   }
 }
 
 /* phones: a compact header and transport */
 @media (max-width: 560px) {
-  .title-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+  .app-header {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'brand title actions';
+    gap: 6px;
   }
-  .app-header h1 {
-    font-size: 1.45rem;
-    margin: 0;
+  .app-header h1,
+  .theme-tag,
+  .lib-name,
+  .stage-open span {
+    /* still there for screen readers */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
     white-space: nowrap;
   }
-  .app-header p,
-  .theme-tag {
-    display: none;
+  .piece-title {
+    font-size: 1.3rem;
+    margin: 0;
+    padding: 6px;
   }
   .header-actions {
     min-width: 0;
+    gap: 0;
+    margin-right: -8px;
   }
-  .lib-btn {
-    max-width: 52vw;
+  .header-actions button {
+    padding: 8px 9px;
   }
   .panel {
     gap: 14px;
@@ -1648,4 +1711,86 @@ dialog.tempo-dialog {
 .loop-btn[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-ink);
+}
+
+/* a silence inside a fill's picture: empty time with a faint outline */
+.strip .strip-rest {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* ---------------------------------------------------------------- library: sections, pictures */
+.lib-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lib-sec h3 {
+  margin: 0;
+  font-family: var(--f-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.lib-sec h3 .dim {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.lib-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lib-search {
+  min-height: 36px;
+  width: min(200px, 50%);
+  border-radius: var(--r-control);
+  border: 1.5px solid var(--line);
+  background: var(--soft);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0 10px;
+}
+.lib-open {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+.lib-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+.lib-open .t {
+  white-space: nowrap;
+  min-width: 0;
+}
+.mini {
+  display: flex;
+  gap: 1.5px;
+  height: 8px;
+}
+.mini span {
+  border-radius: 2.5px;
+  min-width: 2px;
+}
+.mini .rest {
+  background: transparent;
+}
+.mini .open {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--faint);
+  opacity: 0.6;
+}
+.lib-foot {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
 }

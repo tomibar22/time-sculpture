@@ -55,6 +55,10 @@ export interface DrawState {
    * has been played fades back and the sounding group lights up.
    */
   stage?: boolean;
+  /** The piece was just completed: a light sweeps over the tiles once (progress 0 → 1). */
+  sweep?: number | null;
+  /** An empty piece invites the first number (the words depend on the device). */
+  invite?: string | null;
   /** Practice loop (beats): its ends are marked while it plays. */
   loop?: { a: number; b: number } | null;
   /**
@@ -307,7 +311,9 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
             c.font = `14px ${BODY}`;
             c.textAlign = 'center';
             c.textBaseline = 'middle';
-            c.fillText(`open ${x.n}`, X + W / 2, ty + L.tileH / 2);
+            const empty = doc.items.length === 1 && !!s.invite;
+            const words = empty && c.measureText(s.invite!).width < W - 16 ? s.invite! : null;
+            c.fillText(words ?? `open ${x.n}`, X + W / 2, ty + L.tileH / 2);
           }
           continue;
         }
@@ -325,6 +331,27 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.fillStyle = col;
           rr(c, X, ty + 2, W, L.tileH - 4, 9);
           c.fill();
+          if (!s.noClear && W > 6) {
+            // a little light from above and weight below, so a tile reads as a solid thing
+            const sheen = c.createLinearGradient(0, ty + 2, 0, ty + L.tileH - 2);
+            sheen.addColorStop(0, 'rgba(255,255,255,0.16)');
+            sheen.addColorStop(0.45, 'rgba(255,255,255,0)');
+            sheen.addColorStop(0.8, 'rgba(0,0,0,0)');
+            sheen.addColorStop(1, 'rgba(0,0,0,0.14)');
+            c.fillStyle = sheen;
+            c.fill();
+          }
+          if (s.sweep != null) {
+            // completed: a light passes over the phrase from its first group to the 1
+            const u = (t0 + t1) / 2 / g.grid.NB;
+            const near = Math.max(0, 1 - Math.abs(s.sweep * 1.3 - 0.15 - u) / 0.16);
+            if (near > 0) {
+              c.fillStyle = '#ffffff';
+              c.globalAlpha = 0.42 * near;
+              c.fill();
+              c.globalAlpha = 1;
+            }
+          }
         }
         if (selected) {
           c.strokeStyle = P.sel;

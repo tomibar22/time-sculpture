@@ -129,13 +129,21 @@ export function SelectionBar() {
           Remove
         </button>
         <span className="selbar-sep" aria-hidden="true" />
-        {sel.length > 0 && E.isContiguous(idx) && <LoopButton />}
+        {sel.length > 0 && <LoopButton />}
         <button
           type="button"
           disabled={!contiguous && sel.length !== 1}
           onClick={() => openFill('browse')}
         >
           Refill…
+        </button>
+        <button
+          type="button"
+          disabled={!sel.length || !E.isContiguous(idx)}
+          title="The same passage said another way: backwards, rotated, regrouped… (⇧V)"
+          onClick={() => openFill('vary')}
+        >
+          Vary…
         </button>
         <button
           type="button"
@@ -261,6 +269,13 @@ function CaretBar() {
           </button>
           <button type="button" onClick={() => openFill('browse')}>
             Browse fills
+          </button>
+          <button
+            type="button"
+            title="The same passage said another way: backwards, rotated, regrouped… (⇧V)"
+            onClick={() => openFill('vary')}
+          >
+            Vary…
           </button>
           <button
             type="button"

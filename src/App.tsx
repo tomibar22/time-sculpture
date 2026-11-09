@@ -2,6 +2,7 @@ import { Announcer, ToastHost } from './components/Feedback';
 import { Help } from './components/Help';
 import { ItemList } from './components/ItemList';
 import { LibraryMenu } from './components/LibraryMenu';
+import { Logo, PieceTitle } from './components/PieceTitle';
 import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
 import { MarkDialog } from './components/MarkDialog';
@@ -37,18 +38,16 @@ export function App() {
     <>
       <main className="wrap">
         <header className="app-header">
-          <div className="title-row">
+          <div className="brand">
+            <Logo />
             <h1>Time Sculpture</h1>
-            <div className="header-actions">
-              <StageButton />
-              <ThemeToggle />
-              <LibraryMenu />
-            </div>
           </div>
-          <p>
-            Plan a phrase from both ends, leave silence and open space, and shape it by hand. The
-            ending is anchored, so it always lands on 1.
-          </p>
+          <PieceTitle />
+          <div className="header-actions">
+            <StageButton />
+            <ThemeToggle />
+            <LibraryMenu />
+          </div>
         </header>
 
         <section className="panel" aria-label="Score">

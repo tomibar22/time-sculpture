@@ -21,24 +21,42 @@ export function fillRegion(): { a: number; b: number; kind: 'selection' | 'space
   return s.b > s.a ? { ...s, kind: 'space' } : null;
 }
 
-export function openFill(tab: 'random' | 'browse'): void {
-  if (!fillRegion()) return void toast('Select a region, or leave some open space, to fill');
-  ui().set({ fillPanel: tab });
+export function openFill(tab: 'random' | 'browse' | 'vary'): void {
+  const region = fillRegion();
+  if (tab === 'vary' && region?.kind !== 'selection') {
+    sfx.nope();
+    return void toast('Select the groups (or a range) to vary');
+  }
+  if (!region) return void toast('Select a region, or leave some open space, to fill');
+  ui().set({ fillPanel: tab, subPanel: false });
+}
+
+/** What is written in the selected region now: the passage that Vary works from. */
+export function regionGroups(): E.GroupSpec[] {
+  const region = fillRegion();
+  return region?.kind === 'selection' ? E.sliceRange(doc(), region.a, region.b) : [];
+}
+
+/** Say the selected passage another way (same length, so everything around it stays put). */
+export function varyWith(v: E.Variation): void {
+  if (apply(v.groups, `vary ${v.key}`)) announce(`${v.label}: ${v.key}`);
+}
+
+export function previewVary(v: E.Variation | null): void {
+  const region = fillRegion();
+  if (!v || !region) return ui().set({ preview: null });
+  const r = E.fillRange(doc(), region.a, region.b, v.groups);
+  ui().set({ preview: r.report.ok ? r.doc : null });
 }
 
 export function closeFill(): void {
   ui().set({ fillPanel: null, preview: null });
 }
 
-function apply(sizes: number[], label: string): boolean {
+function apply(groups: E.GroupSpec[], label: string): boolean {
   const region = fillRegion();
   if (!region) return false;
-  const r = E.fillRange(
-    doc(),
-    region.a,
-    region.b,
-    sizes.map((n) => ({ n, kind: 'sound' as const })),
-  );
+  const r = E.fillRange(doc(), region.a, region.b, groups);
   ui().set({ preview: null });
   if (!run(r, { label, select: [...r.report.created] })) return false;
   // keep the region selected as a range, so the next roll fills the same place
@@ -64,25 +82,20 @@ export function fillRandom(): boolean {
     toast(`These sizes can't fill ${region.b - region.a} pulses exactly`);
     return false;
   }
-  if (!apply(t, `fill ${t.join(' ')}`)) return false;
+  if (!apply(E.fillGroups({ sizes: t }), `fill ${t.join(' ')}`)) return false;
   announce(`Filled with ${t.join(' ')}`);
   return true;
 }
 
 export function fillWith(o: FillOption): void {
-  if (apply(o.sizes, `fill ${o.key}`)) announce(`Filled with ${o.key}`);
+  if (apply(E.fillGroups(o), `fill ${o.key}`)) announce(`Filled with ${o.key}`);
 }
 
 /** Show an option in the score without committing it. */
 export function previewFill(o: FillOption | null): void {
   const region = fillRegion();
   if (!o || !region) return ui().set({ preview: null });
-  const r = E.fillRange(
-    doc(),
-    region.a,
-    region.b,
-    o.sizes.map((n) => ({ n, kind: 'sound' as const })),
-  );
+  const r = E.fillRange(doc(), region.a, region.b, E.fillGroups(o));
   ui().set({ preview: r.report.ok ? r.doc : null });
 }
 
