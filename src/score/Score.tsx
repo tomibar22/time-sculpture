@@ -79,7 +79,9 @@ type Gesture =
       result: OpResult | null;
     }
   | { kind: 'place'; base: Doc; ids: ItemId[]; result: OpResult | null }
-  | { kind: 'empty'; slot: number | null };
+  | { kind: 'empty'; slot: number | null }
+  /** Press and drag to select a pulse range, like selecting text (a tap places the caret). */
+  | { kind: 'sweep'; anchor: number; x0: number; y0: number; moved: boolean; tap: () => void };
 
 const ui = () => useUiStore.getState();
 const setUi = (p: Parameters<ReturnType<typeof useUiStore.getState>['set']>[0]) => ui().set(p);
@@ -455,12 +457,17 @@ export function Score() {
     const st = ui();
     if (h.zone === 'tiles' && !h.outside && !st.selection.length) {
       if (e.shiftKey && (st.caret !== null || st.range)) {
-        setRange(st.rangeAnchor ?? st.caret ?? 0, E.clamp(slotAt(g, x, y), 0, g.grid.TS));
+        const anchor = st.rangeAnchor ?? st.caret ?? 0;
+        setRange(anchor, E.clamp(slotAt(g, x, y), 0, g.grid.TS));
+        gesture.current = { kind: 'sweep', anchor, x0: x, y0: y, moved: true, tap: () => {} };
         return;
       }
       if (e.altKey) {
-        sfx.snap();
-        setCaret(slotAt(g, x, y));
+        const k = slotAt(g, x, y);
+        gesture.current = sweep(k, x, y, () => {
+          sfx.snap();
+          setCaret(k);
+        });
         return;
       }
     }
@@ -500,13 +507,26 @@ export function Score() {
     // the very start and end of the piece (and the end of a short row) take the caret
     const edge = edgeSlot(g, x, y, touch);
     if (edge !== null) {
-      gesture.current = { kind: 'empty', slot: edge };
+      gesture.current = sweep(edge, x, y, () => {
+        sfx.snap();
+        setCaret(edge);
+      });
       return;
     }
     const i = itemAt(g, doc.items, x, y);
     const item = doc.items[i];
-    if (!item || E.isSpace(item)) {
-      gesture.current = { kind: 'empty', slot: item ? slotAt(g, x, y) : null };
+    if (!item) {
+      gesture.current = { kind: 'empty', slot: null };
+      return;
+    }
+    if (E.isSpace(item)) {
+      // a tap in the open space puts the caret on that pulse; a drag selects a range
+      const k = slotAt(g, x, y);
+      gesture.current = sweep(k, x, y, () => {
+        if (ui().multi) return;
+        sfx.snap();
+        setCaret(k);
+      });
       return;
     }
     const mods = { shift: e.shiftKey, toggle: e.metaKey || e.ctrlKey };
@@ -525,6 +545,15 @@ export function Score() {
     }, LONG_PRESS_MS);
     gesture.current = { kind: 'press', id: item.id, x0: x, y0: y, mods, long: false, timer };
   };
+
+  const sweep = (anchor: number, x0: number, y0: number, tap: () => void): Gesture => ({
+    kind: 'sweep',
+    anchor: E.clamp(anchor, 0, geo.current?.grid.TS ?? anchor),
+    x0,
+    y0,
+    moved: false,
+    tap,
+  });
 
   /* ---------------------------------------------------------------- pointer move */
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -565,13 +594,29 @@ export function Score() {
             : b || grip
               ? 'ew-resize'
               : i >= 0 && !E.isSpace(doc.items[i]!)
-                ? 'grab'
-                : 'default';
+                ? e.altKey
+                  ? 'text'
+                  : 'grab'
+                : i >= 0
+                  ? 'text'
+                  : 'default';
       const key = b?.key ?? null;
       if (key !== hover.current) {
         hover.current = key;
         request();
       }
+      return;
+    }
+
+    if (gs.kind === 'sweep') {
+      if (!gs.moved && Math.hypot(x - gs.x0, y - gs.y0) <= DRAG_THRESHOLD) return;
+      gs.moved = true;
+      const k = E.clamp(slotAt(g, x, y), 0, g.grid.TS);
+      const st = ui();
+      const cur = st.range ? (st.caret ?? -1) : -1;
+      if (k === cur || (k === gs.anchor && !st.range && st.caret === k)) return;
+      sfx.snap();
+      setRange(gs.anchor, k);
       return;
     }
 
@@ -707,6 +752,10 @@ export function Score() {
     if (!gs) return;
     const clearDrag = () => setUi({ preview: null, lifted: [] });
 
+    if (gs.kind === 'sweep') {
+      if (!cancelled && !gs.moved) gs.tap();
+      return;
+    }
     if (gs.kind === 'lane') {
       request();
       if (!cancelled) paintSubdivision([...gs.beats]);
@@ -812,7 +861,7 @@ export function Score() {
         className="score"
         data-testid="score"
         tabIndex={0}
-        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
+        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag in the open space (or alt-drag anywhere) to select a range of pulses, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={(e) => {

@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { at, clearAll, DEFAULT_SEQ, expectSeq, P, score, showPad, tap, ready } from './helpers';
+import {
+  at,
+  clearAll,
+  DEFAULT_SEQ,
+  drag,
+  expectSeq,
+  P,
+  score,
+  showPad,
+  tap,
+  ready,
+} from './helpers';
 
 // Default: (2) 3 3 2 │ 3 (1) 3 2 4 — lines at pulses 2, 5, 8; open space 10–19.
 
@@ -137,4 +148,17 @@ test('paste a phrase typed as text', async ({ page, context, browserName }) => {
     document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
   });
   await expectSeq(page, '3 (2) 4 │ ·');
+});
+
+test('drag in the open space, or ⌥-drag over tiles, selects a range', async ({ page }) => {
+  const s = await score(page);
+  await drag(page, at(s, P(11)), at(s, P(14)));
+  await page.keyboard.press('3');
+  await expectSeq(page, '(2) 3 3 2 (1) 3 │ 3 (1) 3 2 4'); // written over pulses 11–14
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.down('Alt');
+  await drag(page, at(s, P(2)), at(s, P(8)));
+  await page.keyboard.up('Alt');
+  await page.keyboard.press('Backspace');
+  await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
 });
