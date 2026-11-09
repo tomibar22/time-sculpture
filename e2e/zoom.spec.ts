@@ -73,3 +73,58 @@ test('everything at once, then a tap zooms back in there', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(level(page)).toHaveText('1 beat per row');
 });
+
+test('a pinch never edits: Safari pinch starting on the band or a line', async ({
+  page,
+  context,
+  browserName,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'iphone' || browserName !== 'chromium', 'touch via CDP');
+  for (const where of ['band', 'line'] as const) {
+    const el = page.getByTestId('score');
+    const s = await score(page);
+    const status0 = await page.getByTestId('status').textContent();
+    const lvl0 = await level(page).textContent();
+    const p = at(s, P(5), where === 'band' ? 42 : 0);
+    const cdp = await context.newCDPSession(page);
+    const touch = (
+      type: 'touchStart' | 'touchMove' | 'touchEnd',
+      pts: { x: number; y: number; id: number }[],
+    ) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+    const gesture = (type: string, scale = 1) =>
+      el.evaluate(
+        (n, [t, sc]) => {
+          const e = Object.assign(new Event(t as string, { cancelable: true }), {
+            scale: sc,
+            clientX: 200,
+            clientY: 300,
+          });
+          n.dispatchEvent(e);
+        },
+        [type, scale] as const,
+      );
+    await gesture('gesturestart');
+    // the first finger drifts sideways before the second one lands
+    await touch('touchStart', [{ x: p.x, y: p.y, id: 1 }]);
+    for (let i = 1; i <= 4; i++) await touch('touchMove', [{ x: p.x + i * 6, y: p.y, id: 1 }]);
+    await touch('touchStart', [
+      { x: p.x + 24, y: p.y, id: 1 },
+      { x: p.x + 90, y: p.y + 30, id: 2 },
+    ]);
+    for (let i = 1; i <= 10; i++) {
+      await touch('touchMove', [
+        { x: p.x + 24 - i * 8, y: p.y, id: 1 },
+        { x: p.x + 90 + i * 8, y: p.y + 30, id: 2 },
+      ]);
+      await gesture('gesturechange', 1 + i * 0.12);
+    }
+    await touch('touchEnd', []);
+    await gesture('gestureend');
+    await expectSeq(page, DEFAULT_SEQ);
+    await expect(page.getByTestId('status')).toHaveText(status0!);
+    await expect(level(page)).not.toHaveText(lvl0!);
+    await page.getByRole('button', { name: 'Zoom out' }).click();
+    await page.getByRole('button', { name: 'Zoom out' }).click();
+    await expect(level(page)).toHaveText('1 bar per row');
+  }
+});

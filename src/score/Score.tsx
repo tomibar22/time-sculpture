@@ -105,10 +105,14 @@ export function Score() {
   /** Safari's own pinch events (iOS, macOS trackpads) take over from the pointer pinch. */
   const gestureEvents = useRef(false);
   /** A finger lifted: false while a pinch is still winding down (no tap or drag then). */
+  const twoFingers = useRef(false);
   const lift = (id: number) => {
     pointers.current.delete(id);
-    if (!pinch.current) return true;
-    if (!pointers.current.size) pinch.current = null;
+    if (!twoFingers.current) return true;
+    if (!pointers.current.size) {
+      twoFingers.current = false;
+      pinch.current = null;
+    }
     return false;
   };
 
@@ -219,6 +223,8 @@ export function Score() {
     const onGestureStart = (e: Event) => {
       e.preventDefault();
       gestureEvents.current = true;
+      twoFingers.current = true;
+      pinch.current = null;
       scale = 1;
       end(true);
     };
@@ -314,15 +320,24 @@ export function Score() {
     if (e.button !== 0) return;
     const g = geo.current;
     if (!g) return;
+    // a new first touch: any earlier fingers are gone (even if a lift was never reported)
+    if (e.isPrimary) {
+      pointers.current.clear();
+      twoFingers.current = false;
+      pinch.current = null;
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    // a second finger: a pinch zooms (whatever the first finger had started is dropped)
-    if (pointers.current.size === 2 && !gestureEvents.current) {
+    // a second finger: whatever the first one started is undone, and nothing edits until every
+    // finger is up; the fingers zoom (with our own pinch, or Safari's pinch events)
+    if (pointers.current.size >= 2 || twoFingers.current) {
+      twoFingers.current = true;
       end(true);
-      const [a, b] = [...pointers.current.values()];
-      pinch.current = { d: Math.hypot(a!.x - b!.x, a!.y - b!.y) };
+      if (pointers.current.size === 2 && !gestureEvents.current && !pinch.current) {
+        const [a, b] = [...pointers.current.values()];
+        pinch.current = { d: Math.hypot(a!.x - b!.x, a!.y - b!.y) };
+      }
       return;
     }
-    if (pointers.current.size > 2 || pinch.current) return;
     // in the overview a tap zooms back in around that place
     if (ui().overview) {
       diveAt(e.clientX, e.clientY);
@@ -430,8 +445,8 @@ export function Score() {
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (pointers.current.has(e.pointerId))
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pinch.current) {
-      if (pointers.current.size !== 2) return;
+    if (twoFingers.current) {
+      if (!pinch.current || pointers.current.size !== 2) return;
       const [a, b] = [...pointers.current.values()];
       const d = Math.hypot(a!.x - b!.x, a!.y - b!.y);
       const ratio = d / pinch.current.d;

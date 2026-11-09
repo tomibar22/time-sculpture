@@ -182,7 +182,8 @@ G3 by size), rests silent.
   `OVERVIEW_LEVELS`) at which everything fits above the dock (`overviewPer` in Score.tsx); the
   score scrolls to the top. A tap in it dives back to the zoom around that point (no edit);
   Esc / ⤢ / zoom in also leave it.
-- Input: pinch (pointer events; Safari `gesture*` events take over), ⌘/Ctrl + wheel (trackpad
+- Input: pinch (pointer events; Safari `gesture*` events take over; a second finger always
+  cancels what the first started and nothing edits until every finger is up, `twoFingers`), ⌘/Ctrl + wheel (trackpad
   pinch), ⌥= ⌥− ⌥0, and − + ⤢ in `.score-head` (on phones beside the settings summary; on
   wider screens right above the score). `ZoomHud` shows the level briefly. Far out, per-pulse
   guides and ticks are skipped when a pulse is < 3 px.
