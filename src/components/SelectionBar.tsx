@@ -13,6 +13,7 @@ import {
   toggleSelectionKind,
   changeRepeatTimes,
   openVolta,
+  toggleTotalOver,
   toggleRepeatEndAt,
   toggleRepeatStartAt,
   addBarAtStart,
@@ -142,6 +143,7 @@ export function SelectionBar() {
         >
           Ending…
         </button>
+        <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
         <button
           type="button"
           disabled={!sel.length}
@@ -264,6 +266,7 @@ function CaretBar() {
           >
             Ending…
           </button>
+          <TotalButton />
           <button
             type="button"
             title="Subdivision of the beats in the range"
@@ -365,6 +368,15 @@ function CaretBar() {
         >
           {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
         </button>
+        {E.hasMarkAt(useDocStore.getState().doc, caret!) && (
+          <button
+            type="button"
+            title="Name this phrase mark, or leave it without a name (⇧P)"
+            onClick={() => useUiStore.getState().set({ markDialog: { k: caret! } })}
+          >
+            Name…
+          </button>
+        )}
         {caret! < gridNow.TS && (
           <button
             type="button"
@@ -435,5 +447,24 @@ function CaretBar() {
           : 'Type a number to write here; ⇧ arrows select a range (123 opens the number pad)'}
       </span>
     </div>
+  );
+}
+
+/** Show (or remove) the total pulses of the selected groups or range, under the score (G). */
+function TotalButton({ disabled = false }: { disabled?: boolean }) {
+  useDocStore((s) => s.version);
+  useUiStore((s) => s.range);
+  useUiStore((s) => s.selection);
+  const region = selectedRegion();
+  const has = !!region && E.totalIndex(useDocStore.getState().doc, region.a, region.b) >= 0;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      title="A bracket under the score with the total pulses of the selection (G)"
+      onClick={() => toggleTotalOver(selectedRegion())}
+    >
+      {has ? 'Remove total' : 'Total'}
+    </button>
   );
 }

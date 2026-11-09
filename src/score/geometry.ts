@@ -1,4 +1,4 @@
-import { buildGrid, clamp, EPS, floorPulse, isSpace, nearestPulse } from '../engine';
+import { buildGrid, clamp, EPS, floorPulse, isSpace, nearestPulse, totalLevels } from '../engine';
 import type { Doc, Grid, Item } from '../engine';
 import { rowLayout } from './rows';
 
@@ -46,8 +46,18 @@ export interface Geo {
   stride: number;
   /** Extra space above every row for endings and repeat counts (0 when the piece has none). */
   lane: number;
+  /** Space under every row's band for totals (0 when the piece has none). */
+  under: number;
+  /** Each total's stacking level (0 = right under the band), index by index. */
+  totalLevels: number[];
   grid: Grid;
 }
+
+/** Bottom of the band, from the top of a row's number line. */
+const BAND_END = L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH;
+
+/** Height of one level of totals under the band. */
+export const TOTAL_H = 18;
 
 /** Height of the lane above the rows that holds ending brackets and "×3" repeat counts. */
 export const LANE_H = 18;
@@ -72,7 +82,9 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
   // fitted rows stretch to the full width; otherwise every row shares one beat width
   for (const row of rows) row.bw = fit ? (width - 2 * L.margin) / row.nb : bw;
   const lane = needsLane(doc) ? LANE_H : 0;
-  const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + L.gapR;
+  const totalLv = totalLevels(doc.meter.totals ?? []);
+  const under = totalLv.length ? (Math.max(...totalLv) + 1) * TOTAL_H + 2 : 0;
+  const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + under + L.gapR;
   return {
     w: width,
     h: L.top + rows.length * stride - L.gapR + 8,
@@ -82,6 +94,8 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
     bw,
     stride,
     lane,
+    under,
+    totalLevels: totalLv,
     grid: buildGrid(doc.meter),
   };
 }
@@ -114,7 +128,7 @@ export function xOf(g: Geo, t: number): { x: number; r: number } {
   return { x: L.margin + (t - g.rows[r]!.b0) * g.rows[r]!.bw, r };
 }
 
-export type Zone = 'lane' | 'tiles';
+export type Zone = 'lane' | 'tiles' | 'totals';
 
 export interface Hit {
   r: number;
@@ -143,8 +157,14 @@ export function hit(g: Geo, x: number, y: number): Hit {
   return {
     r,
     t,
-    // everything below the tiles (the band and half the gap to the next row) paints subdivision
-    zone: ry >= L.numH + L.gap1 + L.tileH + 2 ? 'lane' : 'tiles',
+    // below the tiles: the band (and half the gap to the next row) paints subdivision, except
+    // where totals hang under the band
+    zone:
+      ry < L.numH + L.gap1 + L.tileH + 2
+        ? 'tiles'
+        : g.under && ry >= BAND_END && ry < BAND_END + g.under
+          ? 'totals'
+          : 'lane',
     beat,
     outside: raw > row.nb + 0.15,
   };
@@ -319,4 +339,18 @@ export function hitTrimGrip(
   if (ed.end.r === h.r && x >= ed.end.x - inside && x <= ed.end.x + outside) return 'end';
   if (ed.start.r === h.r && x >= ed.start.x - outside && x <= ed.start.x + inside) return 'start';
   return null;
+}
+
+/** Top of the totals under a row's band (level 0); level n is TOTAL_H × n lower. */
+export const totalsY = (g: Geo, r: number) => rowTop(g, r) + BAND_END + 2;
+
+/** The total whose bracket is under the pointer (index into meter.totals), or -1. */
+export function totalAt(g: Geo, doc: Doc, x: number, y: number): number {
+  const h = hit(g, x, y);
+  if (h.zone !== 'totals') return -1;
+  const lv = Math.floor((y - totalsY(g, h.r)) / TOTAL_H);
+  const totals = doc.meter.totals ?? [];
+  return totals.findIndex(
+    (v, i) => g.totalLevels[i] === lv && h.t >= v.a - 0.05 && h.t <= v.b + 0.05,
+  );
 }

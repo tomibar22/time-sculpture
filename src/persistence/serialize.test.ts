@@ -7,6 +7,8 @@ import {
   setVolta,
   toggleBreak,
   toggleMark,
+  nameMark,
+  toggleTotal,
   toggleRepeatEnd,
   toggleRepeatStart,
 } from '../engine';
@@ -81,6 +83,18 @@ describe('the Time Sculpture file (v2)', () => {
     expect(f.phraseStarts).toEqual([0, 1 + 2 / 3]);
     expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.marks).toEqual([0, 1 + 2 / 3]);
     expect(toSaved(doc, 'none', settings).phraseStarts).toBeUndefined();
+  });
+
+  it('saves phrase-mark names and totals, and reads them back', () => {
+    let d = nameMark(toggleMark(doc, 0).doc, 6, 'answer').doc;
+    d = toggleTotal(d, 0, 6).doc;
+    const f = toSaved(d, 'N', settings);
+    expect(f.phraseNames).toEqual(['', 'answer']);
+    expect(f.totals).toEqual([{ fromBeat: 0, toBeat: 1 + 2 / 3, pulses: 6 }]);
+    const back = fromSaved(JSON.parse(JSON.stringify(f))).doc.meter;
+    expect(back.markNames).toEqual(['', 'answer']);
+    expect(back.totals).toEqual([{ a: 0, b: 1 + 2 / 3 }]);
+    expect(toSaved(doc, 'none', settings).totals).toBeUndefined();
   });
 
   it('keeps a zoom of part of a bar', () => {

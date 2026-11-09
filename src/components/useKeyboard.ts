@@ -16,6 +16,7 @@ import {
   toggleRepeatEndAt,
   changeRepeatTimes,
   openVolta,
+  toggleTotalOver,
   splitSelection,
   toggleSelectionKind,
   undo,
@@ -85,7 +86,8 @@ export function useKeyboard() {
         if (e.key === 'Escape' || (k === 'f' && !mod)) return exitStage();
         return;
       }
-      if (k === 'f' && !mod && !e.altKey && !e.shiftKey) return void (e.preventDefault(), enterStage());
+      if (k === 'f' && !mod && !e.altKey && !e.shiftKey)
+        return void (e.preventDefault(), enterStage());
 
       if (e.key === ' ' || e.code === 'Space') {
         if (isActivatable(e.target)) return;
@@ -164,6 +166,18 @@ export function useKeyboard() {
         if (at === null) return void toast('Put the caret on a beat line to modulate there');
         e.preventDefault();
         return openModulation(at);
+      }
+      if (k === 'g' && !e.shiftKey) {
+        e.preventDefault();
+        return toggleTotalOver(selectedRegion());
+      }
+      if (k === 'p' && e.shiftKey) {
+        // name the phrase mark at the caret (or where the selection starts)
+        const region = selectedRegion();
+        const at = region ? region.a : useUiStore.getState().caret;
+        if (at === null) return void toast('Place the caret where the phrase starts');
+        e.preventDefault();
+        return useUiStore.getState().set({ markDialog: { k: at } });
       }
       if (k === 'p' && !e.shiftKey) {
         // a phrase mark at the caret (or where the selection starts)

@@ -140,6 +140,7 @@ export function resizeMeter(
     withMarks(
       withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []),
       meter.marks ?? [],
+      meter.markNames,
     ),
     formOf(meter),
     atEnd,
@@ -186,10 +187,38 @@ export function toggleMark(doc: Doc, k: number): OpResult {
   if (!Number.isInteger(k) || k < 0 || k >= grid.TS) return { doc, report: fail('out-of-range') };
   const t = grid.times[k]!;
   const cur = doc.meter.marks ?? [];
-  const has = cur.some((b) => Math.abs(b - t) < EPS);
-  const next = has ? cur.filter((b) => Math.abs(b - t) >= EPS) : [...cur, t];
-  return { doc: { ...doc, meter: withMarks({ ...doc.meter }, next) }, report: report() };
+  const names = cur.map((_, i) => doc.meter.markNames?.[i] ?? '');
+  const keep = cur.map((b) => Math.abs(b - t) >= EPS);
+  const has = keep.includes(false);
+  const next = has ? cur.filter((_, i) => keep[i]) : [...cur, t];
+  const nextNames = has ? names.filter((_, i) => keep[i]) : [...names, ''];
+  return { doc: { ...doc, meter: withMarks(doc.meter, next, nextNames) }, report: report() };
 }
+
+/** The name of the phrase mark at pulse k ('' when it has none), or null when there is none. */
+export function markNameAt(doc: Doc, k: number): string | null {
+  const t = buildGrid(doc.meter).times[k];
+  const i = t === undefined ? -1 : (doc.meter.marks ?? []).findIndex((b) => Math.abs(b - t) < EPS);
+  return i < 0 ? null : (doc.meter.markNames?.[i] ?? '');
+}
+
+/** Name the phrase mark at pulse k (adding the mark if there is none); '' leaves it unnamed. */
+export function nameMark(doc: Doc, k: number, name: string): OpResult {
+  const grid = buildGrid(doc.meter);
+  if (!Number.isInteger(k) || k < 0 || k >= grid.TS) return { doc, report: fail('out-of-range') };
+  const t = grid.times[k]!;
+  const cur = doc.meter.marks ?? [];
+  const names = cur.map((_, i) => doc.meter.markNames?.[i] ?? '');
+  const i = cur.findIndex((b) => Math.abs(b - t) < EPS);
+  const clean = name.trim().slice(0, MAX_MARK_NAME);
+  if (i >= 0 && names[i] === clean) return { doc, report: fail('no-change') };
+  const next = i >= 0 ? cur : [...cur, t];
+  const nextNames = i >= 0 ? names.map((x, j) => (j === i ? clean : x)) : [...names, clean];
+  return { doc: { ...doc, meter: withMarks(doc.meter, next, nextNames) }, report: report() };
+}
+
+/** Longest phrase-mark name kept. */
+export const MAX_MARK_NAME = 40;
 
 export function hasMarkAt(doc: Doc, k: number): boolean {
   const t = buildGrid(doc.meter).times[k];
@@ -220,6 +249,7 @@ export function prependBars(doc: Doc, n: number): OpResult {
     subdivision: [...head, ...meter.subdivision],
     ...(meter.breaks?.length ? { breaks: meter.breaks.map(shift) } : {}),
     ...(meter.marks?.length ? { marks: meter.marks.map(shift) } : {}),
+    ...(meter.markNames ? { markNames: meter.markNames } : {}),
     ...(sections.length ? { sections: sections.map((x) => ({ ...x, at: x.at + add })) } : {}),
   };
   const withBars = sections.length ? { ...base, cycles: barMap(base).barStarts.length } : base;

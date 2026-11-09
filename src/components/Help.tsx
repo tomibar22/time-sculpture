@@ -78,9 +78,16 @@ export function Help() {
           </dd>
           <dt>Phrase marks</dt>
           <dd>
-            Press P (or Phrase mark) at the caret to flag where a phrase starts, on any pulse. The
-            flag shows how far it is from the previous mark, in beats, so a phrase repeating every
-            3½ beats reads at a glance. P again removes it. Marks print in the PDF too.
+            Press P (or Phrase mark) at the caret to flag where a phrase starts, on any pulse. Give
+            it a name of your own with ⇧P (or Name…, or tap its flag), or leave it as just a mark. P
+            again removes it. Marks print in the PDF too.
+          </dd>
+          <dt>Totals</dt>
+          <dd>
+            Select a run of groups (or a range) and press G (or Total): a bracket under the score
+            shows how many pulses they hold, so 3 3 2 reads as 8. Totals can nest: 3 3 under 6, and
+            6 2 under 8. Tap a bracket to select what it spans; G again (or Remove total) removes
+            it.
           </dd>
           <dt>Repeats</dt>
           <dd>
@@ -141,7 +148,7 @@ export function Help() {
             · ← → move the selection or the caret · ⇧← ⇧→ select like text · Home / End caret to the
             start or end · 1–9 type · Delete remove · M merge · S split · R silence · D duplicate ·
             + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs · V ending · ⇧R reverse · Z undo ·
-            Y or ⇧⌘Z redo · F stage · Esc clear
+            Y or ⇧⌘Z redo · G total · ⇧P name a phrase mark · F stage · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

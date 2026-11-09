@@ -140,6 +140,8 @@ export interface UiState {
   modDialog: { at: number } | { index: number } | null;
   /** The endings dialog: a new ending over pulses [ka, kb), or editing one (index into voltas). */
   voltaDialog: { ka: number; kb: number } | { index: number } | null;
+  /** The phrase-mark name dialog, for the mark at pulse k (added if there is none yet). */
+  markDialog: { k: number } | null;
   /** Playhead in beats while playing. */
   playhead: number | null;
   /**
@@ -195,6 +197,7 @@ export const useUiStore = create<UiState>((set) => ({
   subPanel: false,
   modDialog: null,
   voltaDialog: null,
+  markDialog: null,
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   setupOpen: false,
   playhead: null,

@@ -44,6 +44,11 @@ export interface Meter {
    */
   readonly marks?: readonly number[];
   /**
+   * Names of the phrase marks, one per mark in the same order ('' = an unnamed mark). Absent
+   * when no mark has a name.
+   */
+  readonly markNames?: readonly string[];
+  /**
    * Metric modulations, in order: from each `at` (a local beat) the tempo changes by the pulse
    * equation `from`:1 = `to`:1 and bars have `beatsPerBar` beats. See engine/sections.ts.
    */
@@ -56,6 +61,17 @@ export interface Meter {
   readonly repeatStarts?: readonly number[];
   readonly repeatEnds?: readonly RepeatEnd[];
   readonly voltas?: readonly Volta[];
+  /**
+   * Totals: brackets under the score over [a, b) (beats, on pulses) that show how many pulses
+   * they hold, to show the larger division a run of groups makes ("3 3 2" → 8). Ascending by a.
+   */
+  readonly totals?: readonly Total[];
+}
+
+/** A bracket over [a, b) that shows its number of pulses. */
+export interface Total {
+  readonly a: number;
+  readonly b: number;
 }
 
 export interface RepeatEnd {

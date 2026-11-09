@@ -142,7 +142,9 @@ export function resizeBeats(doc: Doc, delta: number, fill: number): OpResult {
   const nm = withForm(
     withMarks(
       withBreaks(withSections(base, sections), shiftTimes(meter.breaks)),
-      shiftTimes(meter.marks),
+      // NaN (cut) and out-of-range marks are dropped there, each with its name
+      (meter.marks ?? []).map(shift),
+      meter.markNames,
     ),
     formOf(meter),
     shift,

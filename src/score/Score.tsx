@@ -31,6 +31,7 @@ import {
   rowOf,
   rowTop,
   slotAt,
+  totalAt,
   xOf,
 } from './geometry';
 import type { Boundary, Geo } from './geometry';
@@ -394,6 +395,29 @@ export function Score() {
         return;
       }
     }
+    // a click on a phrase mark's flag (in the number row) names it
+    const marks = doc.meter.marks ?? [];
+    for (let i = 0; i < marks.length; i++) {
+      const t = marks[i]!;
+      const p = xOf(g, Math.min(t, g.grid.NB - 1e-6));
+      const fx = p.x + (Math.abs(t - Math.round(t)) < 1e-9 ? 10 : 0);
+      const w = doc.meter.markNames?.[i] ? 190 : 16;
+      const top = rowTop(g, p.r);
+      if (p.r === h.r && y >= top && y <= top + L.numH && x >= fx - 4 && x <= fx + w) {
+        setUi({ markDialog: { k: E.nearestPulse(g.grid, t) } });
+        return;
+      }
+    }
+    // a click on a total's bracket (under the band) selects what it spans
+    if (h.zone === 'totals') {
+      const ti = totalAt(g, doc, x, y);
+      const v = doc.meter.totals?.[ti];
+      if (v) {
+        sfx.snap();
+        setRange(E.nearestPulse(g.grid, v.a), E.nearestPulse(g.grid, v.b));
+      }
+      return;
+    }
     // a click on an ending's bracket (in the lane above a row) opens it for editing
     if (g.lane && y < rowTop(g, h.r) && y >= rowTop(g, h.r) - g.lane) {
       const voltas = doc.meter.voltas ?? [];
@@ -512,11 +536,13 @@ export function Score() {
       cv.style.cursor =
         h.zone === 'lane'
           ? 'cell'
-          : b || grip
-            ? 'ew-resize'
-            : i >= 0 && !E.isSpace(doc.items[i]!)
-              ? 'grab'
-              : 'default';
+          : h.zone === 'totals'
+            ? 'pointer'
+            : b || grip
+              ? 'ew-resize'
+              : i >= 0 && !E.isSpace(doc.items[i]!)
+                ? 'grab'
+                : 'default';
       const key = b?.key ?? null;
       if (key !== hover.current) {
         hover.current = key;

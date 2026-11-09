@@ -430,6 +430,31 @@ export function togglePhraseMark(k: number): void {
   announce(had ? 'Phrase mark removed' : 'Phrase starts here');
 }
 
+/** Name the phrase mark at pulse k ('' = no name), adding the mark if there is none. */
+export function nameMarkAt(k: number, name: string): boolean {
+  const r = E.nameMark(doc(), k, name);
+  if (!r.report.ok) return r.report.reason === 'no-change';
+  run(r, { label: name.trim() ? `name phrase "${name.trim()}"` : 'unname phrase', select: 'keep' });
+  announce(name.trim() ? `Phrase mark: ${name.trim()}` : 'Phrase mark without a name');
+  return true;
+}
+
+/**
+ * G: show the total number of pulses of a region (the selected groups or a range) as a bracket
+ * under the score, or remove the one over exactly that region.
+ */
+export function toggleTotalOver(region: { a: number; b: number } | null): void {
+  if (!region || region.b <= region.a) {
+    sfx.nope();
+    return void toast('Select the groups (or a range) to show their total');
+  }
+  const had = E.totalIndex(doc(), region.a, region.b) >= 0;
+  const r = E.toggleTotal(doc(), region.a, region.b);
+  if (!r.report.ok) return void sfx.nope();
+  run(r, { label: had ? 'remove total' : `total ${region.b - region.a}`, select: 'keep' });
+  announce(had ? 'Total removed' : `Total: ${region.b - region.a} pulses`);
+}
+
 /* ------------------------------------------------------------------ bars before the beginning */
 
 /** Add a bar before the beginning, as open space to write an opening in; the caret goes there. */

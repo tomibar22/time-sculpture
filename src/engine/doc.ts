@@ -33,7 +33,7 @@ export function makeMeter(
  */
 function withTimes(
   meter: Meter,
-  key: 'breaks' | 'marks',
+  key: 'breaks',
   times: readonly number[],
   allowZero: boolean,
 ): Meter {
@@ -58,9 +58,42 @@ function withTimes(
 export const withBreaks = (meter: Meter, breaks: readonly number[]) =>
   withTimes(meter, 'breaks', breaks, false);
 
-/** The same for phrase marks (a mark at the very start is allowed). */
-export const withMarks = (meter: Meter, marks: readonly number[]) =>
-  withTimes(meter, 'marks', marks, true);
+/**
+ * The same for phrase marks (a mark at the very start is allowed). `names` go with `marks` index
+ * by index (default: the meter's own names, when `marks` are its own marks moved); a mark that
+ * is dropped takes its name with it, and of two that land on one pulse the first named one wins.
+ * A time that is not finite (NaN: its moment was cut) is dropped.
+ */
+export function withMarks(
+  meter: Meter,
+  marks: readonly number[],
+  names: readonly string[] = meter.markNames ?? [],
+): Meter {
+  const { marks: _m, markNames: _n, ...rest } = meter;
+  void _m;
+  void _n;
+  const base: Meter = rest;
+  const grid = buildGrid(base);
+  const pairs = marks
+    .map((t, i) => ({ t, name: (names[i] ?? '').trim() }))
+    .filter((p) => Number.isFinite(p.t))
+    .sort((x, y) => x.t - y.t);
+  const out: number[] = [];
+  const outNames: string[] = [];
+  for (const p of pairs) {
+    const k = nearestPulse(grid, p.t);
+    if (k < 0 || k >= grid.TS) continue;
+    const t = grid.times[k]!;
+    if (out.length && t - out[out.length - 1]! <= EPS) {
+      if (!outNames[outNames.length - 1]) outNames[outNames.length - 1] = p.name;
+      continue;
+    }
+    out.push(t);
+    outNames.push(p.name);
+  }
+  if (!out.length) return base;
+  return { ...base, marks: out, ...(outNames.some(Boolean) ? { markNames: outNames } : {}) };
+}
 
 export const isSpace = (x: Item): x is Space => x.kind === 'space';
 export const isGroup = (x: Item): x is Group => x.kind !== 'space';
@@ -208,6 +241,8 @@ export function checkInvariants(doc: Doc): string[] {
       prev = b;
     }
   }
+  if (meter.markNames && meter.markNames.length !== (meter.marks ?? []).length)
+    errs.push('phrase mark names do not match the marks');
   errs.push(...formErrors(meter));
   const spaces = doc.items.filter(isSpace).length;
   if (spaces !== 1) errs.push(`expected exactly one space, found ${spaces}`);

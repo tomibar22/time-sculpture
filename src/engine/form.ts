@@ -14,7 +14,7 @@
  */
 import { buildGrid, EPS, nearestPulse } from './grid';
 import { fail, report } from './report';
-import type { Doc, Meter, OpResult, RepeatEnd, Volta } from './types';
+import type { Doc, Meter, OpResult, RepeatEnd, Total, Volta } from './types';
 
 export const MIN_REPEAT = 2;
 export const MAX_REPEAT = 12;
@@ -25,16 +25,78 @@ export interface Form {
   repeatStarts: readonly number[];
   repeatEnds: readonly RepeatEnd[];
   voltas: readonly Volta[];
+  /** Totals ride along with the form: they are spans of time that snap and move the same way. */
+  totals: readonly Total[];
 }
 
 export const formOf = (m: Meter): Form => ({
   repeatStarts: m.repeatStarts ?? [],
   repeatEnds: m.repeatEnds ?? [],
   voltas: m.voltas ?? [],
+  totals: m.totals ?? [],
 });
 
 export const hasForm = (m: Meter) =>
   !!(m.repeatStarts?.length || m.repeatEnds?.length || m.voltas?.length);
+
+/* ------------------------------------------------------------------ totals */
+
+/** Is there a total over exactly pulses [ka, kb)? Its index, or -1. */
+export function totalIndex(doc: Doc, ka: number, kb: number): number {
+  const g = buildGrid(doc.meter);
+  const a = g.times[ka];
+  const b = g.times[kb];
+  if (a === undefined || b === undefined) return -1;
+  return (doc.meter.totals ?? []).findIndex(
+    (x) => Math.abs(x.a - a) < EPS && Math.abs(x.b - b) < EPS,
+  );
+}
+
+/** Show the total of pulses [ka, kb) under the score, or remove the one that is there. */
+export function toggleTotal(doc: Doc, ka: number, kb: number): OpResult {
+  const g = buildGrid(doc.meter);
+  if (!Number.isInteger(ka) || !Number.isInteger(kb) || ka < 0 || kb > g.TS || kb <= ka)
+    return { doc, report: fail('out-of-range') };
+  const i = totalIndex(doc, ka, kb);
+  const cur = doc.meter.totals ?? [];
+  const totals =
+    i >= 0 ? cur.filter((_, j) => j !== i) : [...cur, { a: g.times[ka]!, b: g.times[kb]! }];
+  return {
+    doc: { ...doc, meter: withForm(doc.meter, { ...formOf(doc.meter), totals }) },
+    report: report(),
+  };
+}
+
+/**
+ * Stacking levels for drawing (0 = next to the score): a total sits below every total it holds,
+ * and two that overlap without one holding the other never share a level.
+ */
+export function totalLevels(totals: readonly Total[]): number[] {
+  const order = totals
+    .map((_, i) => i)
+    .sort((i, j) => {
+      const x = totals[i]!;
+      const y = totals[j]!;
+      return x.b - x.a - (y.b - y.a) || x.a - y.a;
+    });
+  const level: number[] = totals.map(() => 0);
+  const placed: number[] = [];
+  for (const i of order) {
+    const t = totals[i]!;
+    let lv = 0;
+    for (const j of placed) {
+      const u = totals[j]!;
+      const inside = u.a >= t.a - EPS && u.b <= t.b + EPS;
+      if (inside) lv = Math.max(lv, level[j]! + 1);
+    }
+    const overlaps = (lvl: number) =>
+      placed.some((j) => level[j] === lvl && totals[j]!.a < t.b - EPS && totals[j]!.b > t.a + EPS);
+    while (overlaps(lv)) lv++;
+    level[i] = lv;
+    placed.push(i);
+  }
+  return level;
+}
 
 const clampTimes = (n: number) =>
   Math.min(MAX_REPEAT, Math.max(MIN_REPEAT, Number.isFinite(n) ? Math.round(n) : MIN_REPEAT));
@@ -55,10 +117,11 @@ export function withForm(
   map: (t: number) => number = (t) => t,
   mapSpan: (t: number) => number = map,
 ): Meter {
-  const { repeatStarts: _s, repeatEnds: _e, voltas: _v, ...rest } = meter;
+  const { repeatStarts: _s, repeatEnds: _e, voltas: _v, totals: _t, ...rest } = meter;
   void _s;
   void _e;
   void _v;
+  void _t;
   const base: Meter = rest;
   const grid = buildGrid(base);
   // a time outside the piece (it got shorter) is gone, not moved to its end
@@ -97,11 +160,25 @@ export function withForm(
     lastB = v.kb;
   }
 
+  // totals: any number, nested or overlapping, but no empty ones and no two the same
+  const totals: Total[] = [];
+  const mappedTotals = (form.totals ?? [])
+    .map((v) => ({ ka: snap(mapSpan(v.a)), kb: snap(Math.min(mapSpan(v.b), grid.NB)) }))
+    .filter((v) => v.ka >= 0 && v.kb <= grid.TS && v.kb > v.ka)
+    .sort((x, y) => x.ka - y.ka || y.kb - x.kb);
+  for (const v of mappedTotals) {
+    const a = grid.times[v.ka]!;
+    const b = grid.times[v.kb]!;
+    if (!totals.some((x) => Math.abs(x.a - a) < EPS && Math.abs(x.b - b) < EPS))
+      totals.push({ a, b });
+  }
+
   return {
     ...base,
     ...(starts.length ? { repeatStarts: starts } : {}),
     ...(ends.length ? { repeatEnds: ends } : {}),
     ...(voltas.length ? { voltas } : {}),
+    ...(totals.length ? { totals } : {}),
   };
 }
 
@@ -305,6 +382,10 @@ export function formErrors(meter: Meter): string[] {
     if (!v.passes.length || v.passes.some((p) => !Number.isInteger(p) || p < 1 || p > MAX_PASS))
       errs.push(`bad ending passes ${v.passes.join(',')}`);
     prev = v.b;
+  }
+  for (const v of meter.totals ?? []) {
+    if (!(v.b > v.a + EPS) || v.a < -EPS || v.b > g.NB + EPS || !onPulse(v.a) || !onPulse(v.b))
+      errs.push(`bad total ${v.a}–${v.b}`);
   }
   return errs;
 }

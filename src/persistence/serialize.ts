@@ -1,5 +1,7 @@
 import {
   buildGrid,
+  MAX_MARK_NAME,
+  nearestPulse,
   checkInvariants,
   group,
   spaceIndex,
@@ -53,6 +55,13 @@ export interface SavedPiece {
   subdivision: number[];
   /** Phrase marks: times in beats where a phrase starts (optional). */
   phraseStarts?: number[];
+  /** Their names, one per phrase mark ('' = unnamed; optional). */
+  phraseNames?: string[];
+  /**
+   * Totals (optional): brackets over [fromBeat, toBeat) that show how many pulses they hold
+   * (`pulses`, derived), to show the larger division a run of groups makes.
+   */
+  totals?: { fromBeat: number; toBeat: number; pulses: number }[];
   /**
    * Metric modulations (optional): from local beat `atBeat`, a pulse of `from`:1 before equals a
    * pulse of `to`:1 after, and bars have `beatsPerBar` beats.
@@ -103,6 +112,19 @@ export function toSaved(
     cycles: doc.meter.cycles,
     subdivision: [...doc.meter.subdivision],
     ...(doc.meter.marks?.length ? { phraseStarts: [...doc.meter.marks] } : {}),
+    ...(doc.meter.markNames ? { phraseNames: [...doc.meter.markNames] } : {}),
+    ...(doc.meter.totals?.length
+      ? {
+          totals: doc.meter.totals.map((v) => {
+            const g = buildGrid(doc.meter);
+            return {
+              fromBeat: v.a,
+              toBeat: v.b,
+              pulses: nearestPulse(g, v.b) - nearestPulse(g, v.a),
+            };
+          }),
+        }
+      : {}),
     ...(doc.meter.sections?.length
       ? {
           modulations: doc.meter.sections.map((m) => ({
@@ -180,7 +202,20 @@ export function fromSaved(raw: unknown): Parsed {
     cycles: Number(p.cycles),
     subdivision: Array.isArray(p.subdivision) ? p.subdivision.map(Number) : [],
     ...(Array.isArray(p.phraseStarts)
-      ? { marks: p.phraseStarts.map(Number).filter(Number.isFinite) }
+      ? {
+          marks: p.phraseStarts.map(Number),
+          markNames: p.phraseStarts.map((_, i) => {
+            const n = Array.isArray(p.phraseNames) ? (p.phraseNames as unknown[])[i] : '';
+            return typeof n === 'string' ? n.slice(0, MAX_MARK_NAME) : '';
+          }),
+        }
+      : {}),
+    ...(Array.isArray(p.totals)
+      ? {
+          totals: (p.totals as Record<string, unknown>[])
+            .map((v) => ({ a: Number(v?.fromBeat), b: Number(v?.toBeat) }))
+            .filter((v) => Number.isFinite(v.a) && Number.isFinite(v.b)),
+        }
       : {}),
     ...(Array.isArray(p.modulations) && p.modulations.length
       ? {
@@ -281,7 +316,7 @@ function finish(
         )
       : [];
   const withB = breaks.length ? withBreaks(meter, breaks) : meter;
-  const m0 = meter.marks ? withMarks(withB, meter.marks) : withB;
+  const m0 = meter.marks ? withMarks(withB, meter.marks, meter.markNames) : withB;
   const m = refitForm(m0); // also drops empty repeat fields
   const doc: Doc = { meter: m, items: syncSpace(items, buildGrid(m).TS), nextId };
   const errs = checkInvariants(doc);

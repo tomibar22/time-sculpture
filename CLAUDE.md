@@ -212,9 +212,24 @@ G3 by size), rests silent.
 ### Phrase marks
 
 - `meter.marks` (times in beats, any pulse, 0 allowed; `toggleMark`, `withMarks`, same snapping /
-  dropping rules as breaks), toggled with P at the caret or "Phrase mark". Drawn as a teal line
-  through the tiles with a flag in the number row showing the distance from the previous mark
-  (`beatsLabel`: "3", "1¾", "1 2/7"). Saved as `phraseStarts` in the file; printed in the PDF.
+  dropping rules as breaks), toggled with P at the caret or "Phrase mark". Optional names:
+  `meter.markNames` (one per mark, '' = none; absent when none is named). `withMarks(meter, marks,
+  names = meter.markNames)` carries each name with its mark (callers that move marks pass the
+  moved times unfiltered, NaN = cut). `nameMark` / `markNameAt`; ⇧P, "Name…" or a tap on the flag
+  opens `MarkDialog`. Drawn in the score's ink (`P.fg`, never a tile colour): a thin line through
+  the tiles and a flag in the number row (a small triangle, or a pill with the name). Saved as
+  `phraseStarts` + `phraseNames`; printed in the PDF.
+
+### Totals (engine/form.ts)
+
+- `meter.totals` `{a, b}` (beats, on pulses): brackets under the band showing how many pulses a
+  run of groups holds (to show the larger division: 3 3 2 → 8). They ride in `Form` (`formOf`/
+  `withForm`), so every meter op snaps/moves/cuts them like endings; nesting and overlap allowed,
+  exact duplicates dropped. `totalLevels` stacks them (inner ones nearer the band). Geometry:
+  `g.under` = levels × `TOTAL_H` (18) added to the stride only when there are totals; `totalsY`,
+  `totalAt`; hit zone `'totals'` (not painted by the brush). UI: G or "Total" / "Remove total"
+  in the tile and range bars (`toggleTotalOver`); a tap on a bracket selects its range. Saved as
+  `totals` `{fromBeat, toBeat, pulses}`.
 
 ### Repeats and endings (engine/form.ts)
 
@@ -310,7 +325,7 @@ G3 by size), rests silent.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
-  [ ] repeat signs · V ending · +/− on an end sign: times · F stage.
+  [ ] repeat signs · V ending · +/− on an end sign: times · F stage · G total · ⇧P name mark.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: pan-y` on the canvas (a vertical swipe scrolls the page and
   cancels the gesture; sideways drags edit). Long-press 450 ms → multi-select.

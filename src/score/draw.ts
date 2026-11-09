@@ -21,6 +21,8 @@ import {
   rowTop,
   segments,
   tileY,
+  TOTAL_H,
+  totalsY,
   xOf,
 } from './geometry';
 import type { Geo } from './geometry';
@@ -196,12 +198,10 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         rr(c, x0 + 1, by, Math.max(0, x1 - x0 - 2), L.bandH, 6);
         c.fill();
         c.globalAlpha = 1;
-
       }
       // named at the start of the piece and of each section, and wherever the ratio changes
       // (back to the main one too)
-      const startsRun =
-        gb === 0 || bm.sections.some((x) => x.at === gb) || ratioAt(gb - 1) !== d;
+      const startsRun = gb === 0 || bm.sections.some((x) => x.at === gb) || ratioAt(gb - 1) !== d;
       if (startsRun && bw >= 26 && gb >= row.b0 - EPS_D)
         labels.push({ x: xAt(gb) + 4, text: `${d}:1` });
       const kEnd = Math.min(pre[gb + 1]!, row.k1);
@@ -344,9 +344,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.textAlign = 'left';
           c.textBaseline = 'middle';
           // a start-repeat sign over the tile's beginning pushes the number past its dots
-          const signHere = (doc.meter.repeatStarts ?? []).some(
-            (t) => Math.abs(t - seg.t0) < EPS_D,
-          );
+          const signHere = (doc.meter.repeatStarts ?? []).some((t) => Math.abs(t - seg.t0) < EPS_D);
           const lx = X + (W > 26 ? 8 : 4) + (signHere ? 15 : 0);
           c.fillText(seg.first ? String(x.n) : `…${x.n}`, lx, ty + L.tileH / 2);
           c.globalAlpha = 1;
@@ -502,23 +500,24 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     }
   }
 
-  /* ---------------- phrase marks: a flag and a line where a phrase starts */
+  /* ---------------- phrase marks: a line and a flag (with the mark's name, if it has one) */
+  // in the score's ink, so they never read as a tile's colour
   const marks = doc.meter.marks ?? [];
   marks.forEach((t, i) => {
     const p = xOf(g, Math.min(t, g.grid.NB - 1e-6));
     const top = rowTop(g, p.r);
     const ty = tileY(g, p.r);
-    c.fillStyle = P.accent;
-    const onBeatLine = Math.abs(t - Math.round(t)) < EPS_D;
-    // on a beat the line starts under the beat number, so the number stays readable
-    const lineTop = onBeatLine ? top + 17 : top + 2;
-    c.fillRect(p.x - 1.25, lineTop, 2.5, ty - lineTop + L.tileH + 2);
-    // the flag carries how far this phrase starts from the previous one; on a beat it starts
-    // after the beat's number so the number stays readable
-    const label = i === 0 ? '' : beatsLabel(t - marks[i - 1]!);
     const onBeat = Math.abs(t - Math.round(t)) < EPS_D;
+    // on a beat the line starts under the beat number, so the number stays readable
+    const lineTop = onBeat ? top + 17 : top + 2;
+    c.fillStyle = P.fg;
+    c.globalAlpha = 0.55;
+    c.fillRect(p.x - 0.75, lineTop, 1.5, ty - lineTop + L.tileH + 2);
+    c.globalAlpha = 1;
+    // the flag starts after the beat's number when on a beat
     const fx = p.x + (onBeat ? 10 : 0);
-    if (!label) {
+    const name = doc.meter.markNames?.[i] ?? '';
+    if (!name) {
       c.beginPath();
       c.moveTo(fx, top + 3);
       c.lineTo(fx + 9, top + 8);
@@ -527,15 +526,18 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       c.fill();
       return;
     }
-    c.font = `700 11px ${MONO}`;
+    c.font = `700 11px ${BODY}`;
+    const label = fitText(c, name, 180);
     const w = c.measureText(label).width + 12;
     rr(c, fx, top + 2, w, 15, 4);
     c.fill();
-    c.fillStyle = P.accentInk;
+    c.fillStyle = P.card;
     c.textAlign = 'left';
     c.textBaseline = 'middle';
     c.fillText(label, fx + 6, top + 10);
   });
+
+  drawTotals(c, g, doc, P);
 
   drawForm(c, g, doc, P);
 
@@ -548,6 +550,63 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.fillStyle = end && s.stage ? P.land : P.fg;
     c.fillRect(p.x - w / 2, ty - (s.stage ? 8 : 4), w, L.tileH + (s.stage ? 16 : 8));
   }
+}
+
+/** Text cut to a width with an ellipsis. */
+function fitText(c: CanvasRenderingContext2D, text: string, max: number): string {
+  if (c.measureText(text).width <= max) return text;
+  let t = text;
+  while (t.length > 1 && c.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+  return `${t.trimEnd()}…`;
+}
+
+/**
+ * Totals: a bracket under the band over a run of groups, open towards the tiles, with how many
+ * pulses it holds in the middle. Inner totals sit closer to the score, the ones holding them
+ * further down (geometry gives each its level).
+ */
+function drawTotals(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): void {
+  const totals = doc.meter.totals ?? [];
+  totals.forEach((v, i) => {
+    const pulses = Math.round(
+      g.grid.times.findIndex((t) => Math.abs(t - v.b) < EPS_D) -
+        g.grid.times.findIndex((t) => Math.abs(t - v.a) < EPS_D),
+    );
+    const lv = g.totalLevels[i] ?? 0;
+    const ra = rowOf(g, v.a);
+    const rb = rowOf(g, v.b - 1e-6);
+    // the label goes in the middle of the longest piece of the bracket
+    let best = { r: ra, x0: 0, x1: 0 };
+    for (let r = ra; r <= rb; r++) {
+      const row = g.rows[r]!;
+      const t0 = Math.max(v.a, row.b0);
+      const t1 = Math.min(v.b, row.b0 + row.nb);
+      const x0 = L.margin + (t0 - row.b0) * row.bw + (r === ra ? 3 : 0);
+      const x1 = L.margin + (t1 - row.b0) * row.bw - (r === rb ? 3 : 0);
+      const y = totalsY(g, r) + lv * TOTAL_H;
+      const mid = y + 9;
+      c.fillStyle = P.fg;
+      c.globalAlpha = 0.6;
+      c.fillRect(x0, mid - 0.75, x1 - x0, 1.5);
+      if (r === ra) c.fillRect(x0, y + 1, 1.5, mid - y - 0.25);
+      if (r === rb) c.fillRect(x1 - 1.5, y + 1, 1.5, mid - y - 0.25);
+      c.globalAlpha = 1;
+      if (x1 - x0 > best.x1 - best.x0) best = { r, x0, x1 };
+    }
+    const label = String(pulses);
+    c.font = `700 11px ${MONO}`;
+    const w = c.measureText(label).width + 10;
+    const cx = (best.x0 + best.x1) / 2;
+    const y = totalsY(g, best.r) + lv * TOTAL_H + 9;
+    // a gap in the line, in the card's colour, holds the number
+    c.fillStyle = P.card;
+    rr(c, cx - w / 2, y - 7.5, w, 15, 5);
+    c.fill();
+    c.fillStyle = P.fg;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(label, cx, y + 0.5);
+  });
 }
 
 /** Where an end-type sign at time t sits: at the end of the row before when t starts a row. */
