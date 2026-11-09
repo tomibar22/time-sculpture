@@ -13,8 +13,9 @@ describe('fill options', () => {
   it('samples distinct ones when there are many', () => {
     const { options, total } = fillOptions(meter, 0, 16, [1, 2, 3], 50);
     expect(total > 50n).toBe(true);
-    expect(options.length).toBe(50);
-    expect(new Set(options.map((o) => o.key)).size).toBe(50);
+    expect(options.filter((o) => !o.shape).length).toBeLessThanOrEqual(50);
+    expect(options.length).toBeGreaterThanOrEqual(50);
+    expect(new Set(options.map((o) => o.key)).size).toBe(options.length);
     for (const o of options) expect(o.sizes.reduce((a, b) => a + b, 0)).toBe(16);
   });
   it('measures onsets against the beat and sorts', () => {

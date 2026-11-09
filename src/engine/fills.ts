@@ -1,5 +1,6 @@
 import { countWays, sampleTiling } from './count';
 import { buildGrid, isOnBeat } from './grid';
+import { shapeFills, shapeOf, type Shape } from './shapes';
 import type { Meter } from './types';
 
 /** A way to fill a region, with measures to sort by. */
@@ -15,6 +16,8 @@ export interface FillOption {
   variety: number;
   /** Spread of sizes (standard deviation; 0 = all the same). */
   spread: number;
+  /** Its aesthetic shape (repeat, pyramid, …), if it has one. */
+  shape: Shape | null;
 }
 
 export type FillSort = 'fewest' | 'most' | 'onbeat' | 'syncopated' | 'varied' | 'even';
@@ -51,7 +54,8 @@ function enumerate(R: number, sizes: number[], limit: number): number[][] {
 
 /**
  * Options for filling `R` pulses that start at pulse `start` of the meter: all of them when there
- * are at most `limit`, otherwise `limit` different random ones (uniform over all tilings).
+ * are at most `limit`, otherwise `limit` different random ones (uniform over all tilings), plus
+ * the shaped fills (`shapeFills`) not among them.
  */
 export function fillOptions(
   meter: Meter,
@@ -77,6 +81,15 @@ export function fillOptions(
       }
     }
   }
+  // shaped fills are built directly: random sampling almost never finds them
+  const have = new Set(tilings.map((t) => t.join(' ')));
+  for (const s of shapeFills(R, sizes, 40, rng)) {
+    const k = s.sizes.join(' ');
+    if (!have.has(k)) {
+      have.add(k);
+      tilings.push(s.sizes);
+    }
+  }
   const grid = buildGrid(meter);
   const options = tilings.map((t) => {
     let k = start;
@@ -95,6 +108,7 @@ export function fillOptions(
       offBeat: t.length - onBeat,
       variety: new Set(t).size,
       spread,
+      shape: shapeOf(t),
     };
   });
   return { options, total };

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Doc, FillSort, GroupKind, GroupSpec, ItemId } from '../engine';
+import type { Doc, FillSort, ShapeFamily, GroupKind, GroupSpec, ItemId } from '../engine';
 
 import { DEFAULT_TEMPO, defaultDoc } from './defaults';
 
@@ -142,6 +142,8 @@ export interface UiState {
   /** The fill panel: closed, or open on the random or browse tab. */
   fillPanel: 'random' | 'browse' | null;
   fillSort: FillSort;
+  /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
+  fillShape: ShapeFamily | 'shapes' | 'any';
   /** The docked subdivision row, for the beats under the selection, range or caret. */
   subPanel: boolean;
   /** The modulation dialog: adding one at a beat, or editing one (index into meter.sections). */
@@ -209,6 +211,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillSizes: [2, 3, 4, 5, 7],
   fillPanel: null,
   fillSort: 'onbeat',
+  fillShape: 'shapes',
   subPanel: false,
   modDialog: null,
   voltaDialog: null,

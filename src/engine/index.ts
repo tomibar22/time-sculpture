@@ -12,6 +12,7 @@ export * from './ops/meter';
 export * from './ops/edit';
 export * from './ops/range';
 export * from './fills';
+export * from './shapes';
 export * from './sections';
 export * from './ops/sections';
 export * from './form';

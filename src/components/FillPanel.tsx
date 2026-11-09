@@ -37,6 +37,7 @@ export function FillPanel() {
   const tab = useUiStore((s) => s.fillPanel);
   const sizes = useUiStore((s) => s.fillSizes);
   const sort = useUiStore((s) => s.fillSort);
+  const shape = useUiStore((s) => s.fillShape);
   const set = useUiStore((s) => s.set);
   // re-read the region whenever the document or the selection changes
   useDocStore((s) => s.version);
@@ -52,7 +53,23 @@ export function FillPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [meter, region?.a, R, sizes.join(',')],
   );
-  const sorted = useMemo(() => E.sortFills(options, sort), [options, sort]);
+  const sorted = useMemo(() => {
+    if (shape === 'any') return E.sortFills(options, sort);
+    const shaped = options.filter(
+      (o) => o.shape && (shape === 'shapes' || o.shape.family === shape),
+    );
+    return shaped.sort(
+      (a, b) =>
+        E.shapeRank(a.shape!.family) - E.shapeRank(b.shape!.family) ||
+        a.tiles - b.tiles ||
+        a.key.localeCompare(b.key),
+    );
+  }, [options, sort, shape]);
+  const families = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const o of options) if (o.shape) n.set(o.shape.family, (n.get(o.shape.family) ?? 0) + 1);
+    return n;
+  }, [options]);
   if (!tab) return null;
 
   const toggle = (n: number) =>
@@ -133,22 +150,74 @@ export function FillPanel() {
         </div>
       ) : (
         <div className="fill-browse">
-          <div className="fill-sort">
-            <label htmlFor="fill-sort">Sort</label>
-            <select
-              id="fill-sort"
-              value={sort}
-              onChange={(e) => set({ fillSort: e.target.value as E.FillSort })}
+          <div className="fill-shapes" role="group" aria-label="Shapes">
+            <button
+              type="button"
+              aria-pressed={shape === 'shapes'}
+              onClick={() => set({ fillShape: 'shapes' })}
             >
-              {E.FILL_SORTS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <span className="lib-note">
-              {total > BigInt(LIMIT) ? `${LIMIT} of ${count}, picked at random` : `all ${count}`}
-            </span>
+              ✦ All shapes
+            </button>
+            {E.SHAPE_FAMILIES.filter((f) => families.get(f.id)).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                title={f.hint}
+                aria-pressed={shape === f.id}
+                onClick={() => set({ fillShape: f.id })}
+              >
+                {f.label} <span className="fill-count">{families.get(f.id)}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-pressed={shape === 'any'}
+              onClick={() => set({ fillShape: 'any' })}
+            >
+              Anything
+            </button>
+          </div>
+          <div className="fill-sort">
+            {shape === 'any' ? (
+              <>
+                <label htmlFor="fill-sort">Sort</label>
+                <select
+                  id="fill-sort"
+                  value={sort}
+                  onChange={(e) => set({ fillSort: e.target.value as E.FillSort })}
+                >
+                  {E.FILL_SORTS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="lib-note">
+                  {total > BigInt(LIMIT)
+                    ? `${LIMIT} of ${count}, picked at random`
+                    : `all ${count}`}
+                </span>
+              </>
+            ) : (
+              <span className="lib-note">
+                {sorted.length
+                  ? (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.hint ??
+                    `${sorted.length} shaped fills`)
+                  : 'No shapes fit these sizes; try more sizes or Anything.'}
+              </span>
+            )}
+            <button
+              type="button"
+              className="fill-dice"
+              disabled={!sorted.length}
+              onClick={() => {
+                const o = sorted[Math.floor(Math.random() * sorted.length)]!;
+                setPicked(o.key);
+                fillWith(o);
+              }}
+            >
+              🎲 Surprise
+            </button>
           </div>
           <ul
             className="fill-list"
@@ -170,7 +239,9 @@ export function FillPanel() {
                 >
                   <Strip sizes={o.sizes} />
                   <span className="fill-meta">
-                    {o.tiles} tiles · {o.onBeat} on the beat
+                    {o.shape && shape !== 'any'
+                      ? o.shape.label
+                      : `${o.tiles} tiles · ${o.onBeat} on the beat`}
                   </span>
                 </button>
               </li>

@@ -138,6 +138,12 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   (≤ 400) or 400 distinct random ones, measured (tiles, onBeat, offBeat, variety, spread) and
   sorted (`FILL_SORTS`). Hover/focus previews via `ui.preview`; click applies with `fillRange`
   and keeps the region selected as a range.
+- **Shapes** (engine/shapes.ts): Browse opens on shaped fills. `shapeOf` names a fill's shape
+  (first match in `SHAPE_FAMILIES` order: repeat, growing, pyramid (rise/fall/arch/valley),
+  refrain (fixed size between steps), even spread, cadence (repeat + turn), mirror);
+  `shapeFills` builds them directly (≤ 40 per family) and `fillOptions` adds them to the list
+  (`FillOption.shape`). UI: family chips with counts (`ui.fillShape`), "Anything" = every fill
+  with the old sorts, 🎲 Surprise applies a random one from the chosen family.
 
 ### Trimming (trimEdge)
 

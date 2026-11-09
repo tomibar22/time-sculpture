@@ -936,6 +936,40 @@ button.link-btn {
   font: inherit;
   padding: 0 8px;
 }
+.fill-shapes {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+}
+.fill-shapes button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  background: var(--soft);
+  color: var(--fg);
+  white-space: nowrap;
+}
+.fill-shapes button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.fill-count {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  opacity: 0.7;
+}
+.fill-dice {
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.86rem;
+}
 .fill-list {
   list-style: none;
   margin: 6px 0 0;

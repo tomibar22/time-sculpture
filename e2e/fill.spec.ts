@@ -38,6 +38,8 @@ test('browse fills for a selected range, sorted, and pick one', async ({ page })
   for (const n of [4, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // 2 and 3 left
   const list = page.getByRole('list', { name: 'Ways to fill' });
   await expect(list.getByRole('listitem')).toHaveCount(2); // 6 pulses: 2 2 2 or 3 3
+  await expect(list.getByRole('button').first()).toContainText('3 ×2'); // shapes first
+  await page.getByRole('button', { name: 'Anything' }).click();
   await page.locator('#fill-sort').selectOption('most');
   await list.getByRole('button').first().click();
   await expectSeq(page, '(2) 2 2 2 2 │ 3 (1) 3 2 4');
