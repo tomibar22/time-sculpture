@@ -17,8 +17,8 @@ export function useMedia(query: string): boolean {
 export const PHONE = '(max-width: 560px)';
 
 /**
- * Phones and tablets (iPhone, iPad: any touch screen, or a narrow window): the selection bar sits
- * in the dock above the number pad, by the thumb, and the settings fold into one line. Keep in
- * step with the matching media query in global.css.
+ * Every screen (iPhone, iPad and desktop, at the user's request): the selection bar sits in the
+ * dock above the number pad, next to the subdivision row, and the settings fold into one line.
+ * Keep in step with the matching media queries in global.css.
  */
-export const DOCKED = '(max-width: 560px), (pointer: coarse)';
+export const DOCKED = 'all';

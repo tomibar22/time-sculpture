@@ -1123,9 +1123,10 @@ button.switch[aria-checked='true'] .switch-knob {
   }
 }
 
-/* phones and tablets (any touch screen): the score comes first, the settings fold into one line
-   and the selection / caret bar sits in the dock, by the thumb. Keep in step with DOCKED. */
-@media (max-width: 560px), (pointer: coarse) {
+/* every screen (phones, tablets and desktop alike): the score comes first, the settings fold into
+   one line and the selection / caret bar sits in the dock, next to the subdivision row and the
+   number pad. Keep in step with DOCKED. */
+@media all {
   .setup-toggle {
     display: flex;
     align-items: center;
@@ -1199,6 +1200,14 @@ button.switch[aria-checked='true'] .switch-knob {
   }
   .dock .caretbar .hint {
     display: none;
+  }
+}
+
+/* a mouse has no sideways swipe: the dock's action row wraps instead of scrolling */
+@media (hover: hover) and (pointer: fine) and (min-width: 561px) {
+  .dock .selbar-actions {
+    flex-wrap: wrap;
+    overflow-x: visible;
   }
 }
 
@@ -1334,7 +1343,7 @@ button.switch[aria-checked='true'] .switch-knob {
   opacity: 0.92;
   transform: translate(-50%, 0);
 }
-@media (max-width: 560px), (pointer: coarse) {
+@media all {
   .score-head {
     order: 0;
     justify-content: space-between;
