@@ -393,3 +393,43 @@ export function brushSelection(): void {
   for (let b = b0; b <= b1; b++) beats.push(b);
   paintSubdivision(beats);
 }
+
+/* ------------------------------------------------------------------ subdivision where you are */
+
+/** Beats under the selection or range, or the caret's beat (the beat it starts, or is inside). */
+export function beatsHere(): number[] {
+  const d = doc();
+  const grid = E.buildGrid(d.meter);
+  const region = selectedRegion();
+  const caret = ui().caret;
+  if (!region && caret === null) return [];
+  const a = region ? region.a : Math.min(caret!, grid.TS - 1);
+  const b = region ? Math.max(region.a, region.b - 1) : a;
+  const out: number[] = [];
+  for (let x = E.beatOfPulse(grid, a); x <= E.beatOfPulse(grid, b); x++) out.push(x);
+  return out;
+}
+
+/** Open the docked subdivision row for the beats here. */
+export function openSubdivision(): void {
+  if (!beatsHere().length) {
+    sfx.nope();
+    return void toast('Place the caret or select tiles first');
+  }
+  setUi({ subPanel: true, fillPanel: null });
+}
+
+/**
+ * Give these beats d pulses (and make d the brush). A range or caret follows its beats to the new
+ * pulses, so the next ratio tried lands on the same beats.
+ */
+export function subdivideBeats(beats: readonly number[], d: number): void {
+  const before = ui();
+  setUi({ brush: d });
+  paintSubdivision([...beats], d);
+  const grid = E.buildGrid(doc().meter);
+  const a = grid.pre[beats[0]!]!;
+  const b = grid.pre[beats[beats.length - 1]! + 1] ?? grid.TS;
+  if (before.range) setRange(a, b);
+  else if (before.caret !== null && !before.selection.length) setCaret(a, { quiet: true });
+}

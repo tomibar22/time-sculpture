@@ -1,5 +1,5 @@
 import { MAX_BEATS, MAX_CYCLES, MAX_SUBDIVISION, MIN_BEATS, MIN_CYCLES } from '../engine';
-import { announce, setMeter } from '../state/actions';
+import { addBarAtStart, announce, setMeter } from '../state/actions';
 import { ui as sfx } from '../audio/voices';
 import { useDocStore, useUiStore } from '../state/store';
 import type { MoveMode } from '../state/store';
@@ -62,6 +62,14 @@ export function Toolbar() {
             more="More bars"
             onChange={(c) => setMeter(meter.beatsPerCycle, c)}
           />
+          <button
+            type="button"
+            className="ghost rows-btn"
+            title="Add an empty bar before the beginning, for an opening"
+            onClick={addBarAtStart}
+          >
+            + Bar at the start
+          </button>
           <RowsControl />
         </div>
         <div className="field wrap-field">

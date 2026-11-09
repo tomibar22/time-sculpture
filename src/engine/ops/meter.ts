@@ -12,9 +12,19 @@ import {
 } from '../grid';
 import { barMap } from '../sections';
 import { resizeBeats, setMainBarSize } from './sections';
-import { groupSum, isSpace, spaceIndex, syncSpace, withBreaks, withMarks } from '../doc';
+import {
+  group,
+  groupSum,
+  isSpace,
+  mintIds,
+  spaceIndex,
+  syncSpace,
+  withBreaks,
+  withMarks,
+} from '../doc';
 import { fail, report } from '../report';
 import type { Doc, Item, ItemId, Meter, OpResult } from '../types';
+import { SPACE_ID } from '../types';
 
 /** Time (beats) of every item boundary: [0, end of item 0, end of item 1, ..., NB]. */
 export function boundaryTimes(doc: Doc): number[] {
@@ -184,4 +194,54 @@ export function toggleMark(doc: Doc, k: number): OpResult {
 export function hasMarkAt(doc: Doc, k: number): boolean {
   const t = buildGrid(doc.meter).times[k];
   return t !== undefined && (doc.meter.marks ?? []).some((b) => Math.abs(b - t) < EPS);
+}
+
+/**
+ * Add `n` bars before the beginning, for an introduction. They copy the first bar's subdivision
+ * and become the open space, so writing starts there; what was written moves into the ending
+ * (still anchored to the end, so it lands on 1 as before). Open space the piece had becomes
+ * silence (reported in `created`). Every line break, mark, modulation and repeat moves with the
+ * music.
+ */
+export function prependBars(doc: Doc, n: number): OpResult {
+  const { meter } = doc;
+  const B = meter.beatsPerCycle;
+  if (!Number.isInteger(n) || n < 1) return { doc, report: fail('out-of-range') };
+  const sections = meter.sections ?? [];
+  const maxBars = sections.length ? MAX_CYCLES * 2 : MAX_CYCLES;
+  if (meter.cycles + n > maxBars) return { doc, report: fail('out-of-range') };
+  const add = n * B;
+  const first = meter.subdivision.slice(0, B);
+  const head = Array.from({ length: add }, (_, i) => first[i % first.length] ?? 4);
+  const shift = (t: number) => t + add;
+  const base: Meter = {
+    beatsPerCycle: B,
+    cycles: meter.cycles + n,
+    subdivision: [...head, ...meter.subdivision],
+    ...(meter.breaks?.length ? { breaks: meter.breaks.map(shift) } : {}),
+    ...(meter.marks?.length ? { marks: meter.marks.map(shift) } : {}),
+    ...(sections.length ? { sections: sections.map((x) => ({ ...x, at: x.at + add })) } : {}),
+  };
+  const withBars = sections.length ? { ...base, cycles: barMap(base).barStarts.length } : base;
+  const nm = withForm(withBars, formOf(meter), shift);
+
+  // the new bars are the open space: everything written goes after it
+  const { ids, nextId } = mintIds(doc, 1);
+  const created: ItemId[] = [];
+  const items: Item[] = [{ id: SPACE_ID, kind: 'space', n: 0 }];
+  for (const x of doc.items) {
+    if (!isSpace(x)) items.push(x);
+    else if (x.n > 0) {
+      items.push(group(ids[0]!, x.n, 'rest'));
+      created.push(ids[0]!);
+    }
+  }
+  return {
+    doc: {
+      meter: nm,
+      items: syncSpace(items, buildGrid(nm).TS),
+      nextId: created.length ? nextId : doc.nextId,
+    },
+    report: report({ created }),
+  };
 }

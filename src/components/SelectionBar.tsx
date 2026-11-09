@@ -15,8 +15,11 @@ import {
   openVolta,
   toggleRepeatEndAt,
   toggleRepeatStartAt,
+  addBarAtStart,
+  selectAll,
 } from '../state/actions';
 import {
+  openSubdivision,
   selectedRegion,
   copyButton,
   deleteAtCaret,
@@ -83,6 +86,11 @@ export function SelectionBar() {
         >
           Select several
         </button>
+        {sel.length < items.length - 1 && (
+          <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+            Select all
+          </button>
+        )}
         <button
           type="button"
           aria-label="Move left"
@@ -131,6 +139,14 @@ export function SelectionBar() {
           onClick={() => openVolta(selectedRegion())}
         >
           Ending…
+        </button>
+        <button
+          type="button"
+          disabled={!sel.length}
+          title="Subdivision of the beats under the selection (B paints the brush)"
+          onClick={openSubdivision}
+        >
+          Subdivision…
         </button>
         <button
           type="button"
@@ -246,6 +262,16 @@ function CaretBar() {
           >
             Ending…
           </button>
+          <button
+            type="button"
+            title="Subdivision of the beats in the range"
+            onClick={openSubdivision}
+          >
+            Subdivision…
+          </button>
+          <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+            Select all
+          </button>
           <button type="button" onClick={() => deleteAtCaret(-1)}>
             Silence
           </button>
@@ -297,6 +323,22 @@ function CaretBar() {
             onClick={() => openModulation(caret!)}
           >
             {sectionHere ? 'Modulation…' : 'Modulate…'}
+          </button>
+        )}
+        <button
+          type="button"
+          title="Subdivision of the beat at the caret"
+          onClick={openSubdivision}
+        >
+          Subdivision…
+        </button>
+        {caret === 0 && (
+          <button
+            type="button"
+            title="Add an empty bar before the beginning, for an opening"
+            onClick={addBarAtStart}
+          >
+            Bar before
           </button>
         )}
         <button
@@ -366,6 +408,9 @@ function CaretBar() {
             Paste {E.formatGroups(clip)}
           </button>
         )}
+        <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+          Select all
+        </button>
       </div>
       <span className="hint">
         {keypad

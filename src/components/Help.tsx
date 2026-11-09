@@ -7,8 +7,9 @@ export function Help() {
           <dt>Select</dt>
           <dd>
             Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. On a phone, press
-            and hold a group, or turn on “Select several”, then tap more. ⌘A or ⇧A selects all, Esc
-            clears.
+            and hold a group, or turn on “Select several”, then tap more. ⌘A or ⇧A (or Select all)
+            selects every group, Esc clears. On a phone, swipe up and down over the score to scroll;
+            drags that start sideways move and shape tiles.
           </dd>
           <dt>Move</dt>
           <dd>
@@ -37,8 +38,9 @@ export function Help() {
             The dotted band under each row shows the pulses of every beat (a ratio badge marks beats
             that differ). Pick 1:1 to 8:1, then tap or drag along the band, or select groups and
             press B. Groups keep their moments in time and snap to the nearest new pulse; you can
-            undo. On a phone, the ratios (with beats, bars and drag mode) are in the line above the
-            score: tap it to open them.
+            undo. Right where you work: Subdivision… (in the bar above the number pad) gives the
+            beats under the selection, range or caret a ratio, and you can try one after another. On
+            a phone, the brush (with beats, bars and drag mode) is in the line above the score.
           </dd>
           <dt>Write</dt>
           <dd>
@@ -46,7 +48,10 @@ export function Help() {
             space to place it, ⌥-click to place it inside a tile, and move it with ← → (one pulse)
             or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there (Shift+number writes
             a silence). Inside the open space the gap before the caret becomes silence; inside a
-            tile, the tile is split. On a phone, use the number pad (123).
+            tile, the tile is split. On a phone, use the number pad (123). To write an opening
+            before what is already there, put the caret at the very start and tap Bar before (or +
+            Bar at the start in the settings): an open bar is added in front, and what was written
+            moves on with it, still landing on 1.
           </dd>
           <dt>Rows</dt>
           <dd>

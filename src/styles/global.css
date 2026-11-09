@@ -218,7 +218,8 @@ button.icon {
 canvas.score {
   width: 100%;
   display: block;
-  touch-action: none;
+  /* a vertical swipe scrolls the page; sideways drags shape tiles and paint the band */
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -1218,4 +1219,10 @@ button.switch[aria-checked='true'] .switch-knob {
   .pad-toggle {
     padding: 0 8px;
   }
+}
+
+/* the docked subdivision row: all eight ratios on one line */
+.subpanel .segs.ratios {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  max-width: none;
 }

@@ -429,6 +429,27 @@ export function togglePhraseMark(k: number): void {
   announce(had ? 'Phrase mark removed' : 'Phrase starts here');
 }
 
+/* ------------------------------------------------------------------ bars before the beginning */
+
+/** Add a bar before the beginning, as open space to write an opening in; the caret goes there. */
+export function addBarAtStart(): void {
+  const r = E.prependBars(doc(), 1);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast(`A piece can have at most ${E.MAX_CYCLES} bars`);
+  }
+  if (!run(r, { label: 'bar at the start', select: 'none' })) return;
+  setUi({ caret: 0, range: null, rangeAnchor: null });
+  const silenced = r.report.created.length > 0;
+  toast(
+    `A bar was added at the start, open to write in.${
+      silenced ? ' The open space that was left became silence.' : ''
+    }`,
+    { undo: true },
+  );
+  announce('Bar added at the start. The caret is at the very beginning.');
+}
+
 /* ------------------------------------------------------------------ repeats and endings */
 
 /** [ : a start-repeat sign |: at pulse k, or remove it. */

@@ -8,6 +8,7 @@ import { PlayIcon, RedoIcon, StopIcon, UndoIcon } from './Icons';
 import { Keypad } from './Keypad';
 import { FillPanel } from './FillPanel';
 import { SelectionBar } from './SelectionBar';
+import { SubdivPanel } from './SubdivPanel';
 import { PHONE, useMedia } from './useMedia';
 
 function Readout() {
@@ -40,6 +41,8 @@ function Readout() {
 /** The bottom dock: the number pad (when shown) above the transport. */
 export function Dock() {
   const keypad = useUiStore((s) => s.keypad);
+  // while the subdivision row is open it takes the number pad's place, so the score stays in view
+  const subPanel = useUiStore((s) => s.subPanel);
   const phone = useMedia(PHONE);
   const ref = useRef<HTMLDivElement>(null);
   // let the page and the toasts keep clear of the dock, whatever its height
@@ -55,8 +58,9 @@ export function Dock() {
     <div className="dock" ref={ref}>
       <div className="dock-inner">
         <FillPanel />
+        <SubdivPanel />
         {phone && <SelectionBar />}
-        {keypad && <Keypad />}
+        {keypad && !subPanel && <Keypad />}
         <Transport />
       </div>
     </div>

@@ -99,6 +99,8 @@ export interface UiState {
   /** The fill panel: closed, or open on the random or browse tab. */
   fillPanel: 'random' | 'browse' | null;
   fillSort: FillSort;
+  /** The docked subdivision row, for the beats under the selection, range or caret. */
+  subPanel: boolean;
   /** The modulation dialog: adding one at a beat, or editing one (index into meter.sections). */
   modDialog: { at: number } | { index: number } | null;
   /** The endings dialog: a new ending over pulses [ka, kb), or editing one (index into voltas). */
@@ -145,6 +147,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillSizes: [2, 3, 4, 5, 7],
   fillPanel: null,
   fillSort: 'onbeat',
+  subPanel: false,
   modDialog: null,
   voltaDialog: null,
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,

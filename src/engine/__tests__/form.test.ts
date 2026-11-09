@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkInvariants, docFrom, makeMeter } from '../doc';
+import { checkInvariants, docFrom, makeMeter, sequence } from '../doc';
 import {
   defaultPasses,
   playedBeats,
@@ -12,7 +12,7 @@ import {
   toggleRepeatEnd,
   toggleRepeatStart,
 } from '../form';
-import { resizeMeter, setSubdivision } from '../ops/meter';
+import { prependBars, resizeMeter, setSubdivision, toggleMark } from '../ops/meter';
 import { addSection, resizeBeats } from '../ops/sections';
 import type { Doc } from '../types';
 
@@ -134,5 +134,38 @@ describe('repeats and endings', () => {
     d = ok(resizeBeats(d, 2, 1)); // inserted at beat 8
     expect(d.meter.repeatEnds).toEqual([{ at: 16, times: 2 }]);
     expect(d.meter.voltas).toEqual([{ a: 12, b: 16, passes: [1] }]);
+  });
+});
+
+describe('bars before the beginning', () => {
+  it('become open space at the start; what was written moves to the ending and still lands', () => {
+    // 4 × 2 at 1:1: 3 2 | 3 (open 0)
+    let d = docFrom(makeMeter(4, 2, [1, 1, 1, 1, 2, 2, 2, 2]), [3, 2, '|', 3]);
+    d = ok(toggleRepeatEnd(d, 4)); // :| at beat 4
+    const r = prependBars(d, 1);
+    const n = ok(r);
+    expect(n.meter.cycles).toBe(3);
+    // the new bar copies the first bar's subdivision
+    expect(n.meter.subdivision).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2]);
+    expect(sequence(n)).toEqual({ start: [], ending: ['3', '2', '(4)', '3'] });
+    expect(r.report.created).toHaveLength(1); // the old open space became silence
+    expect(n.items[0]).toMatchObject({ kind: 'space', n: 4 });
+    expect(n.meter.repeatEnds).toEqual([{ at: 8, times: 2 }]); // moved with the music
+  });
+
+  it('a complete piece just gets open bars in front; too many bars are refused', () => {
+    const d = docFrom(makeMeter(4, 1, 1), [4, '|']);
+    const n = ok(prependBars(d, 2));
+    expect(sequence(n)).toEqual({ start: [], ending: ['4'] });
+    expect(n.items[0]).toMatchObject({ kind: 'space', n: 8 });
+    expect(prependBars(d, 32).report.ok).toBe(false);
+  });
+
+  it('modulations, breaks and marks move with the music', () => {
+    let d = ok(addSection(piece(), 4, { from: 2, to: 3, beatsPerBar: 3 }));
+    d = ok(toggleMark(d, 2));
+    const n = ok(prependBars(d, 1));
+    expect(n.meter.sections?.[0]?.at).toBe(8);
+    expect(n.meter.marks).toEqual([6]);
   });
 });

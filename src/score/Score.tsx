@@ -193,14 +193,27 @@ export function Score() {
       const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.scrollBy({ top: dy, behavior: still ? 'auto' : 'smooth' });
     };
-    const unsub = useUiStore.subscribe((s, p) => {
-      if (s.caret === p.caret && s.range === p.range && s.selection === p.selection) return;
+    const soon = () => {
       cancelAnimationFrame(raf);
       // after React has re-rendered the dock and the score has been laid out
       raf = requestAnimationFrame(() => (raf = requestAnimationFrame(keepInView)));
+    };
+    const unsub = useUiStore.subscribe((s, p) => {
+      if (s.caret === p.caret && s.range === p.range && s.selection === p.selection) return;
+      soon();
     });
+    // the dock grows (a panel opens, the bar changes): keep what you work on above it
+    const dock = document.querySelector('.dock');
+    let lastH = -1;
+    const ro = new ResizeObserver(() => {
+      const h = (dock as HTMLElement | null)?.offsetHeight ?? 0;
+      if (h > lastH && lastH >= 0) soon();
+      lastH = h;
+    });
+    if (dock) ro.observe(dock);
     return () => {
       unsub();
+      ro.disconnect();
       cancelAnimationFrame(raf);
     };
   }, []);

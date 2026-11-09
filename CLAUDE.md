@@ -267,7 +267,16 @@ G3 by size), rests silent.
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
   [ ] repeat signs · V ending · +/− on an end sign: times.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
-- Pointer Events; `touch-action: none` on the canvas only. Long-press 450 ms → multi-select.
+- Pointer Events; `touch-action: pan-y` on the canvas (a vertical swipe scrolls the page and
+  cancels the gesture; sideways drags edit). Long-press 450 ms → multi-select.
+- Dock bars also offer **Select all**, **Subdivision…** (`ui.subPanel`, `SubdivPanel`: ratios for
+  `beatsHere()` = beats under the selection / range / caret; `subdivideBeats` re-aims the range
+  or caret at the same beats; the panel takes the number pad's place while open) and, with the
+  caret at 0, **Bar before**. Keep-in-view also runs when the dock grows.
+- `prependBars(doc, n)` (engine/ops/meter.ts): n bars before the beginning, copying the first
+  bar's subdivision, become the open space; everything written moves into the ending (old open
+  space → silence, reported in `created`); breaks, marks, sections and repeats shift with it.
+  UI: "Bar before" (caret at 0) and "+ Bar at the start" in the settings.
 
 ## Design tokens (src/styles/tokens.css)
 
