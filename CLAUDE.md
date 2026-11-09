@@ -2,7 +2,11 @@
 
 Personal web app for a jazz pianist/composer (Tomer) to compose rhythmic phrases by building and
 sculpting groups ("tiles") of pulses inside cycles, so every phrase lands on beat 1 of the next
-cycle. Used daily on iPhone (home-screen PWA) and desktop. Deployed on Vercel from `main`.
+cycle. Used daily on iPhone (home-screen PWA), iPad and desktop. Deployed on Vercel from `main`.
+
+**Three devices, always** (user's rule): unless the user says otherwise, every change must work
+and look right on desktop, iPad and iPhone. Check all three (e2e projects `desktop`, `ipad`,
+`iphone`; screenshots at iPad Pro 11 portrait and landscape when the layout changes).
 
 `docs/prototype.html` is the behavioural reference (interactions, edge cases, feel). Never copy
 its code; rebuild cleanly. Priorities: musical-model correctness → calm, spacious UI → speed →
@@ -314,11 +318,18 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   phrase line, tempo or legend (removed at the user's request).
 
 - Mobile-first, max content width 800 px, 16 px gutters + safe areas, generous gaps (24 px).
-- **Phone layout (≤ 560 px, `PHONE` in `components/useMedia.ts`)**: compact one-line header (intro
-  paragraph hidden); the meter / brush / drag settings fold into one summary line
-  (`.setup-toggle`, `ui.setupOpen`, closed by default; always open on wider screens); the
+- **Touch layout (`DOCKED` = `(max-width: 560px), (pointer: coarse)` in `components/useMedia.ts`,
+  same query in global.css): phones and iPads.** The meter / brush / drag settings fold into one
+  summary line (`.setup-toggle`, `ui.setupOpen`, closed by default; always open on desktop); the
   selection / caret bar renders in the dock above the number pad (name line + one sideways-scrolling
-  action row) instead of under the score. Undo/redo live in the transport on every size. The score
+  action row) instead of under the score.
+- **Phone layout (≤ 560 px, `PHONE`)** adds: compact one-line header (intro paragraph hidden),
+  short transport readout, 5-column number pad, no zoom label. iPad split view narrower than
+  560 px gets the phone layout automatically.
+- **Touch held sideways** (`(pointer: coarse) and (orientation: landscape)`, iPad landscape):
+  one-line header, intro hidden, so the score starts high above the tall dock.
+- Hover looks only under `@media (hover: hover)` (a tap leaves `:hover` stuck on iPad/iPhone);
+  buttons are `user-select: none` (no text selection on long press). Undo/redo live in the transport on every size. The score
   scrolls the caret / range / selection into view above the dock (`keepInView` in `Score.tsx`).
   e2e: `openSetup(page)` unfolds the settings; `score()` scrolls the score to the top.
 - Default meter 4 × 2 at 4:1. Tempo 40–160, default 72.

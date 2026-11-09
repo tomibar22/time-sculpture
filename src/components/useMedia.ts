@@ -13,5 +13,12 @@ export function useMedia(query: string): boolean {
   );
 }
 
-/** Phones: the layout that docks the selection bar above the number pad. */
+/** Phones: the compact header and transport. */
 export const PHONE = '(max-width: 560px)';
+
+/**
+ * Phones and tablets (iPhone, iPad: any touch screen, or a narrow window): the selection bar sits
+ * in the dock above the number pad, by the thumb, and the settings fold into one line. Keep in
+ * step with the matching media query in global.css.
+ */
+export const DOCKED = '(max-width: 560px), (pointer: coarse)';

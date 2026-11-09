@@ -27,7 +27,7 @@ export function Toolbar() {
   return (
     <div className="toolbar-block">
       <div className="score-head">
-        {/* phones: the settings fold into one line so the score is on the first screen */}
+        {/* phones and tablets: the settings fold into one line so the score is on the first screen */}
         <button
           type="button"
           className="setup-toggle"

@@ -79,7 +79,7 @@ test('a pinch never edits: Safari pinch starting on the band or a line', async (
   context,
   browserName,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== 'iphone' || browserName !== 'chromium', 'touch via CDP');
+  test.skip(!['iphone', 'ipad'].includes(testInfo.project.name) || browserName !== 'chromium', 'touch via CDP');
   for (const where of ['band', 'line'] as const) {
     const el = page.getByTestId('score');
     const s = await score(page);

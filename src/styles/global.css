@@ -121,9 +121,19 @@ button {
   padding: 8px 14px;
   min-height: var(--touch);
   touch-action: manipulation;
+  /* a long press on iPad / iPhone should not start a text selection */
+  -webkit-user-select: none;
+  user-select: none;
 }
-button:hover:not(:disabled) {
-  filter: brightness(0.97);
+/* touch screens keep :hover after a tap, so hover looks are only for real pointers */
+@media (hover: hover) {
+  button:hover:not(:disabled) {
+    filter: brightness(0.97);
+  }
+  .stepper button:hover:not(:disabled) {
+    background: var(--card);
+    color: var(--fg);
+  }
 }
 button:disabled,
 button[aria-disabled='true'] {
@@ -169,10 +179,6 @@ button.icon {
   font-size: 1.2rem;
   color: var(--muted);
   border-radius: 10px;
-}
-.stepper button:hover:not(:disabled) {
-  background: var(--card);
-  color: var(--fg);
 }
 .stepper output {
   font-family: var(--f-display);
@@ -937,7 +943,11 @@ button.link-btn {
   font-weight: 400;
   padding: 4px 6px;
 }
-.fill-list button:hover,
+@media (hover: hover) {
+  .fill-list button:hover {
+    background: var(--soft);
+  }
+}
 .fill-list button:focus-visible {
   background: var(--soft);
 }
@@ -1099,31 +1109,9 @@ button.switch[aria-checked='true'] .switch-knob {
   }
 }
 
-/* phones: the score comes first; settings fold away; actions sit by the thumb */
-@media (max-width: 560px) {
-  .title-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .app-header h1 {
-    font-size: 1.45rem;
-    margin: 0;
-    white-space: nowrap;
-  }
-  .app-header p,
-  .theme-tag {
-    display: none;
-  }
-  .header-actions {
-    min-width: 0;
-  }
-  .lib-btn {
-    max-width: 52vw;
-  }
-  .panel {
-    gap: 14px;
-  }
+/* phones and tablets (any touch screen): the score comes first, the settings fold into one line
+   and the selection / caret bar sits in the dock, by the thumb. Keep in step with DOCKED. */
+@media (max-width: 560px), (pointer: coarse) {
   .setup-toggle {
     display: flex;
     align-items: center;
@@ -1198,7 +1186,51 @@ button.switch[aria-checked='true'] .switch-knob {
   .dock .caretbar .hint {
     display: none;
   }
+}
 
+/* touch screens held sideways (iPad, iPhone in landscape): height is short, so the header takes
+   one line and the score starts high */
+@media (pointer: coarse) and (orientation: landscape) {
+  .title-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-header h1 {
+    font-size: 1.6rem;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .app-header p {
+    display: none;
+  }
+}
+
+/* phones: a compact header and transport */
+@media (max-width: 560px) {
+  .title-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-header h1 {
+    font-size: 1.45rem;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .app-header p,
+  .theme-tag {
+    display: none;
+  }
+  .header-actions {
+    min-width: 0;
+  }
+  .lib-btn {
+    max-width: 52vw;
+  }
+  .panel {
+    gap: 14px;
+  }
   .tinner {
     gap: 8px;
   }
@@ -1288,7 +1320,7 @@ button.switch[aria-checked='true'] .switch-knob {
   opacity: 0.92;
   transform: translate(-50%, 0);
 }
-@media (max-width: 560px) {
+@media (max-width: 560px), (pointer: coarse) {
   .score-head {
     order: 0;
     justify-content: space-between;
@@ -1297,6 +1329,8 @@ button.switch[aria-checked='true'] .switch-knob {
     flex: 1 1 auto;
     min-width: 0;
   }
+}
+@media (max-width: 560px) {
   /* the floating label names the level on a phone */
   .zoom-level {
     display: none;

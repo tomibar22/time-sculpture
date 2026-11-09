@@ -36,7 +36,8 @@ export function enterStage(): void {
   // no toasts on the stage: they would end up in the recording
   ui().set({ stage: true, overview: false, toast: null });
   window.scrollTo({ top: 0, behavior: 'instant' });
-  // desktop browsers: full screen (iPhone Safari has none for pages; a home-screen app already is)
+  // desktop and iPad browsers: full screen (iPhone Safari has none for pages; a home-screen app
+  // already is)
   const root = document.documentElement;
   if (document.fullscreenEnabled && !document.fullscreenElement)
     root.requestFullscreen?.().catch(() => undefined);

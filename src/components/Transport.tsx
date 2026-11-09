@@ -9,7 +9,7 @@ import { Keypad } from './Keypad';
 import { FillPanel } from './FillPanel';
 import { SelectionBar } from './SelectionBar';
 import { SubdivPanel } from './SubdivPanel';
-import { PHONE, useMedia } from './useMedia';
+import { DOCKED, useMedia } from './useMedia';
 
 function Readout() {
   const meter = useDocStore((s) => s.doc.meter);
@@ -43,7 +43,7 @@ export function Dock() {
   const keypad = useUiStore((s) => s.keypad);
   // while the subdivision row is open it takes the number pad's place, so the score stays in view
   const subPanel = useUiStore((s) => s.subPanel);
-  const phone = useMedia(PHONE);
+  const docked = useMedia(DOCKED);
   const ref = useRef<HTMLDivElement>(null);
   // let the page and the toasts keep clear of the dock, whatever its height
   useEffect(() => {
@@ -59,7 +59,7 @@ export function Dock() {
       <div className="dock-inner">
         <FillPanel />
         <SubdivPanel />
-        {phone && <SelectionBar />}
+        {docked && <SelectionBar />}
         {keypad && !subPanel && <Keypad />}
         <Transport />
       </div>
