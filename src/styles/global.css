@@ -1232,3 +1232,72 @@ button.switch[aria-checked='true'] .switch-knob {
   grid-template-columns: repeat(8, minmax(0, 1fr));
   max-width: none;
 }
+
+/* ---------------------------------------------------------------- zoom */
+.score-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* wider screens: the zoom sits right above the score, after the settings */
+  order: 1;
+  justify-content: flex-end;
+}
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.zoom button {
+  font-size: 1.25rem;
+  font-weight: 600;
+  min-width: var(--touch);
+  padding: 0 8px;
+}
+.zoom button[aria-pressed='true'] {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+.zoom-level {
+  min-width: 9.5em;
+  text-align: center;
+  font-size: 0.86rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.zoom-hud {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  transform: translate(-50%, -6px);
+  z-index: 40;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--card);
+  font-size: 0.88rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.18s,
+    transform 0.18s;
+}
+.zoom-hud.on {
+  opacity: 0.92;
+  transform: translate(-50%, 0);
+}
+@media (max-width: 560px) {
+  .score-head {
+    order: 0;
+    justify-content: space-between;
+  }
+  .score-head .setup-toggle {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* the floating label names the level on a phone */
+  .zoom-level {
+    display: none;
+  }
+}

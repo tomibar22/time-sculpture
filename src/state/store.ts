@@ -83,8 +83,15 @@ export interface UiState {
   brush: number;
   /** What the number pad types: sounds, or silences. */
   addKind: GroupKind;
-  /** Bars per row before the score wraps (manual line breaks live in the document). */
+  /**
+   * Zoom: bars per row before the score wraps (below 1, a share of each bar; manual line breaks
+   * live in the document). See state/zoom.ts.
+   */
   perRow: number;
+  /** The overview: the whole piece fitted on the screen (not saved). */
+  overview: boolean;
+  /** A short label shown while zooming. */
+  zoomHud: { text: string; at: number } | null;
   /** Stretch rows that end early (at a line break, or the last row) to the full width. */
   fitRows: boolean;
   ticks: boolean;
@@ -140,6 +147,8 @@ export const useUiStore = create<UiState>((set) => ({
   brush: 4,
   addKind: 'sound',
   perRow: 1,
+  overview: false,
+  zoomHud: null,
   fitRows: false,
   ticks: true,
   tempo: DEFAULT_TEMPO,

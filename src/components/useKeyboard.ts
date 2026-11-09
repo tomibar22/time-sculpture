@@ -38,6 +38,7 @@ import {
   typeDigit,
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
+import { toggleOverview, zoomStep } from '../state/zoom';
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.matches('input, textarea, select') || t.isContentEditable);
@@ -95,6 +96,16 @@ export function useKeyboard() {
         }
         return;
       }
+      if (
+        e.altKey &&
+        !mod &&
+        ['Equal', 'Minus', 'Digit0', 'NumpadAdd', 'NumpadSubtract'].includes(e.code)
+      ) {
+        // ⌥= ⌥− zoom in and out, ⌥0 shows everything (the physical keys, any layout)
+        e.preventDefault();
+        if (e.code === 'Digit0') return toggleOverview();
+        return zoomStep(e.code === 'Equal' || e.code === 'NumpadAdd' ? 1 : -1);
+      }
       if (e.altKey) {
         // ⌥←/→ trim the end edge, ⌥⇧←/→ the start edge (preventDefault also stops Alt+← = Back)
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -119,7 +130,11 @@ export function useKeyboard() {
       if (k === 'a' && e.shiftKey) return void (e.preventDefault(), selectAll());
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
-      if (e.key === 'Escape') return escape();
+      if (e.key === 'Escape') {
+        // the overview closes first, back to where you were
+        if (useUiStore.getState().overview) return toggleOverview();
+        return escape();
+      }
       if (k === 't' && !e.shiftKey) {
         const region = selectedRegion();
         const at = region ? region.a : useUiStore.getState().caret;

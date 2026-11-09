@@ -4,6 +4,7 @@ import { ui as sfx } from '../audio/voices';
 import { useDocStore, useUiStore } from '../state/store';
 import type { MoveMode } from '../state/store';
 import { ChevronIcon } from './Icons';
+import { ZoomControl } from './ZoomControl';
 import { RowsControl } from './RowsControl';
 import { Stepper } from './Stepper';
 
@@ -25,23 +26,26 @@ export function Toolbar() {
 
   return (
     <div className="toolbar-block">
-      {/* phones: the settings fold into one line so the score is on the first screen */}
-      <button
-        type="button"
-        className="setup-toggle"
-        aria-expanded={open}
-        aria-controls="setup-body"
-        onClick={() => set({ setupOpen: !open })}
-      >
-        <span className="setup-sum">
-          <b>{shape}</b>
-          <span className="dim">
-            {' '}
-            · brush {brush}:1 · drag by {moveMode}
+      <div className="score-head">
+        {/* phones: the settings fold into one line so the score is on the first screen */}
+        <button
+          type="button"
+          className="setup-toggle"
+          aria-expanded={open}
+          aria-controls="setup-body"
+          onClick={() => set({ setupOpen: !open })}
+        >
+          <span className="setup-sum">
+            <b>{shape}</b>
+            <span className="dim">
+              {' '}
+              · brush {brush}:1 · drag by {moveMode}
+            </span>
           </span>
-        </span>
-        <ChevronIcon />
-      </button>
+          <ChevronIcon />
+        </button>
+        <ZoomControl />
+      </div>
       <div id="setup-body" className={`setup-body ${open ? 'open' : ''}`}>
         <div className="toolbar">
           <Stepper

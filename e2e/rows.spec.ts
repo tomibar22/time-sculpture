@@ -12,8 +12,8 @@ test.beforeEach(async ({ page }) => {
 
 test('two cycles per row puts the whole phrase on one row', async ({ page }) => {
   await openSetup(page);
-  await page.getByRole('button', { name: 'More bars per row' }).click();
-  await expect(page.getByTestId('per-row-value')).toHaveText('2');
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await expect(page.getByTestId('zoom-level')).toHaveText('2 bars per row');
   const s = await score(page);
   // one row of 8 beats: the 3 that opens cycle 2 sits at beat 4 + 1.0
   const bw = (s.w - 2 * M) / 8;

@@ -151,7 +151,7 @@ G3 by size), rests silent.
   edges), taller beat ticks, red cycle ticks; differing beats tinted. The band is both the display and the paint target (everything below the tiles).
   There is no separate lane above. B paints the brush on the beats under the selection.
 
-- Rows (`rows.ts` `rowLayout`) are spans of time: they wrap every `ui.perRow` bars, and at the
+- Rows (`rows.ts` `rowLayout`) are spans of time: they wrap every `ui.perRow` bars (the zoom), and at the
   document's **manual line breaks** (`meter.breaks`, times in beats, any pulse, toggled with Enter
   at the caret / "Break line"; `toggleBreak`, `withBreaks` snaps/dedupes/drops out-of-range).
   Wrapping restarts after a manual break, so a mid-bar break offsets the following rows (another
@@ -164,6 +164,26 @@ G3 by size), rests silent.
 - Beat width is the same in every row (set by the widest row), so beats align vertically.
   Drawing works from pulse/beat _times_ clipped to each row. A row starting at a manual break
   mid-beat shows where it starts ("2+1/4") and an accent mark at its left. No "cycle N" labels.
+
+### Zoom (state/zoom.ts, score/view.ts, components/ZoomControl.tsx)
+
+- Zoom = how much time a row holds = `ui.perRow` (saved as `layout.cyclesPerRow`, the PDF uses
+  it). Levels `ZOOM_LEVELS` (rows.ts): ¼, ½ bar (a row holds ⌈bar × f⌉ beats and rows restart
+  at every bar line), 1, 2, 3, 4, 6, 8 bars; `zoomLevels` drops levels that look the same and
+  ones longer than the piece; `zoomLabel` → "2 beats" / "4 bars". Rows reflow; tiles never
+  scale or change height; no horizontal scroll.
+- Every zoom keeps a point steady: `view.anchor` (time, dy in its row, client y) is taken before
+  (pinch centre / tapped point / caret-range-selection if on screen / top visible row) and
+  `restoreAnchor` scrolls after the new layout (in Score's draw). Smooth scrolls in flight are
+  stopped first.
+- Overview `ui.overview` (not saved): the closest level ≥ the zoom (up to 64 bars,
+  `OVERVIEW_LEVELS`) at which everything fits above the dock (`overviewPer` in Score.tsx); the
+  score scrolls to the top. A tap in it dives back to the zoom around that point (no edit);
+  Esc / ⤢ / zoom in also leave it.
+- Input: pinch (pointer events; Safari `gesture*` events take over), ⌘/Ctrl + wheel (trackpad
+  pinch), ⌥= ⌥− ⌥0, and − + ⤢ in `.score-head` (on phones beside the settings summary; on
+  wider screens right above the score). `ZoomHud` shows the level briefly. Far out, per-pulse
+  guides and ticks are skipped when a pulse is < 3 px.
 
 ### Metric modulation (engine/sections.ts, ops/sections.ts)
 

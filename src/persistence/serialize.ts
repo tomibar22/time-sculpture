@@ -287,7 +287,10 @@ function finish(
   const errs = checkInvariants(doc);
   if (errs.length) throw new Error(`This file is damaged: ${errs[0]}`);
   const tempo = Number.isFinite(tempo0) ? Math.min(160, Math.max(40, Number(tempo0))) : 72;
-  const perRow = Number.isInteger(perRow0) ? Math.min(8, Math.max(1, Number(perRow0))) : 1;
+  // zoom: whole bars per row (1–8), or a quarter / half bar
+  const p0 = Number(perRow0);
+  const perRow =
+    p0 === 0.25 || p0 === 0.5 ? p0 : Number.isInteger(p0) ? Math.min(8, Math.max(1, p0)) : 1;
   return { doc, name, settings: { tempo, perRow, ...(fit0 === true ? { fitRows: true } : {}) } };
 }
 

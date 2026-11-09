@@ -4,6 +4,7 @@ import { ItemList } from './components/ItemList';
 import { LibraryMenu } from './components/LibraryMenu';
 import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
+import { ZoomHud } from './components/ZoomControl';
 import { Options } from './components/Options';
 import { SelectionBar } from './components/SelectionBar';
 import { Status } from './components/Status';
@@ -52,6 +53,7 @@ export function App() {
       <Announcer />
       <ModulationDialog />
       <VoltaDialog />
+      <ZoomHud />
     </>
   );
 }

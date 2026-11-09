@@ -83,6 +83,13 @@ describe('the Time Sculpture file (v2)', () => {
     expect(toSaved(doc, 'none', settings).phraseStarts).toBeUndefined();
   });
 
+  it('keeps a zoom of part of a bar', () => {
+    const f = toSaved(doc, 'Z', { tempo: 72, perRow: 0.5 });
+    expect(f.layout.cyclesPerRow).toBe(0.5);
+    expect(fromSaved(JSON.parse(JSON.stringify(f))).settings.perRow).toBe(0.5);
+    expect(fromSaved({ ...f, layout: { ...f.layout, cyclesPerRow: 0.3 } }).settings.perRow).toBe(1);
+  });
+
   it('saves repeats and endings, with the play order for other programs', () => {
     // pulses: beat 0 = 0–4, beat 1 = 4–7, beat 2 = 7–11, beat 3 = 11–15, beat 4 = 15–17
     let d = toggleRepeatStart(doc, 4).doc; // |: at beat 1

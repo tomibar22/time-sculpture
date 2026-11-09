@@ -13,6 +13,9 @@ import {
   toast,
 } from '../state/actions';
 import { setCaret, setRange } from '../state/editing';
+import { diveAt, zoomStep } from '../state/zoom';
+import { OVERVIEW_LEVELS, zoomLevels } from './rows';
+import { anchorAtPoint, restoreAnchor, view } from './view';
 import { useDocStore, useUiStore } from '../state/store';
 import { readPalette } from './colors';
 import type { Palette } from './colors';
@@ -73,6 +76,20 @@ const ui = () => useUiStore.getState();
 const setUi = (p: Parameters<ReturnType<typeof useUiStore.getState>['set']>[0]) => ui().set(p);
 const activeDoc = () => ui().preview ?? useDocStore.getState().doc;
 
+/**
+ * The overview's bars per row: the closest zoom (never closer than the current one) at which the
+ * whole piece fits between the top of the screen and the dock.
+ */
+function overviewPer(width: number, doc: Doc, perRow: number, fit: boolean): number {
+  const dock = document.querySelector<HTMLElement>('.dock')?.offsetHeight ?? 0;
+  const room = window.innerHeight - dock - 24;
+  const ls = zoomLevels(doc.meter.beatsPerCycle, doc.meter.cycles, OVERVIEW_LEVELS).filter(
+    (z) => z >= perRow - 1e-9,
+  );
+  for (const z of ls) if (geometry(width, doc, z, fit).h <= room) return z;
+  return ls[ls.length - 1] ?? perRow;
+}
+
 export function Score() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -82,6 +99,18 @@ export function Score() {
   const width = useRef(0);
   const frame = useRef(0);
   const lastTap = useRef<{ id: ItemId | null; t: number }>({ id: null, t: 0 });
+  /** Fingers on the score, and a pinch in progress (its last distance). */
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ d: number } | null>(null);
+  /** Safari's own pinch events (iOS, macOS trackpads) take over from the pointer pinch. */
+  const gestureEvents = useRef(false);
+  /** A finger lifted: false while a pinch is still winding down (no tap or drag then). */
+  const lift = (id: number) => {
+    pointers.current.delete(id);
+    if (!pinch.current) return true;
+    if (!pointers.current.size) pinch.current = null;
+    return false;
+  };
 
   const draw = useCallback(() => {
     frame.current = 0;
@@ -89,10 +118,17 @@ export function Score() {
     if (!cv || !width.current) return;
     const s = ui();
     const doc = activeDoc();
-    const g = geometry(width.current, doc, s.perRow, s.fitRows);
+    // the overview fits everything above the dock; otherwise the zoom (bars per row)
+    const per = s.overview ? overviewPer(width.current, doc, s.perRow, s.fitRows) : s.perRow;
+    view.overviewPer = s.overview ? per : null;
+    const g = geometry(width.current, doc, per, s.fitRows);
     geo.current = g;
+    view.geo = g;
+    view.canvas = cv;
     const dpr = window.devicePixelRatio || 1;
     if (cv.style.height !== `${g.h}px`) cv.style.height = `${g.h}px`;
+    // after a zoom: keep the point that was in focus where it was on the screen
+    restoreAnchor(g, cv);
     const W = Math.round(g.w * dpr);
     const H = Math.round(g.h * dpr);
     if (cv.width !== W || cv.height !== H) {
@@ -166,6 +202,54 @@ export function Score() {
     };
   }, [request]);
 
+  /* pinch on a trackpad (⌘/Ctrl + wheel) and Safari's pinch events; resizes refit the overview */
+  useEffect(() => {
+    const cv = canvasRef.current!;
+    let acc = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault(); // not the browser's page zoom
+      acc += e.deltaY;
+      if (Math.abs(acc) < 40) return;
+      zoomStep(acc < 0 ? 1 : -1, anchorAtPoint(e.clientX, e.clientY));
+      acc = 0;
+    };
+    let scale = 1;
+    type GestureEvt = Event & { scale: number; clientX: number; clientY: number };
+    const onGestureStart = (e: Event) => {
+      e.preventDefault();
+      gestureEvents.current = true;
+      scale = 1;
+      end(true);
+    };
+    const onGestureChange = (e: Event) => {
+      e.preventDefault();
+      const ge = e as GestureEvt;
+      const ratio = ge.scale / scale;
+      if (ratio > 1.25 || ratio < 0.8) {
+        zoomStep(ratio > 1 ? 1 : -1, anchorAtPoint(ge.clientX, ge.clientY));
+        scale = ge.scale;
+      }
+    };
+    const onGestureEnd = (e: Event) => {
+      e.preventDefault();
+      pinch.current = null;
+    };
+    cv.addEventListener('wheel', onWheel, { passive: false });
+    cv.addEventListener('gesturestart', onGestureStart);
+    cv.addEventListener('gesturechange', onGestureChange);
+    cv.addEventListener('gestureend', onGestureEnd);
+    window.addEventListener('resize', request);
+    return () => {
+      cv.removeEventListener('wheel', onWheel);
+      cv.removeEventListener('gesturestart', onGestureStart);
+      cv.removeEventListener('gesturechange', onGestureChange);
+      cv.removeEventListener('gestureend', onGestureEnd);
+      window.removeEventListener('resize', request);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* keep the caret, range or selection in view above the dock (on phones the dock is tall) */
   useEffect(() => {
     let raf = 0;
@@ -207,6 +291,7 @@ export function Score() {
     const dock = document.querySelector('.dock');
     let lastH = -1;
     const ro = new ResizeObserver(() => {
+      if (ui().overview) request(); // the overview fits above the dock
       const h = (dock as HTMLElement | null)?.offsetHeight ?? 0;
       if (h > lastH && lastH >= 0) soon();
       lastH = h;
@@ -217,7 +302,7 @@ export function Score() {
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [request]);
 
   const point = (e: React.PointerEvent) => {
     const r = canvasRef.current!.getBoundingClientRect();
@@ -229,6 +314,20 @@ export function Score() {
     if (e.button !== 0) return;
     const g = geo.current;
     if (!g) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // a second finger: a pinch zooms (whatever the first finger had started is dropped)
+    if (pointers.current.size === 2 && !gestureEvents.current) {
+      end(true);
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { d: Math.hypot(a!.x - b!.x, a!.y - b!.y) };
+      return;
+    }
+    if (pointers.current.size > 2 || pinch.current) return;
+    // in the overview a tap zooms back in around that place
+    if (ui().overview) {
+      diveAt(e.clientX, e.clientY);
+      return;
+    }
     const [x, y] = point(e);
     e.currentTarget.setPointerCapture(e.pointerId);
     const doc = useDocStore.getState().doc;
@@ -329,6 +428,20 @@ export function Score() {
 
   /* ---------------------------------------------------------------- pointer move */
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (pointers.current.has(e.pointerId))
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current) {
+      if (pointers.current.size !== 2) return;
+      const [a, b] = [...pointers.current.values()];
+      const d = Math.hypot(a!.x - b!.x, a!.y - b!.y);
+      const ratio = d / pinch.current.d;
+      // one zoom step each time the fingers spread or close by a quarter
+      if (ratio > 1.25 || ratio < 0.8) {
+        zoomStep(ratio > 1 ? 1 : -1, anchorAtPoint((a!.x + b!.x) / 2, (a!.y + b!.y) / 2));
+        pinch.current.d = d;
+      }
+      return;
+    }
     const g = geo.current;
     if (!g) return;
     const [x, y] = point(e);
@@ -599,8 +712,13 @@ export function Score() {
         aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={() => end(false)}
-        onPointerCancel={() => end(true)}
+        onPointerUp={(e) => {
+          if (lift(e.pointerId)) end(false);
+        }}
+        onPointerCancel={(e) => {
+          lift(e.pointerId);
+          end(true);
+        }}
         onPointerLeave={() => {
           if (!gesture.current && hover.current) {
             hover.current = null;

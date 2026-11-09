@@ -153,6 +153,9 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       const x = xAt(t);
       const onBeat = Math.abs(t - Math.round(t)) < EPS_D;
       if (!onBeat) {
+        // zoomed far out, a guide for every pulse is only noise
+        const b = Math.floor(t);
+        if (bw / (pre[b + 1]! - pre[b]!) < 3) continue;
         c.fillStyle = P.line;
         c.fillRect(x - 0.5, ty + 8, 1, L.tileH - 16);
         continue;
@@ -190,9 +193,11 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         }
       }
       const kEnd = Math.min(pre[gb + 1]!, row.k1);
+      const dense = bw / (pre[gb + 1]! - pre[gb]!) < 3;
       for (let k = Math.max(pre[gb]!, row.k0); k < kEnd; k++) {
         const t = times[k]!;
         const x = xAt(t);
+        if (dense && k !== pre[gb]) continue;
         if (k === pre[gb]) {
           const down = isDown(gb);
           c.fillStyle = down ? P.land : P.fg;

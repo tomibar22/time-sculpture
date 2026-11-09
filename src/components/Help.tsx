@@ -8,8 +8,8 @@ export function Help() {
           <dd>
             Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. On a phone, press
             and hold a group, or turn on “Select several”, then tap more. ⌘A or ⇧A (or Select all)
-            selects every group, Esc clears. On a phone, swipe up and down over the score to scroll;
-            drags that start sideways move and shape tiles.
+            selects every group, Esc clear · ⌥− ⌥= zoom · ⌥0 everythings. On a phone, swipe up and
+            down over the score to scroll; drags that start sideways move and shape tiles.
           </dd>
           <dt>Move</dt>
           <dd>
@@ -57,13 +57,22 @@ export function Help() {
             and the new bar is open to write in. (The Bars stepper adds bars in the middle, in the
             open space.)
           </dd>
+          <dt>Zoom</dt>
+          <dd>
+            Zoom sets how much a row holds: from 1 beat (wide beats, for fine work) to 8 bars. Pinch
+            the score, use − and + above it, ⌥− and ⌥=, or ⌘/Ctrl + scroll (pinch on a trackpad).
+            The score reflows like text and keeps what you are working on where it is. ⤢ (or ⌥0)
+            shows the whole piece at once; tap a place in it to zoom back in there (Esc goes back
+            too). The zoom is saved with the piece and the PDF prints its rows; the overview is only
+            a look.
+          </dd>
           <dt>Rows</dt>
           <dd>
-            Per row sets how many bars a row holds before the score wraps. Press Enter (or Break
-            line) at the caret to start a new row there, on any pulse, even inside a beat; press it
-            again at the same place to join the rows. Wrapping restarts after a break, so a phrase
-            that does not start on beat 1 lines up row under row. Join rows removes every break. Fit
-            rows stretches rows that end early to the full width (their beats get wider, so they no
+            The zoom sets how much a row holds before the score wraps. Press Enter (or Break line)
+            at the caret to start a new row there, on any pulse, even inside a beat; press it again
+            at the same place to join the rows. Wrapping restarts after a break, so a phrase that
+            does not start on beat 1 lines up row under row. Join rows removes every break. Fit rows
+            stretches rows that end early to the full width (their beats get wider, so they no
             longer line up with full rows).
           </dd>
           <dt>Phrase marks</dt>

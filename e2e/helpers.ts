@@ -17,23 +17,30 @@ export interface ScoreBox {
 
 export async function score(page: Page, beats = 4): Promise<ScoreBox> {
   const el = page.getByTestId('score');
-  // the canvas takes its size on its next frame (after a load, a reload or an edit) and a smooth
-  // keep-in-view scroll may still be running: wait until its box holds still for two frames
-  await el.evaluate(async (n) => {
+  await settle(page, true);
+  const box = (await el.boundingBox())!;
+  return { x: box.x, y: box.y, w: box.width, beats };
+}
+
+/**
+ * Wait until the score's box holds still for two frames: the canvas takes its size on its next
+ * frame (after a load, a reload or an edit), and a smooth keep-in-view scroll may be running.
+ * With `toTop`, keep scrolling it to the top of the screen meanwhile.
+ */
+export async function settle(page: Page, toTop = false) {
+  await page.getByTestId('score').evaluate(async (n, top) => {
     const frame = () => new Promise((r) => requestAnimationFrame(r));
     let last = '';
     let still = 0;
     for (let i = 0; i < 120 && still < 2; i++) {
       await frame();
-      n.scrollIntoView({ block: 'start', behavior: 'instant' });
+      if (top) n.scrollIntoView({ block: 'start', behavior: 'instant' });
       const r = n.getBoundingClientRect();
       const now = `${r.top}|${r.height}|${r.width}`;
       still = now === last ? still + 1 : 0;
       last = now;
     }
-  });
-  const box = (await el.boundingBox())!;
-  return { x: box.x, y: box.y, w: box.width, beats };
+  }, toTop);
 }
 
 /** Client point at time t (beats) in the tile band; uniform subdivision assumed for x. */

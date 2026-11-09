@@ -48,3 +48,8 @@ export const ChevronIcon = () => (
     <path d="m6 9 6 6 6-6" />
   </svg>
 );
+export const FitIcon = () => (
+  <svg {...base}>
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+);
