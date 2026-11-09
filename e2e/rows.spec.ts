@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { at, DEFAULT_SEQ, expectSeq, P, ready, openSetup, score, tap } from './helpers';
+
+const scoreHeight = async (page: Page) => (await page.getByTestId('score').boundingBox())!.height;
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -17,21 +20,20 @@ test('two cycles per row puts the whole phrase on one row', async ({ page }) => 
   await page.mouse.click(s.x + 4 + 5.1 * bw, s.y + 54);
   await expect(page.getByTestId('selname')).toContainText('Group 3');
   await expect(page.getByTestId('selname')).toContainText('ending');
-  const box = (await page.getByTestId('score').boundingBox())!;
-  expect(box.height).toBeLessThan(160);
+  // the canvas resizes on its next frame: wait for it rather than reading once
+  await expect.poll(async () => (await scoreHeight(page)) < 160).toBe(true);
 });
 
 test('Enter breaks the line at the caret, even in the middle of a beat', async ({ page }) => {
   await openSetup(page);
   const s = await score(page);
-  const h0 = (await page.getByTestId('score').boundingBox())!.height;
+  const h0 = await scoreHeight(page);
   // caret on the line between the two 3s: pulse 5 = beat 2, +1/4
   await tap(page, at(s, P(5)));
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: /Join rows \(1\)/ })).toBeVisible();
   // rows: 0–1¼, 1¼–5¼, 5¼–8 → one more row than before
-  const h1 = (await page.getByTestId('score').boundingBox())!.height;
-  expect(h1).toBeGreaterThan(h0 + 100);
+  await expect.poll(() => scoreHeight(page)).toBeGreaterThan(h0 + 100);
   // the second row starts with the second 3: tapping its start selects it
   const s2 = await score(page);
   const bw = (s2.w - 8) / 4;
