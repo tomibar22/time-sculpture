@@ -234,6 +234,23 @@ G3 by size), rests silent.
   tile bars (`VoltaDialog`, default passes from `defaultPasses`). Keys `[` `]` (physical
   Bracket keys), `V`, `+`/`−` on an end sign. File: `repeats` + derived `playOrder`.
 
+### Stage (filming a performance; state/stage.ts, components/Stage.tsx)
+
+- `ui.stage`: the score alone, full width (≤ 1200 px), for screen-recording a performance so
+  listeners can follow. Entered by "Stage" in the header or F; Esc / F / ✕ leave. App renders
+  `<Stage/>` instead of the editor (no dock, no toasts: `toast()` is a no-op on stage).
+- Nothing edits (Score ignores taps; keys: Space, ⌥ zoom, Esc/F only). Drawing (`stage` in
+  DrawState): no caret/range/selection/handles/open space; while playing, played sound groups get
+  a veil (bed colour), the sounding one a ring that is heavier at its onset; the landing shows as
+  a red bar at the end.
+- Score follows the playhead: on each new row it scrolls that row near the top (with the row
+  before when ≥ 3 rows fit).
+- `ui.stagePrefs` (localStorage `time-sculpture/stage`): `countIn` 0/1/2 bars (main beats,
+  `ui.countdown` drives the big number), `sound` all / click / off, `loop` (off = play once: the
+  player schedules a landing click, holds the end 1.6 s, then stops).
+- Controls fade while playing (`.stage.quiet`), a tap brings them back for 2.6 s. Wake lock while
+  the stage is open; desktop browsers go full screen.
+
 ### Silence
 
 - Rests are still items (selectable, movable, shown as "(n)" in the status) but are drawn as
@@ -293,7 +310,7 @@ G3 by size), rests silent.
 - Keys: Space play/stop · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
-  [ ] repeat signs · V ending · +/− on an end sign: times.
+  [ ] repeat signs · V ending · +/− on an end sign: times · F stage.
 - Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: pan-y` on the canvas (a vertical swipe scrolls the page and
   cancels the gesture; sideways drags edit). Long-press 450 ms → multi-select.

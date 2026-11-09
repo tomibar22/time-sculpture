@@ -1301,3 +1301,159 @@ button.switch[aria-checked='true'] .switch-knob {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------- stage (filming) */
+.stage-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.stage {
+  /* the score alone: the card colour edge to edge, the safe areas kept clear */
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--card);
+  padding: max(10px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
+    calc(150px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+}
+body:has(.stage) {
+  background: var(--card);
+}
+.stage-head,
+.stage-score {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.stage-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  padding: 4px 10px 10px;
+}
+.stage-head h1 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 4.5vw, 1.8rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stage-meta,
+.stage-bars {
+  color: var(--muted);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+.stage-bars {
+  color: var(--fg);
+  font-weight: 600;
+  min-width: 7.5ch;
+  text-align: right;
+}
+.stage .score-wrap {
+  margin: 0;
+}
+.countdown {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 30;
+  translate: -50% -50%;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(5rem, 28vw, 11rem);
+  line-height: 1;
+  color: var(--fg);
+  pointer-events: none;
+  animation: count-pop 0.5s ease-out both;
+}
+@keyframes count-pop {
+  from {
+    opacity: 0.95;
+    scale: 1.12;
+  }
+  to {
+    opacity: 0.7;
+    scale: 1;
+  }
+}
+.stage-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--card);
+  box-shadow: 0 -1px 0 var(--line);
+  padding: 10px max(var(--gutter), env(safe-area-inset-right, 0px))
+    calc(10px + env(safe-area-inset-bottom, 0px)) max(var(--gutter), env(safe-area-inset-left, 0px));
+  transition:
+    opacity 0.6s ease,
+    translate 0.6s ease;
+}
+/* playing: the controls step aside, so the recording shows only the music */
+.stage.quiet .stage-bar {
+  opacity: 0;
+  translate: 0 24px;
+  pointer-events: none;
+}
+.stage-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.stage-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.stage-opts > button {
+  font-size: 0.86rem;
+  padding: 0 10px;
+}
+.stage-opts b {
+  color: var(--fg);
+  font-weight: 700;
+}
+.stage-opts > button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+@media (max-width: 560px) {
+  .stage-opts {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .stage-bar .tempo {
+    flex: 1 1 auto;
+  }
+  .stage-bar .tempo input {
+    width: 100%;
+  }
+  .stage-head .stage-meta {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    animation: none;
+    opacity: 0.6;
+  }
+  .stage-bar {
+    transition: none;
+  }
+}

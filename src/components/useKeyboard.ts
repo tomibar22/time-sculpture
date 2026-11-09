@@ -39,6 +39,7 @@ import {
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { toggleOverview, zoomStep } from '../state/zoom';
+import { enterStage, exitStage } from '../state/stage';
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.matches('input, textarea, select') || t.isContentEditable);
@@ -58,11 +59,33 @@ export function useKeyboard() {
     let copiedText: string | null = null;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || isTyping(e.target)) return;
+      if (e.defaultPrevented) return;
+      // on the stage Space and Esc work even right after the tempo slider was moved
+      const onSlider = e.target instanceof HTMLInputElement && e.target.type === 'range';
+      const stageKey = (e.code === 'Space' || e.key === 'Escape') && useUiStore.getState().stage;
+      if (isTyping(e.target) && !(onSlider && stageKey)) return;
       const mod = e.metaKey || e.ctrlKey;
       // letter shortcuts follow the physical key, so they work with any layout (e.g. Hebrew)
       const k = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const hasSel = useUiStore.getState().selection.length > 0;
+
+      // the stage only plays: Space, zoom, and Esc / F to leave
+      if (useUiStore.getState().stage) {
+        if (e.key === ' ' || e.code === 'Space') {
+          if (isActivatable(e.target)) return;
+          e.preventDefault();
+          return togglePlayback();
+        }
+        if (e.altKey && !mod && ['Equal', 'Minus', 'Digit0'].includes(e.code)) {
+          e.preventDefault();
+          if (e.code === 'Digit0') return toggleOverview();
+          return zoomStep(e.code === 'Equal' ? 1 : -1);
+        }
+        if (e.key === 'Escape' && useUiStore.getState().overview) return toggleOverview();
+        if (e.key === 'Escape' || (k === 'f' && !mod)) return exitStage();
+        return;
+      }
+      if (k === 'f' && !mod && !e.altKey && !e.shiftKey) return void (e.preventDefault(), enterStage());
 
       if (e.key === ' ' || e.code === 'Space') {
         if (isActivatable(e.target)) return;

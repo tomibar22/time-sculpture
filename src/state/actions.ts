@@ -25,6 +25,7 @@ export function toast(
   message: string,
   opts: { undo?: boolean; action?: Toast['action'] } = {},
 ): void {
+  if (uiState().stage) return; // nothing pops up in a recording
   const t: Toast = { id: nextToastId(), message };
   if (opts.undo) t.undoVersion = useDocStore.getState().version;
   if (opts.action) t.action = opts.action;

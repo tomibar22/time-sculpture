@@ -48,7 +48,15 @@ export interface DrawState {
   activeGrip: 'start' | 'end' | null;
   /** Printing: draw onto an existing page instead of clearing the canvas. */
   noClear?: boolean;
+  /**
+   * The stage (filming a performance): no editing marks and no open space; while playing, what
+   * has been played fades back and the sounding group lights up.
+   */
+  stage?: boolean;
 }
+
+/** How long (in beats) a group's ring keeps the extra weight of its onset. */
+const ONSET_BEATS = 0.35;
 
 function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const rad = Math.max(0, Math.min(r, Math.abs(w) / 2, h / 2));
@@ -244,11 +252,21 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
 
   /* ---------------- tiles */
   let a = 0;
+  const ph = s.stage ? s.playhead : null;
   for (const x of doc.items) {
     if (x.n > 0) {
       const lifted = s.lifted.has(x.id);
       const selected = s.selection.has(x.id);
       const dy = lifted ? -5 : 0;
+      const t0 = times[a]!;
+      const t1 = times[a + x.n]!;
+      // stage: played groups fade back, the sounding one lights up
+      const past = ph !== null && t1 <= ph + EPS_D;
+      const sounding = ph !== null && x.kind === 'sound' && t0 <= ph + EPS_D && ph < t1 - EPS_D;
+      if (s.stage && isSpace(x)) {
+        a += x.n;
+        continue;
+      }
       for (const seg of segments(g, a, x.n)) {
         const p0 = xOf(g, seg.t0);
         const p1x = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.rows[seg.r]!.bw;
@@ -344,6 +362,21 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           };
           if (seg.first) drawGrip(X + 1, s.activeGrip === 'start');
           if (seg.last) drawGrip(X + W - 1, s.activeGrip === 'end');
+        }
+        if (past && x.kind === 'sound') {
+          // a veil in the bed's colour, so the played group fades back
+          c.fillStyle = P.soft;
+          c.globalAlpha = 0.68;
+          rr(c, X, ty + 2, W, L.tileH - 4, 9);
+          c.fill();
+          c.globalAlpha = 1;
+        }
+        if (sounding) {
+          const hit = Math.max(0, 1 - (ph - t0) / ONSET_BEATS);
+          c.strokeStyle = P.fg;
+          c.lineWidth = 2.5 + 2.5 * hit;
+          rr(c, X - 2, ty, W + 4, L.tileH, 11);
+          c.stroke();
         }
       }
     }
@@ -507,10 +540,13 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   drawForm(c, g, doc, P);
 
   if (s.playhead !== null) {
-    const p = xOf(g, s.playhead);
+    // a playhead on the very end (the landing) stays on the last row, in the downbeat red
+    const end = s.playhead >= g.grid.NB - EPS_D;
+    const p = end ? { x: rowEndX(g, g.R - 1), r: g.R - 1 } : xOf(g, s.playhead);
     const ty = tileY(g, p.r);
-    c.fillStyle = P.fg;
-    c.fillRect(p.x - 1, ty - 4, 2, L.tileH + 8);
+    const w = s.stage ? (end ? 5 : 3) : 2;
+    c.fillStyle = end && s.stage ? P.land : P.fg;
+    c.fillRect(p.x - w / 2, ty - (s.stage ? 8 : 4), w, L.tileH + (s.stage ? 16 : 8));
   }
 }
 

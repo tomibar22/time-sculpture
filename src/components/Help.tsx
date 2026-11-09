@@ -128,13 +128,20 @@ export function Help() {
             + / − make the selected groups a pulse longer or shorter (the open space gives or takes
             it). Reverse (⇧R) plays a run of groups backwards.
           </dd>
+          <dt>Stage</dt>
+          <dd>
+            For filming a performance (F). The score alone, full screen: it follows the music, the
+            sounding group lights up and played ones fade back. Count in a bar or two, choose what
+            is heard (all, the click only, or nothing), and play once (it stops when it lands on 1)
+            or loop. The controls fade while playing; tap to bring them back. Esc leaves.
+          </dd>
           <dt>Keys</dt>
           <dd>
             Space play · ⇧Space play from the caret · Enter line break · P phrase mark · T modulate
             · ← → move the selection or the caret · ⇧← ⇧→ select like text · Home / End caret to the
             start or end · 1–9 type · Delete remove · M merge · S split · R silence · D duplicate ·
             + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs · V ending · ⇧R reverse · Z undo ·
-            Y or ⇧⌘Z redo · Esc clear
+            Y or ⇧⌘Z redo · F stage · Esc clear
           </dd>
           <dt>Screen readers</dt>
           <dd>

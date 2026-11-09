@@ -14,12 +14,23 @@ import { Toolbar } from './components/Toolbar';
 import { Dock } from './components/Transport';
 import { useKeyboard } from './components/useKeyboard';
 import { Score } from './score/Score';
+import { Stage, StageButton } from './components/Stage';
+import { useUiStore } from './state/store';
 
 export function App() {
   useKeyboard();
   useApplyTheme();
   // phones dock the selection bar above the number pad, by the thumb (see Dock)
   const phone = useMedia(PHONE);
+  const stage = useUiStore((s) => s.stage);
+  if (stage)
+    return (
+      <>
+        <Stage />
+        <Announcer />
+        <ZoomHud />
+      </>
+    );
   return (
     <>
       <main className="wrap">
@@ -27,6 +38,7 @@ export function App() {
           <div className="title-row">
             <h1>Time Sculpture</h1>
             <div className="header-actions">
+              <StageButton />
               <ThemeToggle />
               <LibraryMenu />
             </div>

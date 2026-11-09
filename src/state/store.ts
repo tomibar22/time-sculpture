@@ -5,6 +5,34 @@ import { DEFAULT_TEMPO, defaultDoc } from './defaults';
 
 export type MoveMode = 'pulse' | 'beat' | 'place';
 export type Theme = 'system' | 'light' | 'dark';
+/** What the stage plays: everything, only the click, or nothing (the score just moves). */
+export type StageSound = 'all' | 'click' | 'off';
+
+/** Stage settings, remembered on this device between sessions. */
+export interface StagePrefs {
+  /** Bars of count-in before the piece starts. */
+  countIn: 0 | 1 | 2;
+  sound: StageSound;
+  /** Play the piece again and again, or once (stop when it lands on 1). */
+  loop: boolean;
+}
+const STAGE_KEY = 'time-sculpture/stage';
+export const DEFAULT_STAGE: StagePrefs = { countIn: 1, sound: 'all', loop: false };
+function loadStage(): StagePrefs {
+  try {
+    const raw = localStorage.getItem(STAGE_KEY);
+    return raw ? { ...DEFAULT_STAGE, ...(JSON.parse(raw) as Partial<StagePrefs>) } : DEFAULT_STAGE;
+  } catch {
+    return DEFAULT_STAGE;
+  }
+}
+export function saveStage(p: StagePrefs): void {
+  try {
+    localStorage.setItem(STAGE_KEY, JSON.stringify(p));
+  } catch {
+    /* private mode: the settings last for this session only */
+  }
+}
 
 const HISTORY_LIMIT = 200;
 const LOG_LIMIT = 8;
@@ -114,6 +142,14 @@ export interface UiState {
   voltaDialog: { ka: number; kb: number } | { index: number } | null;
   /** Playhead in beats while playing. */
   playhead: number | null;
+  /**
+   * Stage: a clean, full-screen view for filming a performance. Nothing edits; the score follows
+   * the playhead, the sounding group lights up, and the controls fade away while playing.
+   */
+  stage: boolean;
+  stagePrefs: StagePrefs;
+  /** During a count-in: the beat being counted (1-based) and how many beats a bar has. */
+  countdown: { beat: number; of: number } | null;
   theme: Theme;
   /** Live preview during a drag (rendered instead of the document). */
   preview: Doc | null;
@@ -162,6 +198,9 @@ export const useUiStore = create<UiState>((set) => ({
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   setupOpen: false,
   playhead: null,
+  stage: false,
+  stagePrefs: loadStage(),
+  countdown: null,
   theme: 'system',
   preview: null,
   lifted: [],

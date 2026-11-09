@@ -81,8 +81,11 @@ const activeDoc = () => ui().preview ?? useDocStore.getState().doc;
  * whole piece fits between the top of the screen and the dock.
  */
 function overviewPer(width: number, doc: Doc, perRow: number, fit: boolean): number {
-  const dock = document.querySelector<HTMLElement>('.dock')?.offsetHeight ?? 0;
-  const room = window.innerHeight - dock - 24;
+  // on the stage only its title line takes room (its controls fade while playing)
+  const below = ui().stage
+    ? (document.querySelector<HTMLElement>('.stage-head')?.offsetHeight ?? 0)
+    : (document.querySelector<HTMLElement>('.dock')?.offsetHeight ?? 0);
+  const room = window.innerHeight - below - 24;
   const ls = zoomLevels(doc.meter.beatsPerCycle, doc.meter.cycles, OVERVIEW_LEVELS).filter(
     (z) => z >= perRow - 1e-9,
   );
@@ -146,25 +149,27 @@ export function Score() {
     const now = performance.now();
     const flashAlpha = s.flash.until > now ? (s.flash.until - now) / 1600 : 0;
     const gs = gesture.current;
+    const stage = s.stage;
     drawScore(
       c,
       g,
       {
         doc,
-        selection: new Set(s.selection),
+        stage,
+        selection: new Set(stage ? [] : s.selection),
         lifted: new Set(s.lifted),
         painting: gs?.kind === 'lane' ? { beats: gs.beats, d: s.brush } : null,
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
-        showHandles: gs?.kind !== 'slide' && gs?.kind !== 'place',
+        showHandles: !stage && gs?.kind !== 'slide' && gs?.kind !== 'place',
         mainTempo: s.tempo,
-        cursor: s.caret,
-        range: s.range,
+        cursor: stage ? null : s.caret,
+        range: stage ? null : s.range,
         playhead: s.playhead,
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
-        focusedId: s.focusedId,
+        focusedId: stage ? null : s.focusedId,
         grips:
-          s.selection.length === 1 && gs?.kind !== 'slide' && gs?.kind !== 'place'
+          !stage && s.selection.length === 1 && gs?.kind !== 'slide' && gs?.kind !== 'place'
             ? s.selection[0]!
             : null,
         activeGrip: gs?.kind === 'trim' ? gs.side : null,
@@ -310,6 +315,36 @@ export function Score() {
     };
   }, [request]);
 
+  /*
+   * Stage: follow the playhead. When it moves to another row, scroll so that row sits near the
+   * top, with the row before it still in view when there is room, like turning a page early.
+   */
+  useEffect(() => {
+    let lastRow = -1;
+    const follow = (s: ReturnType<typeof ui>) => {
+      const g = geo.current;
+      const cv = canvasRef.current;
+      if (!s.stage || s.playhead === null || !g || !cv) return void (lastRow = -1);
+      const r = rowOf(g, Math.min(s.playhead, g.grid.NB - 1e-6));
+      if (r === lastRow) return;
+      lastRow = r;
+      const head = document.querySelector<HTMLElement>('.stage-head')?.offsetHeight ?? 0;
+      const room = window.innerHeight - head;
+      const context = room >= 3 * g.stride && r > 0 ? 1 : 0;
+      const pageTop = cv.getBoundingClientRect().top + window.scrollY;
+      // the top row in view sits under the title line (at the top: the title is shown)
+      const top = r - context <= 0 ? 0 : pageTop + rowTop(g, r - context) - g.lane - head - 8;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const y = E.clamp(top, 0, Math.max(0, max));
+      if (Math.abs(y - window.scrollY) < 2) return;
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: y, behavior: still ? 'auto' : 'smooth' });
+    };
+    return useUiStore.subscribe((s, p) => {
+      if (s.playhead !== p.playhead || s.stage !== p.stage) follow(s);
+    });
+  }, []);
+
   const point = (e: React.PointerEvent) => {
     const r = canvasRef.current!.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top] as const;
@@ -343,6 +378,8 @@ export function Score() {
       diveAt(e.clientX, e.clientY);
       return;
     }
+    // nothing edits on the stage (a tap there only brings its controls back)
+    if (ui().stage) return;
     const [x, y] = point(e);
     e.currentTarget.setPointerCapture(e.pointerId);
     const doc = useDocStore.getState().doc;
@@ -464,6 +501,7 @@ export function Score() {
     const cv = e.currentTarget;
 
     if (!gs) {
+      if (ui().stage) return;
       const doc = useDocStore.getState().doc;
       const h = hit(g, x, y);
       const sel = E.selectedIndices(doc.items, ui().selection);

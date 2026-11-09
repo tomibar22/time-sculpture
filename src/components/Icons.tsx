@@ -53,3 +53,16 @@ export const FitIcon = () => (
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
 );
+/** A screen on a stand: the stage (a clean view for filming). */
+export const StageIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M12 16v4M8 20h8" />
+    <path d="m10 8 4 2-4 2Z" fill="currentColor" />
+  </svg>
+);
+export const CloseIcon = () => (
+  <svg {...base}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </svg>
+);
