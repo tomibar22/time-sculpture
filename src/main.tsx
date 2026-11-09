@@ -10,10 +10,12 @@ import '@fontsource/ibm-plex-mono/latin-600.css';
 import { App } from './App';
 import { installAudioUnlock } from './audio/context';
 import { initSession } from './persistence/session';
+import { installUpdates } from './pwa';
 import './styles/tokens.css';
 import './styles/global.css';
 
 installAudioUnlock();
+installUpdates();
 void initSession();
 
 createRoot(document.getElementById('root')!).render(

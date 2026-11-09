@@ -7,7 +7,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'script-defer',
+      // registered from src/pwa.ts, which also checks for updates when the app comes back
+      injectRegister: false,
       includeAssets: ['icon.svg', 'apple-touch-icon.png', 'favicon-64.png', 'robots.txt'],
       manifest: {
         name: 'Time Sculpture',

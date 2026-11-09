@@ -248,6 +248,10 @@ G3 by size), rests silent.
 - PDF: `src/export/sheet.ts` renders A4 pages (≈216 dpi) with the print palette and
   `drawScore(noClear)`; `pdfWriter.ts` packs them as FlateDecode images. Loaded on demand.
   Files are delivered with the share sheet on touch devices, else downloaded.
+- PWA updates (`src/pwa.ts`, `injectRegister: false`): `registerSW` with autoUpdate, plus
+  `registration.update()` whenever the app becomes visible again (an iPhone home-screen app
+  resumes without reloading, so it would otherwise keep an old version). No timer, so an
+  update never reloads mid-work; the piece is saved on `pagehide`.
 - Share links: `#s=` + `z` + base64url(deflate-raw(JSON)), or `j` + base64url(JSON) without
   CompressionStream. Opening one saves it to the library as "<name> (shared)".
 
