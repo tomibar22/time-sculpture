@@ -345,7 +345,8 @@ cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
   [ ] repeat signs · V ending · +/− on an end sign: times · F stage · G total · ⇧P name mark.
-- Toasts for anything non-obvious, with Undo. aria-live announcements. Touch targets ≥ 44 px.
+- Toasts for anything non-obvious, with Undo: a small pill (0.8rem), 1.5 s, or 3 s with a button
+  (user request: they were too big and stayed too long); the button keeps a ≥ 44 px hit area. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: pan-y` on the canvas (a vertical swipe scrolls the page and
   cancels the gesture; sideways drags edit). Long-press 450 ms → multi-select.
 - Dock bars also offer **Select all**, **Subdivision…** (`ui.subPanel`, `SubdivPanel`: ratios for

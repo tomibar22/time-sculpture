@@ -15,7 +15,7 @@ export function ToastHost() {
       () => {
         if (useUiStore.getState().toast?.id === toast.id) set({ toast: null });
       },
-      hasAction ? 5000 : 2400,
+      hasAction ? 3000 : 1500,
     );
     return () => clearTimeout(t);
   }, [toast, hasAction, set]);
