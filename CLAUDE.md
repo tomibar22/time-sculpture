@@ -146,9 +146,11 @@ G3 by size), rests silent.
 
 ### Score layout (src/score/rows.ts)
 
-- Each row: beat numbers (cycle downbeats red, ratio of differing beats as an accent label) →
-  tiles → the subdivision band: a ruler with a tick where every pulse begins (aligned with tile
-  edges), taller beat ticks, red cycle ticks; differing beats tinted. The band is both the display and the paint target (everything below the tiles).
+- Each row: beat numbers (cycle downbeats red) → tiles → the subdivision band: a ruler with a
+  tick where every pulse begins (aligned with tile edges, upper half), taller beat ticks, red
+  cycle ticks; beats whose ratio differs from the most common one are tinted, and a run of
+  beats with the same ratio is named once ("3:1"), where it starts, in the band's lower half
+  (not repeated per bar or row; user request). The band is both the display and the paint target (everything below the tiles).
   There is no separate lane above. B paints the brush on the beats under the selection.
 
 - Rows (`rows.ts` `rowLayout`) are spans of time: they wrap every `ui.perRow` bars (the zoom), and at the
@@ -261,7 +263,7 @@ G3 by size), rests silent.
 ## UI conventions
 
 - **Wording: the UI says "bars", not "cycles"** (user's choice). The code/model keeps `cycles`.
-- Beat numbers are centred on their beat's tick; a differing ratio is written right after it.
+- Beat numbers are centred on their beat's tick; a differing ratio is named in the band below.
 - PDF sheet: title + one meta line (beats × bars · ratios · pulses) + score rows + footer. No
   phrase line, tempo or legend (removed at the user's request).
 

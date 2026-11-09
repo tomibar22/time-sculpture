@@ -35,12 +35,13 @@ export function Help() {
           <dd>Double-tap a group, or press S.</dd>
           <dt>Subdivision</dt>
           <dd>
-            The dotted band under each row shows the pulses of every beat (a ratio badge marks beats
-            that differ). Pick 1:1 to 8:1, then tap or drag along the band, or select groups and
-            press B. Groups keep their moments in time and snap to the nearest new pulse; you can
-            undo. Right where you work: Subdivision… (in the bar above the number pad) gives the
-            beats under the selection, range or caret a ratio, and you can try one after another. On
-            a phone, the brush (with beats, bars and drag mode) is in the line above the score.
+            The dotted band under each row shows the pulses of every beat (beats that differ are
+            tinted, and each change of ratio is named once, in the band). Pick 1:1 to 8:1, then tap
+            or drag along the band, or select groups and press B. Groups keep their moments in time
+            and snap to the nearest new pulse; you can undo. Right where you work: Subdivision… (in
+            the bar above the number pad) gives the beats under the selection, range or caret a
+            ratio, and you can try one after another. On a phone, the brush (with beats, bars and
+            drag mode) is in the line above the score.
           </dd>
           <dt>Write</dt>
           <dd>

@@ -168,13 +168,17 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     }
 
     // subdivision band: a tick where every pulse begins; beats taller, bar lines red;
-    // beats whose ratio differs are tinted and named after their number
+    // beats whose ratio differs are tinted, and a run of them is named once, where it starts,
+    // in the lower half of the band (pulse ticks only use the upper half)
     c.fillStyle = P.soft;
     rr(c, L.margin, by, rowW, L.bandH, 7);
     c.fill();
+    const ratioAt = (b: number) =>
+      s.painting && s.painting.beats.has(b) ? s.painting.d : (sd[b] ?? 0);
+    const labels: { x: number; text: string }[] = [];
     for (let gb = bFirst; gb <= bLast; gb++) {
       const painting = !!s.painting && s.painting.beats.has(gb);
-      const d = painting ? s.painting!.d : sd[gb]!;
+      const d = ratioAt(gb);
       const odd = d !== common;
       if (odd || painting) {
         const x0 = xAt(Math.max(gb, row.b0));
@@ -184,13 +188,9 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         rr(c, x0 + 1, by, Math.max(0, x1 - x0 - 2), L.bandH, 6);
         c.fill();
         c.globalAlpha = 1;
-        if (bw >= 40 && gb >= row.b0 - EPS_D) {
-          c.fillStyle = P.accent;
-          c.font = `700 11px ${MONO}`;
-          c.textAlign = 'left';
-          c.textBaseline = 'alphabetic';
-          c.fillText(`${d}:1`, xAt(gb) + 9, top + 14);
-        }
+        const startsRun = gb === 0 || ratioAt(gb - 1) !== d;
+        if (startsRun && bw >= 26 && gb >= row.b0 - EPS_D)
+          labels.push({ x: xAt(gb) + 4, text: `${d}:1` });
       }
       const kEnd = Math.min(pre[gb + 1]!, row.k1);
       const dense = bw / (pre[gb + 1]! - pre[gb]!) < 3;
@@ -211,6 +211,11 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         c.globalAlpha = 1;
       }
     }
+    c.fillStyle = P.accent;
+    c.font = `700 10px ${MONO}`;
+    c.textAlign = 'left';
+    c.textBaseline = 'alphabetic';
+    for (const l of labels) c.fillText(l.text, l.x, by + L.bandH - 3);
     // closing tick at the end of the row (red on a bar line, a short pulse tick mid-beat)
     {
       const tEnd = row.b0 + row.nb;
