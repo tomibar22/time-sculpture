@@ -41,25 +41,20 @@ export function playGroup(t: number, n: number, seconds = 0.3): void {
   tone(t, 'sine', f * 2, 0.03, ring * 0.45);
 }
 
-/** Quiet interface sounds. */
+/**
+ * Quiet interface sounds. Dragging, stretching, trimming, selecting and moving the caret are
+ * silent on purpose (user request): `snap`, `lift` and `drop` stay as no-ops so call sites read
+ * the same. Typing a size, removing, undo, a refused action and completing a piece still sound.
+ */
 const now = () => (ensureAudio() ? audioNow() : -1);
 export const ui = {
-  snap() {
-    const t = now();
-    if (t >= 0) tone(t, 'sine', 2200, 0.03, 0.025);
-  },
+  snap() {},
   add(n: number) {
     const t = now();
     if (t >= 0) tone(t, 'triangle', pitchForSize(n), 0.11, 0.18);
   },
-  lift() {
-    const t = now();
-    if (t >= 0) tone(t, 'sine', 520, 0.06, 0.1, 700);
-  },
-  drop() {
-    const t = now();
-    if (t >= 0) tone(t, 'sine', 700, 0.07, 0.12, 440);
-  },
+  lift() {},
+  drop() {},
   remove() {
     const t = now();
     if (t >= 0) tone(t, 'sine', 420, 0.07, 0.12, 260);
