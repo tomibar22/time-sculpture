@@ -1,4 +1,4 @@
-import { EPS, nextPulse, playOrder, toMain } from '../engine';
+import { buildGrid, EPS, nextPulse, playOrder, spanOf, toMain } from '../engine';
 import type { Meter, Span } from '../engine';
 import { useDocStore, useUiStore } from '../state/store';
 import { audioNow, ensureAudio } from './context';
@@ -40,6 +40,9 @@ let endAt: number | null = null;
 let endT = 0;
 /** How long the landing stays on the screen before the player stops. */
 const HOLD_S = 1.6;
+/** Playing the selection: it plays once and stops at its end (after a short hold). */
+let regionOnce = false;
+const REGION_HOLD_S = 0.25;
 
 const activeDoc = () => useUiStore.getState().preview ?? useDocStore.getState().doc;
 
@@ -74,7 +77,7 @@ function schedule(): void {
   const beatDur = 60 / ui.tempo;
   const now = audioNow();
   const sound = soundMode();
-  const once = ui.stage && !ui.stagePrefs.loop;
+  const once = (ui.stage && !ui.stagePrefs.loop) || regionOnce;
   while (countClicks.length && countClicks[0]!.t < now + LOOKAHEAD_S) {
     const c = countClicks.shift()!;
     if (sound !== 'off') playClick(c.t, c.kind, false);
@@ -92,8 +95,10 @@ function schedule(): void {
     if (T >= s.b - EPS || ev.t0 >= s.b - EPS || ev.t0 < T - EPS) {
       next += Math.max(0, span(T, s.b));
       if (once && seg + 1 >= plan.length) {
-        // the last stretch is over: land on 1 and stop there
-        if (sound !== 'off') playClick(next, 'landing', false);
+        // the last stretch is over: land on 1 and stop there (a selection that ends before the
+        // end of the piece just stops)
+        if (sound !== 'off' && s.b >= doc.meter.subdivision.length - EPS)
+          playClick(next, 'landing', false);
         endAt = next;
         endT = s.b;
         return;
@@ -129,7 +134,7 @@ function frame(): void {
   if (endAt !== null && now >= endAt) {
     // landed: hold the end on the screen for a moment, then stop
     if (ui.playhead !== endT) ui.set({ playhead: endT });
-    if (now >= endAt + HOLD_S) return stopPlayback();
+    if (now >= endAt + (regionOnce ? REGION_HOLD_S : HOLD_S)) return stopPlayback();
     raf = requestAnimationFrame(frame);
     return;
   }
@@ -145,9 +150,14 @@ function frame(): void {
  * Start playing from beat-time `from` (default: the top). With `loop`, only that stretch of
  * written time plays, again and again (for practising a passage).
  */
-export function startPlayback(from = 0, loop: { a: number; b: number } | null = null): void {
+export function startPlayback(
+  from = 0,
+  loop: { a: number; b: number } | null = null,
+  opts: { once?: boolean } = {},
+): void {
   if (timer) return;
   if (!ensureAudio()) return;
+  regionOnce = !!loop && !!opts.once;
   useUiStore.getState().set({ loop });
   // start in the first stretch of the play order that holds `from`
   const meter = activeDoc().meter;
@@ -203,7 +213,20 @@ if (typeof document !== 'undefined') {
   });
 }
 
+/**
+ * Play / stop. With tiles or a pulse range selected (in the editor), only that stretch plays,
+ * once; otherwise the whole piece from the top. (⇧Space loops the selection.)
+ */
 export function togglePlayback(): void {
-  if (timer) stopPlayback();
-  else startPlayback(0);
+  if (timer) return stopPlayback();
+  const ui = useUiStore.getState();
+  const doc = useDocStore.getState().doc;
+  const region = ui.stage ? null : (ui.range ?? spanOf(doc, ui.selection));
+  if (region && region.b > region.a) {
+    const grid = buildGrid(doc.meter);
+    const a = grid.times[region.a]!;
+    const b = grid.times[Math.min(region.b, grid.TS)]!;
+    return startPlayback(a, { a, b }, { once: true });
+  }
+  startPlayback(0);
 }

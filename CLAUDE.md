@@ -124,6 +124,9 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 - Interface sounds: dragging, stretching, trimming, selecting and moving the caret are silent
   (user request; `snap` / `lift` / `drop` are no-ops). Typing a size plays its stroke softly;
   remove, undo, a refused action and completing a piece still sound.
+- **Play with a selection**: Play / Space with tiles or a range selected (editor only) plays just
+  that stretch once and stops (`togglePlayback` → `startPlayback(a, {a, b}, {once: true})`,
+  `regionOnce` in player.ts); the landing click only when it ends at the piece's end.
 - **Practice loop**: `ui.loop {a, b}` (beats). `startPlayback(from, loop)`; ⇧Space or "↻ Loop"
   with tiles or a range selected loops that stretch (`playFromCaret`), with only a caret it plays
   on from it. The player's plan is then that one span; the piece's "1" inside it is a downbeat.

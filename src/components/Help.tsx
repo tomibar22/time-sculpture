@@ -92,11 +92,12 @@ export function Help() {
           <details className="help-topic">
             <summary>Listen and loop</summary>
             <p>
-              Space plays from the top; the group that sounds lights up as it goes. Select tiles (or
-              a range) and press ⇧Space, or ↻ Loop: that stretch plays round and round, to hear it
-              or practise over it; change it while it loops and you hear the change. Tap the tempo
-              number for exact steps and <b>Tap the beat</b>. In Options you can turn off the click
-              on the beats (the 1 always sounds) and the subdivision ticks.
+              Space plays from the top; with tiles or a range selected, only the selection plays.
+              The group that sounds lights up as it goes. Select tiles (or a range) and press
+              ⇧Space, or ↻ Loop: that stretch plays round and round, to hear it or practise over it;
+              change it while it loops and you hear the change. Tap the tempo number for exact steps
+              and <b>Tap the beat</b>. In Options you can turn off the click on the beats (the 1
+              always sounds) and the subdivision ticks.
             </p>
           </details>
           <details className="help-topic">
