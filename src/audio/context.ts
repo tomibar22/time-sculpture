@@ -1,61 +1,101 @@
-/** Shared AudioContext, created and resumed on the first user gesture (required on iOS). */
+/**
+ * Shared AudioContext, created and woken inside a user gesture (required on iOS).
+ *
+ * iOS: when the app leaves the screen the context is suspended or "interrupted", and after it
+ * comes back a resumed context may say "running" yet stay silent. So a context that has been in
+ * the background is never trusted again: the next tap or key builds a fresh one, inside that
+ * gesture, where iOS allows it to sound.
+ */
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+/** The app was hidden since this context was made: replace it on the next gesture. */
+let stale = false;
+let noiseBuf: AudioBuffer | null = null;
 
 type WebkitWindow = Window & { webkitAudioContext?: typeof AudioContext };
 
-export function ensureAudio(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  if (!ctx) {
-    const AC = window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
-    if (!AC) return null;
-    ctx = new AC();
-    master = ctx.createGain();
-    master.gain.value = 0.9;
-    // a gentle limiter: many voices on one pulse (click + tone + landing) never clip
-    const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -10;
-    limiter.knee.value = 12;
-    limiter.ratio.value = 6;
-    limiter.attack.value = 0.002;
-    limiter.release.value = 0.12;
-    master.connect(limiter).connect(ctx.destination);
-    // iPhone / iPad: play like a music app, so the ring/silent switch does not mute the piece
-    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-    if (session) {
-      try {
-        session.type = 'playback';
-      } catch {
-        /* an older Safari: the switch keeps muting, nothing else changes */
-      }
+function build(): AudioContext | null {
+  const AC = window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
+  if (!AC) return null;
+  const c = new AC();
+  const m = c.createGain();
+  m.gain.value = 0.9;
+  // a gentle limiter: many voices on one pulse (click + stroke + landing) never clip
+  const limiter = c.createDynamicsCompressor();
+  limiter.threshold.value = -10;
+  limiter.knee.value = 12;
+  limiter.ratio.value = 6;
+  limiter.attack.value = 0.002;
+  limiter.release.value = 0.12;
+  m.connect(limiter).connect(c.destination);
+  // iPhone / iPad: play like a music app, so the ring/silent switch does not mute the piece
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) {
+    try {
+      session.type = 'playback';
+    } catch {
+      /* an older Safari: the switch keeps muting, nothing else changes */
     }
   }
+  ctx = c;
+  master = m;
+  noiseBuf = null;
+  stale = false;
+  return c;
+}
+
+/** iOS: a silent sound played inside the gesture is what lets the context sound at all. */
+function prime(c: AudioContext): void {
+  const s = c.createBufferSource();
+  s.buffer = c.createBuffer(1, 1, 22050);
+  s.connect(c.destination);
+  s.start(0);
+}
+
+export function ensureAudio(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (!ctx || ctx.state === 'closed') return build();
   // 'suspended' before the first gesture; iOS also reports 'interrupted' after a call or Siri
-  if (ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume().catch(() => undefined);
+  if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
   return ctx;
+}
+
+/**
+ * Inside a gesture: make sure the audio can sound. A context from before the app was hidden (or
+ * one that will not run) is closed and a fresh one built and primed; otherwise it is woken.
+ */
+function wake(): void {
+  if (ctx && (stale || (ctx.state as string) === 'interrupted')) {
+    const old = ctx;
+    ctx = null;
+    void old.close().catch(() => undefined);
+  }
+  const c = ensureAudio();
+  if (c) prime(c);
 }
 
 export function audioNow(): number {
   return ctx ? ctx.currentTime : 0;
 }
 
-/** Unlock on the first pointer/key gesture anywhere. */
+/**
+ * Wake the audio on every pointer or key gesture (before the app's own handlers, so Play finds
+ * it ready), and mark it stale whenever the app is hidden.
+ */
 export function installAudioUnlock(): void {
-  const unlock = () => {
-    const c = ensureAudio();
-    if (c) {
-      // iOS: play a silent buffer inside the gesture
-      const b = c.createBuffer(1, 1, 22050);
-      const s = c.createBufferSource();
-      s.buffer = b;
-      s.connect(c.destination);
-      s.start(0);
+  window.addEventListener('pointerdown', wake, true);
+  window.addEventListener('keydown', wake, true);
+  window.addEventListener('touchend', wake, true);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && ctx) {
+      stale = true;
+      void ctx.suspend().catch(() => undefined);
     }
-    window.removeEventListener('pointerdown', unlock, true);
-    window.removeEventListener('keydown', unlock, true);
-  };
-  window.addEventListener('pointerdown', unlock, true);
-  window.addEventListener('keydown', unlock, true);
+  });
+  // a page restored from the back-forward cache is like coming back from the background
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && ctx) stale = true;
+  });
 }
 
 /** A short enveloped oscillator note. f1 = optional glide target. */
@@ -80,8 +120,6 @@ export function tone(
   o.start(t);
   o.stop(t + dur + 0.02);
 }
-
-let noiseBuf: AudioBuffer | null = null;
 
 /**
  * A short burst of filtered noise (the skin and the fingers of a drum stroke): white noise

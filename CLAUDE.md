@@ -129,9 +129,13 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   on from it. The player's plan is then that one span; the piece's "1" inside it is a downbeat.
   Its ends are bracketed in the score. `stopPlayback` clears it.
 - In the editor the sounding group gets a light ring (stage has its own, heavier look).
-- iOS: `navigator.audioSession.type = 'playback'` (the silent switch does not mute), resume on
-  any non-running state ('interrupted'), and playback **stops when the page is hidden** (timers
-  are throttled there; catching up would play a burst).
+- iOS: `navigator.audioSession.type = 'playback'` (the silent switch does not mute), and
+  playback **stops when the page is hidden** (timers are throttled there; catching up would play
+  a burst). **A context that has been hidden is never reused**: hiding marks it stale (and
+  suspends it); the next pointerdown / touchend / keydown (capture, permanent listeners in
+  audio/context.ts `installAudioUnlock`) closes it and builds + primes a fresh one inside that
+  gesture. (A resumed iOS context can report 'running' and stay silent: the bug "no sound after
+  leaving and returning to the app".) Never resume audio outside a gesture.
 - Tempo 30–240 (`MIN_TEMPO`/`MAX_TEMPO`), slider in the transport; the number opens
   `TempoDialog` (±1, ±5, tap tempo over the last ≤ 6 taps).
 

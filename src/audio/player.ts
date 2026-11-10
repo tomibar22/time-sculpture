@@ -198,9 +198,8 @@ export function stopPlayback(): void {
 // when it loses the screen), and wake the audio again on return.
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      if (timer) stopPlayback();
-    } else if (audioNow() > 0) ensureAudio();
+    // (the audio context itself is replaced on the next gesture: audio/context.ts)
+    if (document.visibilityState === 'hidden' && timer) stopPlayback();
   });
 }
 
