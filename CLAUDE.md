@@ -111,12 +111,19 @@ Report: `ok, reason?, moved, shortened, covered, created, removed, startsMoved, 
 
 Walk beat-time, not pulse indices: `nextPulse(doc, T)` = first pulse at or after T. Edits and
 subdivision changes during playback apply immediately without jumps. Sounds: landing (pulse 0),
-cycle downbeat, beat click, optional soft ticks, pitched tone per sounding group (by size, longer
-= lower: 1 → G5, down the major pentatonic, 11 → G3, 16 and longer → G2), rests silent.
+cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding group (by size, longer
+= deeper, see Voices), rests silent.
 
-- **Voices** (audio/voices.ts): groups are mallet-like (sine + quick partials) and ring with the
-  group's length (`playGroup(t, n, seconds)`); clicks are a soft woodblock; a limiter sits on the
-  master. `ui.click` (Options) turns the beat click off; the landing (the 1) always sounds.
+- **Voices** (audio/voices.ts): a sounding group is a **frame-drum stroke without a pitch to
+  hum** (user request: a clear pitch gets in the way of imagining melodies over the rhythm).
+  `playGroup(t, n, seconds, level)`: a sine that falls while it sounds + two membrane overtones +
+  band-passed noise (`noise()` in context.ts); x = log(n)/log(16) goes from a bright, dry "tek"
+  (1) to a deep, open "dum" (16+). Keep it unpitched. `pitchForSize` is now only used by the MIDI
+  export. Clicks are a soft woodblock; a limiter sits on the master. `ui.click` (Options) turns
+  the beat click off; the landing (the 1) always sounds.
+- Interface sounds: dragging, stretching, trimming, selecting and moving the caret are silent
+  (user request; `snap` / `lift` / `drop` are no-ops). Typing a size plays its stroke softly;
+  remove, undo, a refused action and completing a piece still sound.
 - **Practice loop**: `ui.loop {a, b}` (beats). `startPlayback(from, loop)`; ⇧Space or "↻ Loop"
   with tiles or a range selected loops that stretch (`playFromCaret`), with only a caret it plays
   on from it. The player's plan is then that one span; the piece's "1" inside it is a downbeat.

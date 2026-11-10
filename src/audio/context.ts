@@ -80,3 +80,32 @@ export function tone(
   o.start(t);
   o.stop(t + dur + 0.02);
 }
+
+let noiseBuf: AudioBuffer | null = null;
+
+/**
+ * A short burst of filtered noise (the skin and the fingers of a drum stroke): white noise
+ * through a band-pass at `f` (Hz, width `q`), with a fast attack and an exponential decay.
+ */
+export function noise(t: number, f: number, q: number, gain: number, dur: number): void {
+  if (!ctx || !master) return;
+  if (!noiseBuf) {
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  // a different stretch of the noise each time, so repeated strokes are not identical
+  const offset = Math.random() * 0.3;
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = f;
+  band.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(gain, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(band).connect(g).connect(master);
+  src.start(t, offset, dur + 0.03);
+}

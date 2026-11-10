@@ -1,6 +1,5 @@
-import { pitchForSize } from '../engine';
 import type { ClickKind } from '../engine';
-import { audioNow, ensureAudio, tone } from './context';
+import { audioNow, ensureAudio, noise, tone } from './context';
 
 /** Musical voices used by the player. */
 export function playClick(t: number, kind: ClickKind, ticks: boolean, beats = true): void {
@@ -28,17 +27,26 @@ function woodblock(t: number, f: number, gain: number): void {
 }
 
 /**
- * A sounding group: a mallet note (fundamental, a quick bright partial like a marimba bar, and a
- * touch of attack). `seconds` is how long the group lasts: long groups ring a little longer, so
- * the ear hears the size as well as the pitch.
+ * A sounding group: a stroke on a frame drum, not a note. Long groups are deep, open strokes
+ * ("dum"), short ones are bright and dry, near the rim ("tek"), with every size in between, so
+ * the ear still hears long = low and short = high, but no pitch to hum: the skin's tone falls
+ * while it sounds, its overtones are those of a membrane (not a harmonic series), and much of
+ * the stroke is the breath of the skin (noise). `seconds` is how long the group lasts: long
+ * groups ring a little longer.
  */
-export function playGroup(t: number, n: number, seconds = 0.3): void {
-  const f = pitchForSize(n);
-  const ring = Math.min(0.9, Math.max(0.2, seconds * 0.85));
-  tone(t, 'sine', f, 0.2, ring);
-  tone(t, 'triangle', f, 0.07, ring * 0.6);
-  tone(t, 'sine', f * 4, 0.035, Math.min(0.12, ring * 0.4));
-  tone(t, 'sine', f * 2, 0.03, ring * 0.45);
+export function playGroup(t: number, n: number, seconds = 0.3, level = 1): void {
+  // 0 for a group of 1 … 1 for 16 and longer; the small sizes (the common ones) are spread widest
+  const x = Math.log(Math.min(16, Math.max(1, n))) / Math.log(16);
+  const f = 290 * Math.pow(78 / 290, x);
+  const ring = Math.min(0.5, Math.max(0.09, seconds * 0.6)) * (0.45 + 0.75 * x);
+  // the skin: a tone that drops as it sounds, with two membrane overtones that die quickly
+  tone(t, 'sine', f * 1.55, (0.2 + 0.2 * x) * level, ring, f * 0.8);
+  tone(t, 'sine', f * 2.47, 0.07 * level, ring * 0.45, f * 1.45);
+  tone(t, 'sine', f * 3.6, 0.035 * level, ring * 0.28, f * 2.2);
+  // the stroke itself: bright and short near the rim, soft and dark in the middle
+  noise(t, 3400 - 2400 * x, 0.9, (0.34 - 0.2 * x) * level, 0.03 + 0.04 * x);
+  // a little air around the skin on the deeper strokes
+  if (x > 0.3) noise(t, 420 - 180 * x, 1.4, 0.1 * x * level, ring * 0.7);
 }
 
 /**
@@ -51,7 +59,8 @@ export const ui = {
   snap() {},
   add(n: number) {
     const t = now();
-    if (t >= 0) tone(t, 'triangle', pitchForSize(n), 0.11, 0.18);
+    // writing a group plays its stroke, a little softer than in playback
+    if (t >= 0) playGroup(t, n, 0.3, 0.6);
   },
   lift() {},
   drop() {},
