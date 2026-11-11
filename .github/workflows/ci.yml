@@ -18,7 +18,10 @@ jobs:
       - run: npm test
       - run: npm run build
   e2e:
-    runs-on: ubuntu-latest
+    # pinned: ubuntu-latest moved to a release whose apt mirrors did not resolve, so
+    # `playwright install --with-deps` hung for ten minutes and failed before any test ran
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
