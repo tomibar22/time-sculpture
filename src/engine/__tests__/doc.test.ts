@@ -69,4 +69,17 @@ describe('joinRests', () => {
     expect(j.items[1]!.id).toBe(d.items[1]!.id);
     expect(joinRests(j)).toBe(j);
   });
+
+  it('silence next to the open space becomes open space, without moving any onset', () => {
+    const d = docFrom(makeMeter(4, 1, 4), [3, [2], '|', [1], 2]);
+    const j = joinRests(d);
+    expect(j.items.map((x) => `${x.kind === 'space' ? 'S' : x.kind[0]}${x.n}`)).toEqual([
+      's3',
+      'S11',
+      's2',
+    ]);
+    // an emptied piece is an empty piece again
+    const e = joinRests(docFrom(makeMeter(4, 1, 4), [[16], '|']));
+    expect(e.items.map((x) => x.kind)).toEqual(['space']);
+  });
 });

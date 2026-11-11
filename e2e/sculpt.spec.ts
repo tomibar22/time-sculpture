@@ -54,3 +54,11 @@ test('vary with a locked group: it keeps its place', async ({ page }) => {
   await trail.getByRole('button').first().click();
   await expect(page.getByTestId('sequence')).toContainText('(2) 3 3 2');
 });
+
+test('deleting everything leaves open space, ready to fill again', async ({ page }) => {
+  await page.keyboard.press('Shift+KeyA');
+  await page.keyboard.press('Delete');
+  await expect(page.getByTestId('status')).not.toContainText('Complete');
+  await page.getByRole('button', { name: 'Browse fills…' }).click();
+  await expect(page.getByRole('list', { name: 'Ways to fill' })).toBeVisible();
+});

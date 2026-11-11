@@ -271,7 +271,15 @@ export function assertValid(doc: Doc): Doc {
  */
 export function joinRests(doc: Doc): Doc {
   const items = doc.items;
-  if (!items.some((x, i) => x.kind === 'rest' && items[i + 1]?.kind === 'rest')) return doc;
+  const touchesSpace = (i: number) =>
+    items[i - 1]?.kind === 'space' || items[i + 1]?.kind === 'space';
+  if (
+    !items.some((x, i) => x.kind === 'rest' && (items[i + 1]?.kind === 'rest' || touchesSpace(i)))
+  )
+    return doc;
+  // silence next to the open space is open space: it becomes part of it (no onset moves, the
+  // start keeps its place and the ending stays anchored to the end), so the region can be
+  // filled again just like an empty piece
   const out: Item[] = [];
   for (const x of items) {
     const last = out[out.length - 1];
@@ -279,5 +287,9 @@ export function joinRests(doc: Doc): Doc {
       out[out.length - 1] = { ...last, n: last.n + x.n };
     else out.push(x);
   }
-  return { ...doc, items: out };
+  const kept = out.filter(
+    (x, i) =>
+      !(x.kind === 'rest' && (out[i - 1]?.kind === 'space' || out[i + 1]?.kind === 'space')),
+  );
+  return withItems(doc, kept);
 }

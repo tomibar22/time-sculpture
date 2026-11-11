@@ -376,7 +376,9 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   request): drawn as empty time, a tap or drag on one places the caret / sweeps a range (never
   selects or grabs it), typing at a caret inside or at the start of a silence writes over it
   when it fits (`insertAtPulse`, nothing moves), and `run()` commits `joinRests(doc)` so
-  neighbouring silences are always one stretch.
+  neighbouring silences are always one stretch, and **silence touching the open space becomes
+  open space** (no onset moves; user request: after deleting tiles, "Browse fills…" for the
+  emptied stretch should work as on an empty piece).
 
 ## Persistence
 

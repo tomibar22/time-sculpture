@@ -35,10 +35,11 @@ test('Bar before opens a bar at the start to write an opening in', async ({ page
   await page.keyboard.press('Home');
   await page.getByRole('button', { name: 'Bar before' }).click();
   await expect(page.getByTestId('status')).toContainText('4×3');
-  await expectSeq(page, '· │ (2) 3 3 2 (9) 3 (1) 3 2 4');
+  // the opening silence joins the new open bar (silence next to the open space is open space)
+  await expectSeq(page, '· │ 3 3 2 (9) 3 (1) 3 2 4');
   await showPad(page);
   await page.getByTestId('key-3').click();
-  await expectSeq(page, '3 │ (2) 3 3 2 (9) 3 (1) 3 2 4');
+  await expectSeq(page, '3 │ 3 3 2 (9) 3 (1) 3 2 4');
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expectSeq(page, DEFAULT_SEQ);
