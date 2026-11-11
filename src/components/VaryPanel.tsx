@@ -12,6 +12,7 @@ import {
 import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 import { Contour, GroupStrip, Heart, Strip, useRegionBeats } from './fillParts';
+import { BranchIcon, LockIcon } from './Icons';
 
 /** A passage you varied from: the history of a session of varying is a tree of these. */
 interface Node {
@@ -98,10 +99,10 @@ export function VaryPanel() {
               key={n.id}
               type="button"
               aria-pressed={n.id === cur}
+              data-depth={Math.min(depth(n), 3)}
               title={`${n.label}: ${E.formatGroups(n.groups)}`}
               onClick={() => goTo(n)}
             >
-              {depth(n) > 0 && <span aria-hidden="true">{'↳'}</span>}
               <GroupStrip groups={n.groups} />
               <span className="sr-only">
                 {n.label}: {E.formatGroups(n.groups)}
@@ -131,9 +132,9 @@ export function VaryPanel() {
                 setLocked(on ? locked.filter((x) => x !== i) : [...locked, i]);
               }}
             >
-              {on && <span aria-hidden="true">🔒</span>}
+              {on && <LockIcon />}
               {g.n}
-              <span className="sr-only">{on ? ' locked' : ''}</span>
+              <span className="sr-only">{on ? ', locked' : ''}</span>
             </button>
           );
         })}
@@ -144,8 +145,8 @@ export function VaryPanel() {
       <div className="fill-sort">
         <span className="lib-note">
           {locked.length
-            ? `${locked.length} locked; the rest moves around them.`
-            : `${total} pulses. Tap a group to lock it.`}
+            ? `${locked.length} locked. The rest moves around ${locked.length > 1 ? 'them' : 'it'}.`
+            : `${total} pulses. Tap a group to lock it in place.`}
         </span>
         <button
           type="button"
@@ -153,7 +154,8 @@ export function VaryPanel() {
           title="Vary what is there now (a new branch)"
           onClick={branch}
         >
-          ↻ From here
+          <BranchIcon />
+          From here
         </button>
       </div>
       {steps.length > 0 && (
@@ -193,7 +195,9 @@ export function VaryPanel() {
               }}
             >
               <GroupStrip groups={base} beats={beats} />
-              <span className="fill-meta">As it was</span>
+              <span className="fill-cap">
+                <span className="fill-meta">As it was</span>
+              </span>
             </button>
           </div>
         </li>
@@ -202,9 +206,7 @@ export function VaryPanel() {
           if (!vs.length) return null;
           return (
             <Fragment key={k.id}>
-              <li className="fill-group" aria-hidden="true">
-                {k.label}
-              </li>
+              <li className="fill-group">{k.label}</li>
               {vs.map((v) => (
                 <li key={v.key}>
                   <VaryRow
@@ -251,8 +253,10 @@ function VaryRow({
         onClick={onPick}
       >
         <GroupStrip groups={v.groups} beats={beats} />
-        <Contour sizes={sizes} />
-        <span className="fill-meta">{v.label}</span>
+        <span className="fill-cap">
+          <Contour sizes={sizes} />
+          <span className="fill-meta">{v.label}</span>
+        </span>
       </button>
       <Heart on={kept} label={v.key} onClick={() => toggleMotif(sizes)} />
     </div>

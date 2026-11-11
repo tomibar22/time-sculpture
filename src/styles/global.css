@@ -1103,18 +1103,85 @@ button.link-btn {
 .fillpanel .fill-list {
   max-height: min(24vh, 230px);
 }
-.fillpanel .fill-list .fill-main {
-  min-height: 40px;
-}
 .fillpanel .strip {
   height: 22px;
 }
 
 /* ---------------------------------------------------------------- browse & vary, deeper */
+.fillpanel {
+  gap: 10px;
+}
+.fill-browse {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.fill-browse .fill-shapes,
+.fill-browse .fill-list {
+  margin: 0;
+}
+/* the chips scroll sideways: they fade out where there are more */
+.fill-shapes {
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  padding-right: 24px;
+}
+.fill-shapes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fill-shapes svg {
+  width: 14px;
+  height: 14px;
+}
+.fill-listen[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: none;
+  opacity: 1;
+}
+
+/* view, sort and tools on one line */
+.fill-sort {
+  gap: 10px;
+}
+.fill-tools {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.fill-tools button,
+.fill-dice {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+.fill-tools svg,
+.fill-dice svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+.fill-tools button[aria-pressed='true'] {
+  background: var(--sel);
+  color: var(--card);
+}
+.fill-hint {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* a fill: its picture among the beat lines, then its contour and name */
 .strip {
   position: relative;
 }
-/* beat lines drawn through a fill's picture: how it settles into the frame */
 .strip-beat {
   position: absolute;
   top: 0;
@@ -1122,7 +1189,7 @@ button.link-btn {
   width: 1.5px;
   margin-left: -0.75px;
   background: var(--fg);
-  opacity: 0.32;
+  opacity: 0.3;
   border-radius: 1px;
   pointer-events: none;
 }
@@ -1131,7 +1198,7 @@ button.link-btn {
 }
 .contour polyline {
   fill: none;
-  stroke: var(--muted);
+  stroke: var(--faint);
   stroke-width: 1.6;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -1139,139 +1206,182 @@ button.link-btn {
 .fill-row {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 .fill-row .fill-main {
   flex: 1;
   min-width: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12.5rem;
   align-items: center;
-  gap: 10px;
-  min-height: 40px;
+  gap: 14px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 12px;
   background: transparent;
   font-weight: 400;
-  padding: 4px 6px;
+  text-align: left;
+}
+.fill-row .strip {
+  flex: none;
+}
+/* a row without a heart keeps the same picture width as its neighbours */
+.fill-row:not(:has(.fill-heart)) {
+  padding-right: 48px;
+}
+.fill-mapwrap + .fill-cand .fill-row,
+.fill-row:not(:has(.fill-heart)) .fill-main {
+  min-width: 0;
+}
+.fill-cap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.fill-cap .fill-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .fill-row .fill-main[aria-pressed='true'] {
+  background: var(--soft);
   box-shadow: inset 0 0 0 2px var(--sel);
 }
-.fill-mapwrap > .fill-row {
-  border-radius: 12px;
-  background: var(--soft);
-}
-.fill-axes {
-  display: flex;
-  justify-content: space-between;
-  margin-top: -2px;
-  font-size: 0.74rem;
-}
-.vary-base button.rest {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--line);
-  color: var(--faint);
-}
-.fill-heart,
-.fill-pin {
+.fill-heart {
   flex: 0 0 auto;
-  min-width: 44px;
-  min-height: 40px;
+  width: 44px;
+  min-height: 44px;
   padding: 0;
+  display: grid;
+  place-items: center;
   background: transparent;
   color: var(--faint);
-  font-size: 1.05rem;
+  border-radius: 12px;
 }
-.fill-pin {
-  font-size: 0.9rem;
-  filter: grayscale(1);
-  opacity: 0.5;
-}
-.fill-pin[aria-pressed='true'] {
-  filter: none;
-  opacity: 1;
+.fill-heart svg {
+  width: 19px;
+  height: 19px;
 }
 .fill-heart[aria-pressed='true'] {
   color: var(--land);
 }
-.fill-tools {
-  margin-left: auto;
-  display: flex;
-  gap: 6px;
+@media (hover: hover) {
+  .fill-heart:hover {
+    color: var(--fg);
+    background: var(--soft);
+  }
+  .fill-heart[aria-pressed='true']:hover {
+    color: var(--land);
+  }
 }
-.fill-tools .fill-dice {
-  margin-left: 0;
+/* a note beside a button: the note takes the room and wraps */
+.fill-sort > .lib-note {
+  flex: 1 1 0;
+  min-width: 0;
 }
-.fill-hint {
-  margin-top: -2px;
-}
+/* a heading inside a list of variations */
 .fill-group {
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--faint);
-  padding: 8px 6px 2px;
+  color: var(--muted);
+  padding: 12px 8px 2px;
 }
+
+/* A/B: the fill held on to, against the one tried last */
 .fill-compare {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 12px;
-  background: var(--soft);
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1.5px var(--line);
 }
-.fill-compare-row {
+.fill-compare-row,
+.fill-compare-acts {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-.fill-compare-row > button {
-  flex: 0 0 auto;
-  min-height: 36px;
-  padding: 0 8px;
-  font-size: 0.8rem;
+  gap: 10px;
+  min-width: 0;
 }
 .fill-compare-row .strip {
-  height: 18px;
+  flex: 1;
 }
-.fill-compare-row .strip span {
-  font-size: 0.68rem;
-  padding-left: 3px;
-}
-@media (max-width: 560px) {
-  .fill-compare {
-    padding: 6px;
-    gap: 4px;
-  }
-  .fill-hint {
-    display: none;
-  }
+.fill-compare-row .icon {
+  flex: 0 0 auto;
+  min-height: 36px;
+  box-shadow: none;
 }
 .fill-ab {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sel);
+  color: var(--card);
   font-family: var(--f-mono);
-  color: var(--sel);
+  font-size: 0.78rem;
 }
+.fill-compare-acts .segs {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+.fill-compare-acts .segs button {
+  min-height: 36px;
+  font-family: var(--f-mono);
+}
+.fill-compare-acts .lib-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fill-use {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.84rem;
+}
+/* steps on the way from one fill to another */
 .fill-between {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
+.fill-between .lib-note {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+}
 .fill-between button {
-  flex: 0 0 88px;
-  min-height: 36px;
-  padding: 4px;
+  flex: 0 0 104px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 10px;
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--line);
 }
-.fill-between .strip {
+.fill-between .strip,
+.vary-trail .strip {
   height: 16px;
   gap: 1px;
 }
-.fill-between .strip span {
+.fill-between .strip span,
+.vary-trail .strip span {
   font-size: 0;
   padding: 0;
   border-radius: 3px;
 }
+
+/* the map: every fill a dot, two measures as axes */
 .fill-mapwrap {
   display: flex;
   flex-direction: column;
@@ -1279,65 +1389,92 @@ button.link-btn {
 }
 .fill-map {
   position: relative;
-  height: min(20vh, 180px);
-  min-height: 120px;
-  border-radius: 12px;
-  background: var(--soft);
+  height: min(22vh, 190px);
+  min-height: 128px;
+  border-radius: 14px;
+  /* a faint cross marks the middle of both measures */
+  background:
+    linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat,
+    linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat,
+    var(--soft);
   touch-action: none;
   cursor: crosshair;
   overflow: hidden;
+}
+.fill-map:focus-visible {
+  outline: 2.5px solid var(--accent);
   outline-offset: 2px;
 }
 .fill-dot {
   position: absolute;
-  width: 9px;
-  height: 9px;
-  margin: 0 0 -4.5px -4.5px;
+  width: 10px;
+  height: 10px;
+  margin: 0 0 -5px -5px;
   border-radius: 50%;
-  opacity: 0.75;
+  opacity: 0.8;
   pointer-events: none;
+  box-shadow: 0 0 0 1.5px var(--soft);
   transition: transform 0.12s;
-}
-.fill-dot.shaped {
-  box-shadow: 0 0 0 1.5px var(--card);
 }
 .fill-dot.on {
   opacity: 1;
-  transform: scale(1.9);
+  transform: scale(1.7);
   box-shadow:
     0 0 0 2px var(--card),
     0 0 0 3.5px var(--sel);
   z-index: 1;
 }
+.fill-axes {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0 4px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.fill-mapwrap .fill-sort label {
+  color: var(--muted);
+}
+.fill-mapwrap .fill-sort select {
+  flex: 1;
+  min-width: 0;
+}
+.fill-cand {
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* vary: the path so far, the passage with its locks, then the variations */
 .vary-trail {
   display: flex;
+  align-items: center;
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
+  padding: 2px;
 }
 .vary-trail button {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-height: 36px;
-  width: 104px;
-  padding: 4px 6px;
+  gap: 6px;
+  width: 100px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 10px;
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.vary-trail button:not([data-depth='0'])::before {
+  content: '›';
   color: var(--faint);
+  font-weight: 700;
 }
 .vary-trail button[aria-pressed='true'] {
+  background: var(--soft);
   box-shadow: inset 0 0 0 2px var(--sel);
-}
-.vary-trail .strip {
-  height: 16px;
-  gap: 1px;
-}
-.vary-trail .strip span {
-  font-size: 0;
-  padding: 0;
-  border-radius: 3px;
 }
 .vary-base {
   position: relative;
@@ -1345,31 +1482,123 @@ button.link-btn {
   gap: 2px;
 }
 .vary-base button {
+  display: flex;
   min-width: 0;
   min-height: 44px;
-  padding: 0 0 0 6px;
+  padding: 0 0 0 7px;
   justify-content: flex-start;
-  border-radius: 7px;
+  align-items: center;
+  gap: 3px;
+  border-radius: var(--r-tile, 9px);
   font-family: var(--f-mono);
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  gap: 2px;
+  overflow: hidden;
+}
+.vary-base button.rest {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--muted);
 }
 .vary-base button[aria-pressed='true'] {
   box-shadow:
-    inset 0 0 0 2px var(--card),
-    inset 0 0 0 4px var(--fg);
+    inset 0 0 0 2px var(--fg),
+    inset 0 0 0 3.5px var(--card);
 }
-.vary-base button[aria-pressed='true'] span[aria-hidden] {
-  font-size: 0.7rem;
+.vary-base .strip-beat {
+  top: 6px;
+  bottom: 6px;
 }
-.strip-locked {
-  outline: 2px solid var(--fg);
-  outline-offset: -2px;
+
+@media (pointer: coarse) {
+  .fill-between button,
+  .vary-trail button,
+  .fill-compare-acts .segs button,
+  .fill-compare-row .icon,
+  .fill-use {
+    min-height: 44px;
+  }
 }
-.fill-listen[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--accent-ink);
+@media (prefers-reduced-motion: reduce) {
+  .fill-dot {
+    transition: none;
+  }
+}
+/* the panel never outgrows the screen: its head stays, what is under it scrolls */
+.fillpanel {
+  max-height: min(66dvh, 620px);
+  min-height: 0;
+}
+.fillpanel > * {
+  flex: 0 0 auto;
+}
+.fillpanel > .fill-browse {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* room for focus rings and the map's outline */
+  padding: 2px;
+  margin: -2px;
+}
+.fill-browse > * {
+  flex: 0 0 auto;
+}
+.fill-shapes .fill-mine svg {
+  color: var(--land);
+}
+.fill-shapes .fill-mine[aria-pressed='true'] svg {
+  color: inherit;
+}
+/* phones: the picture takes the row's width, its name sits under it; tools show icons only */
+@media (max-width: 560px) {
+  .fillpanel {
+    max-height: 60dvh;
+  }
+  /* one scroller on a phone, not a list inside a scrolling panel */
+  .fillpanel .fill-browse .fill-list {
+    max-height: none;
+    overflow: visible;
+  }
+  .fill-hint {
+    display: none;
+  }
+  .fill-compare {
+    padding: 8px;
+    gap: 6px;
+  }
+  .fill-compare-row .strip {
+    height: 18px;
+  }
+  .fill-between button {
+    flex-basis: 84px;
+  }
+  .fill-row .fill-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 7px 8px 5px;
+  }
+  .fill-cap .fill-meta {
+    font-size: 0.76rem;
+  }
+  .fill-tools .tool-lbl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .fill-tools button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .fill-map {
+    height: min(20vh, 170px);
+  }
 }
 
 /* ---------------------------------------------------------------- switch */

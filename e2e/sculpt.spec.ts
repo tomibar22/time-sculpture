@@ -15,7 +15,7 @@ test('keep a fill, breed from it, and fill from the next generation', async ({ p
     .getByRole('button', { name: /^Keep / })
     .first()
     .click();
-  await expect(page.getByRole('button', { name: /♥ Mine/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Mine/ })).toBeVisible();
   await page.getByRole('button', { name: /Breed/ }).click();
   await expect(page.getByRole('button', { name: /Generation 1/ })).toHaveAttribute(
     'aria-pressed',
@@ -46,7 +46,7 @@ test('vary with a locked group: it keeps its place', async ({ page }) => {
   await list.locator('.fill-main').nth(1).click();
   await expect(page.getByTestId('sequence')).toContainText('(2) 3');
   // a new branch, and back to the start through the trail
-  await page.getByRole('button', { name: '↻ From here' }).click();
+  await page.getByRole('button', { name: 'From here' }).click();
   const trail = page.getByRole('group', { name: 'Where you have been' });
   await trail.getByRole('button').first().click();
   await expect(page.getByTestId('sequence')).toContainText('(2) 3 3 2');

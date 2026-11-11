@@ -154,9 +154,11 @@ export function FillMap({
           />
         ))}
       </div>
-      <p className="lib-note fill-axes" aria-hidden="true">
-        <span>→ {label(axes[0]).high}</span>
-        <span>↑ {label(axes[1]).high}</span>
+      <p className="fill-axes" aria-hidden="true">
+        <span>{label(axes[0]).low}</span>
+        <span>
+          ↑ {label(axes[1]).high} · {label(axes[0]).high} →
+        </span>
       </p>
       <div className="fill-sort">
         <label htmlFor="fill-ax">Across</label>

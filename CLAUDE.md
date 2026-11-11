@@ -192,6 +192,12 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   crossings at shared onsets, ∩, ∪, nudges) from kept + pinned fills → "Generation N"; 📌 pins A
   for A/B with "A → B" steps (`between`, onset interpolation); 🎧 loops the region so every
   preview is heard (player plays `ui.preview`). Strips show beat lines and a contour.
+- Fill panel design rules: no emoji (line icons from Icons.tsx: headphones, heart, pin, breed,
+  dice, lock, branch); a fill row is the strip, then `.fill-cap` (contour + name) beside it, or
+  under it on phones, so strips line up and their beat lines read as columns; the heart is the
+  only per-row action ("Compare" in the toolbar pins the fill tried last as A); the panel is
+  capped (`max-height` 66dvh, 60dvh on phones) with its head fixed and `.fill-browse` scrolling;
+  toolbar labels (`.tool-lbl`) are visually hidden on phones.
 - **Vary, deeper** (VaryPanel.tsx): tap groups to lock them (`variations(…, locked)` varies the
   free stretches only); kinds grouped (Nearby = `nudges`, Reordered, Broader/denser incl.
   `scaleTo` augment/diminish, Shuffled); "On the way" steps to the picked variation; a history

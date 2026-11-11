@@ -3,6 +3,7 @@ import * as E from '../engine';
 import { fillRegion } from '../state/fill';
 import { useDocStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { HeartIcon } from './Icons';
 
 /**
  * A small picture of a fill: one coloured bar per tile, widths in proportion, with the beat
@@ -87,7 +88,7 @@ export function useRegionBeats(): number[] {
   }, [meter, a, b]);
 }
 
-/** ♥: keep a fill on this device, to fit into other regions and to breed from. */
+/** The heart: keep a fill on this device, to fit into other regions and to breed from. */
 export function Heart({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
   return (
     <button
@@ -97,7 +98,7 @@ export function Heart({ on, onClick, label }: { on: boolean; onClick: () => void
       title={on ? `Let go of ${label}` : `Keep ${label}`}
       onClick={onClick}
     >
-      <span aria-hidden="true">{on ? '♥' : '♡'}</span>
+      <HeartIcon filled={on} />
       <span className="sr-only">Keep {label}</span>
     </button>
   );

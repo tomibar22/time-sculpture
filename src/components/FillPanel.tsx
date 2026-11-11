@@ -18,6 +18,7 @@ import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 import { Contour, Heart, Strip, useRegionBeats } from './fillParts';
 import { FillMap } from './FillMap';
+import { BreedIcon, CloseIcon, DiceIcon, HeadphonesIcon, HeartIcon, PinIcon } from './Icons';
 import { VaryPanel } from './VaryPanel';
 
 export { Strip } from './fillParts';
@@ -99,7 +100,7 @@ export function FillPanel() {
             }
             onClick={toggleListen}
           >
-            <span aria-hidden="true">🎧</span>
+            <HeadphonesIcon />
             <span className="sr-only">Listen</span>
           </button>
         )}
@@ -110,7 +111,7 @@ export function FillPanel() {
           title="Close"
           onClick={closeFill}
         >
-          ✕
+          <CloseIcon />
         </button>
       </div>
       {tab === 'vary' ? (
@@ -192,7 +193,7 @@ function Browse() {
       if (!t || seen.has(t.join(' '))) continue;
       seen.add(t.join(' '));
       const o: Listed = E.optionOf(meter, region.a, t);
-      if (t.join(' ') !== m.join(' ')) o.note = `♥ ${m.join(' ')}, fitted`;
+      if (t.join(' ') !== m.join(' ')) o.note = `${m.join(' ')}, fitted`;
       out.push(o);
     }
     return out;
@@ -254,9 +255,9 @@ function Browse() {
   };
   const hint =
     shape === 'mine'
-      ? 'Fills you kept (♥), fitted to this length.'
+      ? 'Fills you kept, fitted to this length.'
       : shape === 'bred'
-        ? `Generation ${brood.gen}: children of what you kept. ♥ the ones you like, then breed again.`
+        ? `Children of what you kept. Keep the ones you like, then breed again.`
         : shape === 'any'
           ? null
           : list.length
@@ -269,10 +270,11 @@ function Browse() {
         {mine.length > 0 && (
           <button
             type="button"
+            className="fill-mine"
             aria-pressed={shape === 'mine'}
             onClick={() => set({ fillShape: 'mine' })}
           >
-            ♥ Mine <span className="fill-count">{mine.length}</span>
+            <HeartIcon filled /> Mine <span className="fill-count">{mine.length}</span>
           </button>
         )}
         {brood.kids.length > 0 && (
@@ -281,7 +283,7 @@ function Browse() {
             aria-pressed={shape === 'bred'}
             onClick={() => set({ fillShape: 'bred' })}
           >
-            🧬 Generation {brood.gen}
+            <BreedIcon /> Generation {brood.gen}
           </button>
         )}
         <button
@@ -289,7 +291,7 @@ function Browse() {
           aria-pressed={shape === 'shapes'}
           onClick={() => set({ fillShape: 'shapes' })}
         >
-          ✦ All shapes
+          All shapes
         </button>
         {E.SHAPE_FAMILIES.filter((f) => families.get(f.id)).map((f) => (
           <button
@@ -348,24 +350,42 @@ function Browse() {
         <span className="fill-tools">
           <button
             type="button"
-            className="fill-dice"
-            disabled={!parents.length}
+            aria-pressed={!!pin}
+            disabled={!pin && !cand}
             title={
-              parents.length
-                ? 'A new generation from the fills you kept (♥) and the one pinned'
-                : 'Keep (♥) or pin fills you like to breed from them'
+              pin
+                ? 'Stop comparing'
+                : 'Compare: hold on to the fill you tried last (A) and hear others against it'
             }
-            onClick={breedNext}
+            onClick={() => {
+              if (pin) previewSizes(null);
+              setPin(pin ? null : cand);
+            }}
           >
-            🧬 Breed
+            <PinIcon />
+            <span className="tool-lbl">Compare</span>
           </button>
           <button
             type="button"
-            className="fill-dice"
+            disabled={!parents.length}
+            title={
+              parents.length
+                ? 'A new generation from the fills you kept and the one you compare with'
+                : 'Keep fills you like (the heart) to breed a new generation from them'
+            }
+            onClick={breedNext}
+          >
+            <BreedIcon />
+            <span className="tool-lbl">Breed</span>
+          </button>
+          <button
+            type="button"
             disabled={!list.length}
+            title="Fill with one of these, picked at random"
             onClick={() => use(list[Math.floor(Math.random() * list.length)]!)}
           >
-            🎲 Surprise
+            <DiceIcon />
+            <span className="tool-lbl">Surprise</span>
           </button>
         </span>
       </div>
@@ -389,19 +409,13 @@ function Browse() {
       {view === 'map' ? (
         <>
           <FillMap options={list} cand={cand} onCand={setCand} onUse={use} />
-          {cand ? (
-            <Row
-              o={cand}
-              beats={beats}
-              picked={picked === cand.key}
-              onUse={use}
-              onTry={tryIt}
-              onPin={setPin}
-              pinned={pin?.key === cand.key}
-            />
-          ) : (
-            <p className="lib-note">Run a finger over the map to hear and see each fill.</p>
-          )}
+          <div aria-live="polite" className="fill-cand">
+            {cand ? (
+              <Row o={cand} beats={beats} picked={picked === cand.key} onUse={use} onTry={tryIt} />
+            ) : (
+              <p className="lib-note">Run a finger over the map to see each fill in the score.</p>
+            )}
+          </div>
         </>
       ) : (
         <ul className="fill-list" aria-label="Ways to fill" onMouseLeave={() => previewFill(null)}>
@@ -413,8 +427,6 @@ function Browse() {
               picked={picked === o.key}
               onUse={use}
               onTry={tryIt}
-              onPin={setPin}
-              pinned={pin?.key === o.key}
               item
             />
           ))}
@@ -424,24 +436,20 @@ function Browse() {
   );
 }
 
-/** One fill: its picture, contour and name; tap uses it, ♥ keeps it, 📌 pins it as A. */
+/** One fill: its picture among the beat lines, its contour and name; the heart keeps it. */
 function Row({
   o,
   beats,
   picked,
-  pinned,
   onUse,
   onTry,
-  onPin,
   item,
 }: {
   o: Listed;
   beats: number[];
   picked: boolean;
-  pinned: boolean;
   onUse: (o: Listed) => void;
   onTry: (o: Listed) => void;
-  onPin: (o: Listed) => void;
   item?: boolean;
 }) {
   const kept = useUiStore((s) => s.motifs.some((m) => m.join(' ') === o.key));
@@ -461,18 +469,10 @@ function Row({
         onClick={() => onUse(o)}
       >
         <Strip sizes={o.sizes} rests={o.rests} beats={beats} />
-        <Contour sizes={o.sizes} />
-        <span className="fill-meta">{meta}</span>
-      </button>
-      <button
-        type="button"
-        className="fill-pin"
-        aria-pressed={pinned}
-        title={`Pin ${o.key} as A, to compare`}
-        onClick={() => onPin(o)}
-      >
-        <span aria-hidden="true">📌</span>
-        <span className="sr-only">Pin {o.key}</span>
+        <span className="fill-cap">
+          <Contour sizes={o.sizes} />
+          <span className="fill-meta">{meta}</span>
+        </span>
       </button>
       <Heart on={kept} label={o.key} onClick={() => toggleMotif(o.sizes)} />
     </div>
@@ -504,31 +504,40 @@ function Compare({
   return (
     <div className="fill-compare" role="group" aria-label="Compare">
       <div className="fill-compare-row">
-        <b className="fill-ab">A</b>
+        <b className="fill-ab" aria-hidden="true">
+          A
+        </b>
         <Strip sizes={pin.sizes} beats={beats} />
-        <button type="button" aria-pressed={showing === 'A'} onClick={() => hear('A')}>
-          Hear A
+        <button type="button" className="ghost icon" title="Stop comparing" onClick={onUnpin}>
+          <CloseIcon />
+          <span className="sr-only">Stop comparing</span>
         </button>
-        <button
-          type="button"
-          aria-pressed={showing === 'B'}
-          disabled={!cand}
-          title={cand ? `B: ${cand.key}` : 'Try another fill to compare it with A'}
-          onClick={() => hear('B')}
-        >
-          Hear B
-        </button>
-        <button type="button" onClick={() => fillSizes(pin.sizes)}>
+      </div>
+      <div className="fill-compare-acts">
+        <div className="segs text" role="group" aria-label="Show in the score">
+          <button type="button" aria-pressed={showing === 'A'} onClick={() => hear('A')}>
+            A
+          </button>
+          <button
+            type="button"
+            aria-pressed={showing === 'B'}
+            disabled={!cand}
+            title={cand ? `B: ${cand.key}` : 'Try another fill to compare it with A'}
+            onClick={() => hear('B')}
+          >
+            B
+          </button>
+        </div>
+        <span className="lib-note">
+          {cand ? `B is ${cand.key}` : 'Try another fill: it becomes B.'}
+        </span>
+        <button type="button" className="fill-use" onClick={() => fillSizes(pin.sizes)}>
           Use A
-        </button>
-        <button type="button" className="ghost icon" title="Unpin A" onClick={onUnpin}>
-          <span aria-hidden="true">✕</span>
-          <span className="sr-only">Unpin A</span>
         </button>
       </div>
       {steps.length > 0 && (
         <div className="fill-between" role="group" aria-label="From A to B">
-          <span className="lib-note">A → B</span>
+          <span className="lib-note">From A to B</span>
           {steps.map((t) => (
             <button
               key={t.join(' ')}
