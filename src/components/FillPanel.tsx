@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as E from '../engine';
 import type { FillOption } from '../engine';
 import {
@@ -25,6 +25,8 @@ export { Strip } from './fillParts';
 
 const SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const LIMIT = 400;
+/** Rows drawn at a time in a long list. */
+const PAGE = 40;
 
 /** A fill with a note on where it came from (a kept motif fitted here, a bred child). */
 type Listed = FillOption & { note?: string };
@@ -91,7 +93,7 @@ export function FillPanel() {
         {region && (
           <button
             type="button"
-            className="ghost icon fill-listen"
+            className="fill-listen"
             aria-pressed={playing}
             title={
               playing
@@ -101,7 +103,7 @@ export function FillPanel() {
             onClick={toggleListen}
           >
             <HeadphonesIcon />
-            <span className="sr-only">Listen</span>
+            {playing ? 'Listening' : 'Listen'}
           </button>
         )}
         <button
@@ -114,6 +116,12 @@ export function FillPanel() {
           <CloseIcon />
         </button>
       </div>
+      {playing && (
+        <p className="lib-note fill-listening" role="status">
+          This stretch is looping. Tap any {tab === 'vary' ? 'variation' : 'fill'} to hear it in
+          place; tap another to change it. Undo brings back what was there.
+        </p>
+      )}
       {tab === 'vary' ? (
         <VaryPanel />
       ) : (
@@ -244,15 +252,31 @@ function Browse() {
     set({ fillShape: 'bred' });
   };
 
-  const use = (o: Listed) => {
+  const use = useCallback((o: Listed) => {
     setPicked(o.key);
     setCand(o);
     fillWith(o);
-  };
-  const tryIt = (o: Listed) => {
+  }, []);
+  const tryIt = useCallback((o: Listed) => {
     setCand(o);
     previewFill(o);
-  };
+  }, []);
+  const kept = useMemo(() => new Set(motifs.map((m) => m.join(' '))), [motifs]);
+  const named = shape !== 'any';
+  // a long list is drawn a screenful at a time: more rows arrive as the end comes into view
+  const [shown, setShown] = useState(PAGE);
+  const more = useRef<HTMLLIElement>(null);
+  useEffect(() => setShown(PAGE), [list]);
+  useEffect(() => {
+    const el = more.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (es) => es.some((e) => e.isIntersecting) && setShown((n) => n + PAGE),
+      { rootMargin: '300px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shown, list, view]);
   const hint =
     shape === 'mine'
       ? 'Fills you kept, fitted to this length.'
@@ -411,7 +435,15 @@ function Browse() {
           <FillMap options={list} cand={cand} onCand={setCand} onUse={use} />
           <div aria-live="polite" className="fill-cand">
             {cand ? (
-              <Row o={cand} beats={beats} picked={picked === cand.key} onUse={use} onTry={tryIt} />
+              <Row
+                o={cand}
+                beats={beats}
+                picked={picked === cand.key}
+                kept={kept.has(cand.key)}
+                named={named}
+                onUse={use}
+                onTry={tryIt}
+              />
             ) : (
               <p className="lib-note">Run a finger over the map to see each fill in the score.</p>
             )}
@@ -419,17 +451,20 @@ function Browse() {
         </>
       ) : (
         <ul className="fill-list" aria-label="Ways to fill" onMouseLeave={() => previewFill(null)}>
-          {list.map((o) => (
+          {list.slice(0, shown).map((o) => (
             <Row
               key={o.key}
               o={o}
               beats={beats}
               picked={picked === o.key}
+              kept={kept.has(o.key)}
+              named={named}
               onUse={use}
               onTry={tryIt}
               item
             />
           ))}
+          {shown < list.length && <li ref={more} className="fill-more" aria-hidden="true" />}
         </ul>
       )}
     </div>
@@ -437,10 +472,12 @@ function Browse() {
 }
 
 /** One fill: its picture among the beat lines, its contour and name; the heart keeps it. */
-function Row({
+const Row = memo(function Row({
   o,
   beats,
   picked,
+  kept,
+  named,
   onUse,
   onTry,
   item,
@@ -448,15 +485,15 @@ function Row({
   o: Listed;
   beats: number[];
   picked: boolean;
+  kept: boolean;
+  /** Say the fill's shape (else its measures). */
+  named: boolean;
   onUse: (o: Listed) => void;
   onTry: (o: Listed) => void;
   item?: boolean;
 }) {
-  const kept = useUiStore((s) => s.motifs.some((m) => m.join(' ') === o.key));
-  const shape = useUiStore((s) => s.fillShape);
   const meta =
-    o.note ??
-    (o.shape && shape !== 'any' ? o.shape.label : `${o.tiles} tiles · ${o.onBeat} on the beat`);
+    o.note ?? (o.shape && named ? o.shape.label : `${o.tiles} tiles · ${o.onBeat} on the beat`);
   const body = (
     <div className="fill-row">
       <button
@@ -478,7 +515,7 @@ function Row({
     </div>
   );
   return item ? <li>{body}</li> : body;
-}
+});
 
 /**
  * A/B: the pinned fill against the one tried last, heard and seen in turn, with the way from

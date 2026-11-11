@@ -198,6 +198,13 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   only per-row action ("Compare" in the toolbar pins the fill tried last as A); the panel is
   capped (`max-height` 66dvh, 60dvh on phones) with its head fixed and `.fill-browse` scrolling;
   toolbar labels (`.tool-lbl`) are visually hidden on phones.
+- Fill list performance (iPhone): rows are `memo`, get `kept` / `named` as props (no store
+  subscription per row: the playhead updates the ui store every frame), are drawn `PAGE` (40) at
+  a time (an IntersectionObserver on `.fill-more` adds more), use `content-visibility: auto`,
+  and the dock drops its `backdrop-filter` while the panel is open.
+- **Listen** (`toggleListen`, a named button in the panel head): loops the region; a tap on a
+  fill writes it (undoable) and the loop plays it, so "trying" on touch = tapping through the
+  list. While on, a status line says so.
 - **Vary, deeper** (VaryPanel.tsx): tap groups to lock them (`variations(…, locked)` varies the
   free stretches only); kinds grouped (Nearby = `nudges`, Reordered, Broader/denser incl.
   `scaleTo` augment/diminish, Shuffled); "On the way" steps to the picked variation; a history

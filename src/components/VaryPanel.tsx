@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import * as E from '../engine';
 import {
   fillRegion,
@@ -58,6 +58,12 @@ export function VaryPanel() {
     [base, picked],
   );
 
+  const motifs = useUiStore((s) => s.motifs);
+  const kept = useMemo(() => new Set(motifs.map((m) => m.join(' '))), [motifs]);
+  const pick = useCallback((v: E.Variation) => {
+    setPicked(v);
+    varyWith(v);
+  }, []);
   const branch = () => {
     const groups = regionGroups();
     if (E.formatGroups(groups) === E.formatGroups(base)) return;
@@ -213,10 +219,8 @@ export function VaryPanel() {
                     v={v}
                     beats={beats}
                     picked={picked?.key === v.key}
-                    onPick={() => {
-                      setPicked(v);
-                      varyWith(v);
-                    }}
+                    kept={kept.has(v.groups.map((g) => g.n).join(' '))}
+                    onPick={pick}
                   />
                 </li>
               ))}
@@ -228,19 +232,20 @@ export function VaryPanel() {
   );
 }
 
-function VaryRow({
+const VaryRow = memo(function VaryRow({
   v,
   beats,
   picked,
+  kept,
   onPick,
 }: {
   v: E.Variation;
   beats: number[];
   picked: boolean;
-  onPick: () => void;
+  kept: boolean;
+  onPick: (v: E.Variation) => void;
 }) {
   const sizes = v.groups.map((g) => g.n);
-  const kept = useUiStore((s) => s.motifs.some((m) => m.join(' ') === sizes.join(' ')));
   return (
     <div className="fill-row">
       <button
@@ -250,7 +255,7 @@ function VaryRow({
         onMouseEnter={() => previewVary(v)}
         onFocus={() => previewVary(v)}
         onBlur={() => previewVary(null)}
-        onClick={onPick}
+        onClick={() => onPick(v)}
       >
         <GroupStrip groups={v.groups} beats={beats} />
         <span className="fill-cap">
@@ -261,4 +266,4 @@ function VaryRow({
       <Heart on={kept} label={v.key} onClick={() => toggleMotif(sizes)} />
     </div>
   );
-}
+});
