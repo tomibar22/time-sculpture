@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Doc, FillSort, ShapeFamily, GroupKind, GroupSpec, ItemId } from '../engine';
+import type { Doc, FillAxis, FillSort, ShapeFamily, GroupKind, GroupSpec, ItemId } from '../engine';
 
 import { DEFAULT_TEMPO, defaultDoc } from './defaults';
 
@@ -49,8 +49,11 @@ export interface DevicePrefs {
   click: boolean;
   moveMode: MoveMode;
   fillSizes: number[];
+  /** Fills saved with ♥ (sizes), fitted to any region later; the newest first. */
+  motifs: number[][];
 }
 const PREFS_KEY = 'time-sculpture/prefs';
+export const MAX_MOTIFS = 60;
 function loadPrefs(): Partial<DevicePrefs> {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
@@ -65,6 +68,12 @@ function loadPrefs(): Partial<DevicePrefs> {
       const sizes = p.fillSizes.filter((n) => Number.isInteger(n) && n >= 1 && n <= 9);
       if (sizes.length) out.fillSizes = [...new Set(sizes)].sort((a, b) => a - b);
     }
+    if (Array.isArray(p.motifs))
+      out.motifs = p.motifs
+        .filter(
+          (m) => Array.isArray(m) && m.length > 0 && m.every((n) => Number.isInteger(n) && n >= 1),
+        )
+        .slice(0, MAX_MOTIFS);
     return out;
   } catch {
     return {};
@@ -188,7 +197,12 @@ export interface UiState {
   fillPanel: 'random' | 'browse' | 'vary' | null;
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
-  fillShape: ShapeFamily | 'shapes' | 'any';
+  fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred';
+  /** Browse as a list, or as a map of the fills laid out by two measures. */
+  fillView: 'list' | 'map';
+  fillAxes: [FillAxis, FillAxis];
+  /** Fills saved with ♥ (device preference). */
+  motifs: number[][];
   /** The docked subdivision row, for the beats under the selection, range or caret. */
   subPanel: boolean;
   /** The modulation dialog: adding one at a beat, or editing one (index into meter.sections). */
@@ -262,6 +276,9 @@ export const useUiStore = create<UiState>((set) => ({
   fillPanel: null,
   fillSort: 'onbeat',
   fillShape: 'shapes',
+  fillView: 'list',
+  fillAxes: ['tiles', 'sync'],
+  motifs: [],
   subPanel: false,
   modDialog: null,
   voltaDialog: null,
@@ -298,7 +315,8 @@ useUiStore.subscribe((s, p) => {
     s.ticks !== p.ticks ||
     s.click !== p.click ||
     s.moveMode !== p.moveMode ||
-    s.fillSizes !== p.fillSizes
+    s.fillSizes !== p.fillSizes ||
+    s.motifs !== p.motifs
   )
     savePrefs({
       theme: s.theme,
@@ -306,5 +324,6 @@ useUiStore.subscribe((s, p) => {
       click: s.click,
       moveMode: s.moveMode,
       fillSizes: s.fillSizes,
+      motifs: s.motifs,
     });
 });

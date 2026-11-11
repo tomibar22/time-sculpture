@@ -1,6 +1,19 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { fillGroups, fillOptions, formatGroups, makeMeter, tihaiFills, variations } from '..';
+import {
+  between,
+  breed,
+  fillGroups,
+  fillOptions,
+  fitMotif,
+  formatGroups,
+  makeMeter,
+  nudges,
+  scaleTo,
+  shapeOf,
+  tihaiFills,
+  variations,
+} from '..';
 import type { GroupSpec } from '..';
 
 const g = (text: string): GroupSpec[] =>
@@ -55,8 +68,8 @@ describe('tihai', () => {
   it('says a phrase three times with the same tile between, filling the region exactly', () => {
     const t = tihaiFills(16, [2, 3, 4]);
     expect(t.length).toBeGreaterThan(0);
-    for (const o of t) {
-      expect(o.sizes.reduce((a, b) => a + b, 0)).toBe(16);
+    for (const o of t) expect(o.sizes.reduce((a, b) => a + b, 0)).toBe(16);
+    for (const o of t.filter((x) => x.shape.family === 'tihai' && !x.shape.label.includes('→'))) {
       const n = (o.sizes.length - 2) / 3;
       const phrase = o.sizes.slice(0, n);
       expect(o.sizes.slice(n + 1, 2 * n + 1)).toEqual(phrase);
@@ -77,5 +90,85 @@ describe('tihai', () => {
 
   it('there is none when the pulses do not divide that way', () => {
     expect(tihaiFills(4, [2, 3])).toEqual([]);
+  });
+});
+
+describe('deeper variations', () => {
+  const sum = (t: number[]) => t.reduce((a, b) => a + b, 0);
+
+  it('locked groups keep their place and size', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: 1, max: 6 }), { minLength: 3, maxLength: 9 }),
+        fc.integer({ min: 0, max: 8 }),
+        (sizes, li) => {
+          const lock = li % sizes.length;
+          const at = sum(sizes.slice(0, lock));
+          for (const v of variations(
+            sizes.map((n) => ({ n, kind: 'sound' as const })),
+            80,
+            Math.random,
+            [lock],
+          )) {
+            const ns = v.groups.map((x) => x.n);
+            expect(sum(ns)).toBe(sum(sizes));
+            // a group of the same size still starts at the same pulse
+            let k = 0;
+            let found = false;
+            for (const n of ns) {
+              if (k === at && n === sizes[lock]) found = true;
+              k += n;
+            }
+            expect(found).toBe(true);
+          }
+        },
+      ),
+    );
+  });
+
+  it('nudges move one line by one pulse or swap neighbours', () => {
+    const ns = nudges(g('4 3')).map((v) => formatGroups(v.groups));
+    expect(ns).toEqual(['3 4', '5 2', '3 4']);
+  });
+
+  it('scales sizes to an exact total', () => {
+    expect(sum(scaleTo([3, 3, 2], 4)!)).toBe(4);
+    expect(scaleTo([3, 3, 2], 2)).toBeNull();
+    expect(variations(g('4 4 2 2')).some((v) => v.label === 'In half the time, twice')).toBe(true);
+  });
+
+  it('between walks from one fill to another', () => {
+    const steps = between([3, 3, 2], [2, 3, 3]);
+    expect(steps.length).toBeGreaterThan(0);
+    for (const s of steps) expect(sum(s)).toBe(8);
+  });
+
+  it('breeds children of the same length, never a parent', () => {
+    const kids = breed(
+      [
+        [3, 3, 2, 4],
+        [2, 4, 3, 3],
+      ],
+      [2, 3, 4, 5, 6],
+    );
+    expect(kids.length).toBeGreaterThan(0);
+    for (const k of kids) {
+      expect(sum(k.sizes)).toBe(12);
+      expect(['3 3 2 4', '2 4 3 3']).not.toContain(k.sizes.join(' '));
+    }
+  });
+
+  it('fits a motif to another length', () => {
+    expect(fitMotif([3, 3, 2], 8)).toEqual([3, 3, 2]);
+    expect(fitMotif([3, 3, 2], 11)).toEqual([3, 3, 2, 3]);
+    expect(fitMotif([3, 3, 2], 10)).toEqual([3, 3, 2, 2]);
+    expect(fitMotif([3, 3, 2], 3)).toBeNull();
+  });
+
+  it('names the new shapes', () => {
+    expect(shapeOf([3, 3, 2, 3, 2, 4])?.family).toBe('additive');
+    expect(shapeOf([2, 3, 5, 8])?.family).toBe('golden');
+    const t = tihaiFills(31, [1, 2, 3]);
+    expect(t.some((x) => x.shape.family === 'chakradhar')).toBe(true);
   });
 });

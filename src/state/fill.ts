@@ -3,7 +3,8 @@ import type { FillOption } from '../engine';
 import { ui as sfx } from '../audio/voices';
 import { announce, plural, run, toast } from './actions';
 import { selectedRegion, setCaret } from './editing';
-import { useDocStore, useUiStore } from './store';
+import { MAX_MOTIFS, useDocStore, useUiStore } from './store';
+import { startPlayback, stopPlayback } from '../audio/player';
 
 /**
  * Filling a region: the selected range, the selected tiles' span, or (with neither) the open
@@ -50,7 +51,55 @@ export function previewVary(v: E.Variation | null): void {
 }
 
 export function closeFill(): void {
+  if (ui().playing && ui().loop) stopPlayback();
   ui().set({ fillPanel: null, preview: null });
+}
+
+/**
+ * Listen while choosing: loop the region, so every fill tried (hovered, focused, dragged over on
+ * the map) is heard in time, in place. Again to stop.
+ */
+export function toggleListen(): void {
+  if (ui().playing) return stopPlayback();
+  const region = fillRegion();
+  if (!region) return;
+  const grid = E.buildGrid(doc().meter);
+  const loop = { a: grid.times[region.a]!, b: grid.times[Math.min(region.b, grid.TS)]! };
+  startPlayback(loop.a, loop);
+  announce('Listening: every fill you try plays in the loop');
+}
+
+/** Show any tiling of the region in the score (and the listening loop) without committing it. */
+export function previewSizes(sizes: number[] | null): void {
+  const region = fillRegion();
+  if (!sizes || !region) return ui().set({ preview: null });
+  const r = E.fillRange(doc(), region.a, region.b, E.fillGroups({ sizes }));
+  ui().set({ preview: r.report.ok ? r.doc : null });
+}
+
+/** Write a tiling into the region. */
+export function fillSizes(sizes: number[], what = 'Filled with'): void {
+  const key = sizes.join(' ');
+  if (apply(E.fillGroups({ sizes }), `fill ${key}`)) announce(`${what} ${key}`);
+}
+
+/* ------------------------------------------------------------------ saved motifs (♥) */
+
+export const isMotif = (sizes: readonly number[]) => {
+  const k = sizes.join(' ');
+  return ui().motifs.some((m) => m.join(' ') === k);
+};
+
+/** Keep a fill you like (♥), or let it go again. Kept on this device, for any piece. */
+export function toggleMotif(sizes: readonly number[]): void {
+  const k = sizes.join(' ');
+  const has = isMotif(sizes);
+  ui().set({
+    motifs: has
+      ? ui().motifs.filter((m) => m.join(' ') !== k)
+      : [[...sizes], ...ui().motifs].slice(0, MAX_MOTIFS),
+  });
+  toast(has ? `Let go of ${k}` : `Kept ${k}`);
 }
 
 function apply(groups: E.GroupSpec[], label: string): boolean {

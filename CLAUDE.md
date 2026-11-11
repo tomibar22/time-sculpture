@@ -180,6 +180,22 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   (`FillOption.shape`). UI: family chips with counts (`ui.fillShape`), "Anything" = every fill
   with the old sorts, 🎲 Surprise applies a random one from the chosen family.
 
+- **Deeper shapes**: `additive` (a motif built up / worn away, `additiveLabel`), `chakradhar`
+  (a tihai of tihais, from `tihaiFills`), gap tihais (family `tihai`, label "widening 2→3";
+  listed after plain tihais), `golden` (Fibonacci runs, or the single longest stroke at the
+  golden section). Measures (`measureFill`, `pulseWeight`): `sync` (Longuet-Higgins–Lee
+  weights: downbeat 3, beat 2, half 1), `crossing`, `drive` (pulls to 1), `surprise`; sorts and
+  map axes (`FILL_AXES`).
+- **Browse tools** (FillPanel.tsx, FillMap.tsx, fillParts.tsx): List | Map (`ui.fillView`,
+  `ui.fillAxes`; drag/hover previews, arrows walk, Enter uses); ♥ keeps a fill as a motif
+  (`ui.motifs`, device prefs, `fitMotif` fits it to any length → "♥ Mine"); 🧬 Breed (`breed`:
+  crossings at shared onsets, ∩, ∪, nudges) from kept + pinned fills → "Generation N"; 📌 pins A
+  for A/B with "A → B" steps (`between`, onset interpolation); 🎧 loops the region so every
+  preview is heard (player plays `ui.preview`). Strips show beat lines and a contour.
+- **Vary, deeper** (VaryPanel.tsx): tap groups to lock them (`variations(…, locked)` varies the
+  free stretches only); kinds grouped (Nearby = `nudges`, Reordered, Broader/denser incl.
+  `scaleTo` augment/diminish, Shuffled); "On the way" steps to the picked variation; a history
+  tree ("↻ From here" branches, the trail goes back).
 - **Tihai** (`tihaiFills`, first in `SHAPE_FAMILIES`): a phrase of 1–4 tiles three times with
   the same **sounding tile** (one of the allowed sizes) between, 3 × phrase + 2 × gap = R.
 - **No written silence** (user request: a rest after a stroke sounds like a longer tile, so

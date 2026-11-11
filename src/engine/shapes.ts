@@ -6,7 +6,17 @@ import { countWays, sampleTiling } from './count';
  * pulses directly, since random sampling almost never finds them.
  */
 export type ShapeFamily =
-  'tihai' | 'repeat' | 'grow' | 'pyramid' | 'refrain' | 'even' | 'cadence' | 'mirror';
+  | 'tihai'
+  | 'chakradhar'
+  | 'repeat'
+  | 'additive'
+  | 'grow'
+  | 'pyramid'
+  | 'golden'
+  | 'refrain'
+  | 'even'
+  | 'cadence'
+  | 'mirror';
 
 export interface Shape {
   family: ShapeFamily;
@@ -20,9 +30,24 @@ export const SHAPE_FAMILIES: { id: ShapeFamily; label: string; hint: string }[] 
     label: 'Tihai',
     hint: 'A phrase three times, with the same breath between: 3 2 (1) 3 2 (1) 3 2',
   },
+  {
+    id: 'chakradhar',
+    label: 'Chakradhar',
+    hint: 'A tihai of tihais: each of its three phrases is a small tihai',
+  },
   { id: 'repeat', label: 'Repeat', hint: 'A cell repeated: 3 3 2 · 3 3 2' },
+  {
+    id: 'additive',
+    label: 'Additive',
+    hint: 'A motif built up one group at a time (or worn away): 3 · 3 2 · 3 2 4',
+  },
   { id: 'grow', label: 'Growing', hint: 'Adds one each time: 3 2 · 3 3 2 · 3 3 3 2' },
   { id: 'pyramid', label: 'Pyramid', hint: 'Rising, falling, arch, valley: 2 3 4 3 2' },
+  {
+    id: 'golden',
+    label: 'Golden',
+    hint: 'Fibonacci sizes (2 3 5 8), or the longest stroke at the golden section',
+  },
   { id: 'refrain', label: 'Refrain', hint: 'A fixed size between steps: 2 3 2 4 2 5' },
   { id: 'even', label: 'Even spread', hint: 'Two sizes spread as evenly as possible' },
   { id: 'cadence', label: 'Cadence', hint: 'A repeat that turns at the end: 3 3 3 2' },
@@ -157,14 +182,74 @@ function mirrorLabel(t: number[]): string | null {
     : null;
 }
 
+/**
+ * Blocks whose lengths step by one, each a prefix of the longest: 3 · 3 2 · 3 2 4 (additive) or
+ * 3 2 4 · 3 2 · 3 (subtractive). At least three blocks, the first of one or two groups.
+ */
+function additiveLabel(t: number[]): string | null {
+  for (const down of [false, true])
+    for (const first of [1, 2]) {
+      const up: number[] = [];
+      let total = 0;
+      for (let l = first; total < t.length; l++) {
+        up.push(l);
+        total += l;
+      }
+      if (total !== t.length || up.length < 3) continue;
+      const lens = down ? [...up].reverse() : up;
+      const longest = Math.max(...lens);
+      const motifAt = down ? 0 : t.length - longest;
+      const motif = t.slice(motifAt, motifAt + longest);
+      if (new Set(motif).size < 2) continue;
+      let i = 0;
+      const okay = lens.every((l) => {
+        const ok = t.slice(i, i + l).every((v, j) => v === motif[j]);
+        i += l;
+        return ok;
+      });
+      if (okay) return `${down ? 'Wearing away' : 'Building up'} ${motif.join(' ')}`;
+    }
+  return null;
+}
+
+const FIB = [1, 2, 3, 5, 8, 13, 21];
+
+/** Consecutive Fibonacci sizes rising, falling or both (each run once): 2 3 5 8, 3 5 8 5 3. */
+function fibLabel(t: number[]): string | null {
+  if (t.length < 3) return null;
+  const idx = t.map((v) => FIB.indexOf(v));
+  if (idx.some((i) => i < 0) || t.includes(1)) return null;
+  const steps = idx.slice(1).map((v, i) => v - idx[i]!);
+  if (!steps.every((s) => Math.abs(s) === 1)) return null;
+  const turns = steps.filter((s, i) => i && s !== steps[i - 1]).length;
+  if (turns > 1) return null;
+  return `Fibonacci ${t.join(' ')}`;
+}
+
+/** The single longest stroke starts at the golden section (≈ 0.618 of the way, or 0.382). */
+function goldenLabel(t: number[]): string | null {
+  if (t.length < 4) return null;
+  const max = Math.max(...t);
+  if (t.filter((v) => v === max).length !== 1 || max < 2 * Math.min(...t)) return null;
+  const R = sum(t);
+  const at = sum(t.slice(0, t.indexOf(max)));
+  for (const g of [0.618, 0.382])
+    if (Math.abs(at - g * R) <= Math.max(0.5, R * 0.02))
+      return `${max} at the golden section${g < 0.5 ? ' (early)' : ''}`;
+  return null;
+}
+
 const LABELS: [ShapeFamily, (t: number[]) => string | null][] = [
   ['repeat', repeatLabel],
+  ['additive', additiveLabel],
   ['grow', growLabel],
   ['pyramid', pyramidLabel],
+  ['golden', fibLabel],
   ['refrain', refrainLabel],
   ['even', evenLabel],
   ['cadence', cadenceLabel],
   ['mirror', mirrorLabel],
+  ['golden', goldenLabel],
 ];
 
 /** The shape of a fill, if it has one. */
@@ -193,20 +278,34 @@ export interface TihaiFill {
 export function tihaiFills(R: number, sizes: number[], limit = 40): TihaiFill[] {
   const S = [...new Set(sizes)].filter((n) => n >= 1).sort((a, b) => a - b);
   const out: TihaiFill[] = [];
+  const gaps: TihaiFill[] = [];
   if (R < 5 || !S.length) return out;
   let cells: number[][] = [[]];
   for (let len = 1; len <= 4; len++) {
     cells = cells.flatMap((c) => S.map((v) => [...c, v]));
     for (const c of cells) {
-      const p = sum(c);
-      const g = (R - 3 * p) / 2;
-      if (!S.includes(g)) continue;
       // a phrase that is itself a repeat reads as a plain repeat, not as a phrase
       if (c.length > 1 && period(c)) continue;
-      out.push({
-        sizes: [...c, g, ...c, g, ...c],
-        shape: { family: 'tihai', label: `${cell(c)} ×3, ${g} between` },
-      });
+      const p = sum(c);
+      const g = (R - 3 * p) / 2;
+      if (S.includes(g))
+        out.push({
+          sizes: [...c, g, ...c, g, ...c],
+          shape: { family: 'tihai', label: `${cell(c)} ×3, ${g} between` },
+        });
+      // gap tihai: the breath between grows (or shrinks) by one or two
+      for (const g1 of S)
+        for (const d of [-2, -1, 1, 2]) {
+          const g2 = g1 + d;
+          if (!S.includes(g2) || 3 * p + g1 + g2 !== R) continue;
+          gaps.push({
+            sizes: [...c, g1, ...c, g2, ...c],
+            shape: {
+              family: 'tihai',
+              label: `${cell(c)} ×3, ${d > 0 ? 'widening' : 'narrowing'} ${g1}→${g2}`,
+            },
+          });
+        }
     }
   }
   // the closest to "phrase and gap in proportion" first: short gaps, then shorter phrases
@@ -215,7 +314,26 @@ export function tihaiFills(R: number, sizes: number[], limit = 40): TihaiFill[] 
       a.sizes.length - b.sizes.length ||
       a.sizes[(a.sizes.length - 2) / 3]! - b.sizes[(b.sizes.length - 2) / 3]!,
   );
-  return out.slice(0, limit);
+  gaps.sort((a, b) => a.sizes.length - b.sizes.length);
+  return [...out, ...gaps, ...chakradhars(R, S)].slice(0, limit * 2);
+}
+
+/** Tihais whose phrase is itself a small tihai: P G P G P with P = c g c g c. */
+function chakradhars(R: number, S: number[]): TihaiFill[] {
+  const out: TihaiFill[] = [];
+  for (const G of S) {
+    const p = (R - 2 * G) / 3;
+    if (!Number.isInteger(p) || p < 5) continue;
+    for (const inner of tihaiFills(p, S, 6)) {
+      if (inner.shape.family !== 'tihai' || inner.shape.label.includes('→')) continue;
+      const P = inner.sizes;
+      out.push({
+        sizes: [...P, G, ...P, G, ...P],
+        shape: { family: 'chakradhar', label: `(${inner.shape.label}) ×3, ${G} between` },
+      });
+    }
+  }
+  return out.sort((a, b) => a.sizes.length - b.sizes.length).slice(0, 20);
 }
 
 const times = <T>(t: T[], k: number): T[] => Array.from({ length: k }, () => t).flat();
@@ -303,6 +421,22 @@ export function shapeFills(
           put([...mid, r]);
           put([r, ...mid]);
         }
+  // additive / subtractive: a motif of 2–5 groups built up or worn away
+  for (const m of cells.filter((c) => c.length >= 2 && new Set(c).size > 1)) {
+    for (const first of [1, 2]) {
+      const blocks = range(first, m.length, 1).map((l) => m.slice(0, l));
+      put(blocks.flat());
+      put([...blocks].reverse().flat());
+    }
+  }
+  for (let a = 1; a < FIB.length; a++)
+    for (let b = a + 2; b < FIB.length; b++) {
+      const up = FIB.slice(a, b + 1);
+      put(up);
+      put([...up].reverse());
+      put([...up, ...up.slice(0, -1).reverse()]);
+      put([...[...up].reverse(), ...up.slice(1)]);
+    }
   // even spreads: n tiles of ⌊R/n⌋ and ⌈R/n⌉, every rotation
   for (let n = 3; n <= Math.min(R, 64); n++) {
     const base = Array.from(
