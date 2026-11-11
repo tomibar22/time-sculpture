@@ -75,7 +75,8 @@ export function run(result: OpResult, opts: RunOpts): boolean {
     return false;
   }
   const wasComplete = E.freePulses(before) === 0;
-  useDocStore.getState().commit(result.doc, opts.label);
+  // silences side by side become one stretch of empty time
+  useDocStore.getState().commit(E.joinRests(result.doc), opts.label);
   if (opts.select === 'none') setUi({ selection: [], anchor: null });
   else if (opts.select && opts.select !== 'keep')
     setUi({ selection: opts.select, anchor: opts.select[0] ?? null });

@@ -210,6 +210,25 @@ export function insertAtPulse(
   let at: number;
   const created = made.map((x) => x.id);
 
+  // inside a silence (or at its start), with room in it: write over it, nothing moves
+  const quiet = segs.findIndex((g) => g.item.kind === 'rest' && g.s <= k && k + G <= g.e);
+  if (quiet >= 0) {
+    const g = segs[quiet]!;
+    const head = k - g.s;
+    const tailN = g.e - k - G;
+    const parts: Item[] = [];
+    if (head > 0) parts.push({ ...g.item, n: head });
+    parts.push(...made);
+    if (tailN > 0) {
+      const tail = group(ids[groups.length]!, tailN, 'rest');
+      parts.push(tail);
+      created.push(tail.id);
+    }
+    // the silence's own id stays with its head, or goes when the groups cover its start
+    items.splice(quiet, 1, ...parts);
+    return finish(items, quiet + (head > 0 ? 1 : 0) + made.length, head > 0 ? [] : [g.item.id]);
+  }
+
   if (k > sp.s && k < sp.e) {
     // inside the open space: silence up to the caret, then the groups
     const gap = k - sp.s;
@@ -235,9 +254,13 @@ export function insertAtPulse(
       at = index + made.length;
     }
   }
-  const out: Doc = { meter: doc.meter, items: syncSpace(items, TS), nextId };
-  let caret = 0;
-  for (let i = 0; i < at; i++) caret += out.items[i]!.n;
-  // after a split, the caret sits right after the new groups (before the silent tail)
-  return { doc: out, report: report({ created }), caret };
+  return finish(items, at, []);
+
+  function finish(list: Item[], at: number, removed: ItemId[]) {
+    const out: Doc = { meter: doc.meter, items: syncSpace(list, TS), nextId };
+    let caret = 0;
+    for (let i = 0; i < at; i++) caret += out.items[i]!.n;
+    // after a split, the caret sits right after the new groups (before the silent tail)
+    return { doc: out, report: report({ created, removed }), caret };
+  }
 }

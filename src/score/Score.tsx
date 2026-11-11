@@ -541,8 +541,8 @@ export function Score() {
       gesture.current = { kind: 'empty', slot: null };
       return;
     }
-    if (E.isSpace(item)) {
-      // a tap in the open space puts the caret on that pulse; a drag selects a range
+    if (E.isSpace(item) || item.kind === 'rest') {
+      // a tap in the open space or a silence puts the caret on that pulse; a drag selects a range
       const k = slotAt(g, x, y);
       gesture.current = sweep(k, x, y, () => {
         if (ui().multi) return;
@@ -617,7 +617,7 @@ export function Score() {
             ? 'pointer'
             : b || grip
               ? 'ew-resize'
-              : i >= 0 && !E.isSpace(doc.items[i]!)
+              : i >= 0 && doc.items[i]!.kind === 'sound'
                 ? e.altKey
                   ? 'text'
                   : 'grab'

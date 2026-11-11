@@ -76,15 +76,16 @@ export function Help() {
             <p>
               The caret sits on any pulse, like a text caret between letters: tap a line or the open
               space to place it, ⌥-click to place it inside a tile, and move it with ← → (one pulse)
-              or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there. Inside the open space the gap before the caret becomes silence;
-              inside a tile, the tile is split. On a phone, use the number pad (123). Tap the very
-              start or end of the score, or use ⇤ and ⇥ on the pad, to put the caret there. To write
-              an opening before what is already there, put the caret at the very start and tap Bar
-              before (or + Bar at the start in the settings): an open bar is added in front, and
-              what was written moves on with it, still landing on 1. To go on after the end, put the
-              caret at the very end (End) and tap Bar after (or + Bar at the end): what was written
-              stays where it is and the new bar is open to write in. (The Bars stepper adds bars in
-              the middle, in the open space.)
+              or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there. Inside the open
+              space the gap before the caret becomes silence; inside a tile, the tile is split. On a
+              phone, use the number pad (123). Tap the very start or end of the score, or use ⇤ and
+              ⇥ on the pad, to put the caret there. To write an opening before what is already
+              there, put the caret at the very start and tap Bar before (or + Bar at the start in
+              the settings): an open bar is added in front, and what was written moves on with it,
+              still landing on 1. To go on after the end, put the caret at the very end (End) and
+              tap Bar after (or + Bar at the end): what was written stays where it is and the new
+              bar is open to write in. (The Bars stepper adds bars in the middle, in the open
+              space.)
             </p>
           </details>
           <details className="help-topic">
@@ -245,9 +246,9 @@ export function Help() {
               Space play · ⇧Space loop the selection, or play from the caret · Enter line break · P
               phrase mark · T modulate · ← → move the selection or the caret · ⇧← ⇧→ select like
               text · Home / End caret to the start or end · 1–9 type · Delete remove · M merge · S
-              split · D duplicate · + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs
-              · V ending · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ? this help ·
-              ⇧P name a phrase mark · F stage · Esc clear
+              split · D duplicate · + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs · V ending
+              · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ? this help · ⇧P name a
+              phrase mark · F stage · Esc clear
             </p>
           </details>
           <details className="help-topic">

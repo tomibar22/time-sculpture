@@ -338,8 +338,11 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 
 ### Silence
 
-- Rests are still items (selectable, movable, shown as "(n)" in the status) but are drawn as
-  empty time: no tile, no number, unless selected, lifted or focused.
+- Rests are items in the model ("(n)" in the status) but **behave like open space** (user
+  request): drawn as empty time, a tap or drag on one places the caret / sweeps a range (never
+  selects or grabs it), typing at a caret inside or at the start of a silence writes over it
+  when it fits (`insertAtPulse`, nothing moves), and `run()` commits `joinRests(doc)` so
+  neighbouring silences are always one stretch.
 
 ## Persistence
 

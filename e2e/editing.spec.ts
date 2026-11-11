@@ -89,7 +89,7 @@ test('Shift+arrows select pulses like text; typing fills the selection', async (
   await expect(page.getByTestId('caretname')).toContainText('2 pulses');
   // the 2 pulses cut the first 3: typing 1 writes a 1 and silences the rest of the selection
   await page.keyboard.press('1');
-  await expectSeq(page, '(2) 1 (1) (1) 3 2 │ 3 (1) 3 2 4');
+  await expectSeq(page, '(2) 1 (2) 3 2 │ 3 (1) 3 2 4');
 });
 
 test('the caret moves pulse by pulse, also inside tiles', async ({ page }) => {
@@ -107,7 +107,7 @@ test('Backspace on a range silences it', async ({ page }) => {
   await tap(page, at(s, P(2)));
   for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowRight');
   await page.keyboard.press('Backspace');
-  await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
+  await expectSeq(page, '(8) 2 │ 3 (1) 3 2 4');
 });
 
 test('resize and reverse a selection', async ({ page }) => {
@@ -160,14 +160,14 @@ test('drag in the open space, or ⌥-drag over tiles, selects a range', async ({
   await drag(page, at(s, P(2)), at(s, P(8)));
   await page.keyboard.up('Alt');
   await page.keyboard.press('Backspace');
-  await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
+  await expectSeq(page, '(8) 2 │ 3 (1) 3 2 4');
 });
 
 test('drag along the beat numbers selects a range, even over tiles', async ({ page }) => {
   const s = await score(page);
   await drag(page, at(s, P(2), -40), at(s, P(8), -40));
   await page.keyboard.press('Backspace');
-  await expectSeq(page, '(2) (6) 2 │ 3 (1) 3 2 4');
+  await expectSeq(page, '(8) 2 │ 3 (1) 3 2 4');
 });
 
 test('long-press a tile, then drag, selects a range', async ({ page }) => {

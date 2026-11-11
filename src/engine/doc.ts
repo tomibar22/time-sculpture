@@ -264,3 +264,20 @@ export function assertValid(doc: Doc): Doc {
   if (errs.length) throw new Error(`Invalid document: ${errs.join('; ')}`);
   return doc;
 }
+
+/**
+ * Silences side by side read as one stretch of empty time: join them (the first keeps its id).
+ * Returns the same doc when there is nothing to join.
+ */
+export function joinRests(doc: Doc): Doc {
+  const items = doc.items;
+  if (!items.some((x, i) => x.kind === 'rest' && items[i + 1]?.kind === 'rest')) return doc;
+  const out: Item[] = [];
+  for (const x of items) {
+    const last = out[out.length - 1];
+    if (x.kind === 'rest' && last?.kind === 'rest')
+      out[out.length - 1] = { ...last, n: last.n + x.n };
+    else out.push(x);
+  }
+  return { ...doc, items: out };
+}

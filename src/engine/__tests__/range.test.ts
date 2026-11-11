@@ -60,10 +60,16 @@ describe('insertAtPulse', () => {
     expect(show(r.doc)).toBe('(2) 3 1 3 2 open 2 3 (1) 3 2 4');
     expect(r.caret).toBe(6);
   });
-  it('in the ending the group lands before the caret, and the caret stays', () => {
+  it('typed into a silence it fills that silence: nothing moves', () => {
     const r = insertAtPulse(sample(), 16, [S(1)]);
-    expect(show(r.doc)).toBe('(2) 3 3 2 open 2 3 1 (1) 3 2 4');
-    expect(r.caret).toBe(16);
+    expect(show(r.doc)).toBe('(2) 3 3 2 open 3 3 1 3 2 4');
+    expect(r.caret).toBe(17);
+    expect(
+      insertAtPulse(sample(), 1, [S(1)])
+        .doc.items.map((x) => x.n)
+        .slice(0, 3),
+    ).toEqual([1, 1, 3]);
+    valid(r.doc);
   });
   it('inside the open space: silence up to the caret', () => {
     const r = insertAtPulse(sample(), 11, [S(1)]);

@@ -4,7 +4,9 @@ import {
   checkInvariants,
   emptyDoc,
   findItem,
+  docFrom,
   freePulses,
+  joinRests,
   makeMeter,
   sequence,
   spaceSize,
@@ -51,5 +53,20 @@ describe('document helpers', () => {
     expect(errs.length).toBeGreaterThanOrEqual(6);
     expect(() => assertValid(bad)).toThrow();
     expect(assertValid(emptyDoc(makeMeter(5, 1, 3))).items[0]!.n).toBe(15);
+  });
+});
+
+describe('joinRests', () => {
+  it('joins silences side by side, the first keeping its id', () => {
+    const d = docFrom(makeMeter(4, 1, 4), [3, [2], [1], 2, '|']);
+    const j = joinRests(d);
+    expect(j.items.map((x) => `${x.kind === 'space' ? 'S' : x.kind[0]}${x.n}`)).toEqual([
+      's3',
+      'r3',
+      's2',
+      'S8',
+    ]);
+    expect(j.items[1]!.id).toBe(d.items[1]!.id);
+    expect(joinRests(j)).toBe(j);
   });
 });

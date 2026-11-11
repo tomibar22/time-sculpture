@@ -61,8 +61,8 @@ test('reorder in Place mode', async ({ page }) => {
   await openSetup(page);
   await page.getByRole('button', { name: 'Place', exact: true }).click();
   const s = await score(page);
-  await drag(page, at(s, P(1)), at(s, P(31.5)));
-  await expectSeq(page, '3 3 2 │ 3 (1) 3 2 4 (2)');
+  await drag(page, at(s, P(3)), at(s, P(31.5)));
+  await expectSeq(page, '(2) 3 2 │ 3 (1) 3 2 4 3');
 });
 
 test('shift-click selects a range and merge works', async ({ page }) => {
