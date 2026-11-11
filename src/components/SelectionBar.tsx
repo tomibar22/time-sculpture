@@ -10,7 +10,6 @@ import {
   openModulation,
   toggleLineBreak,
   togglePhraseMark,
-  toggleSelectionKind,
   changeRepeatTimes,
   openVolta,
   toggleTotalOver,
@@ -50,7 +49,6 @@ export function SelectionBar() {
   const sel = idx.map((i) => items[i]!);
   const total = sel.reduce((a, x) => a + x.n, 0);
   const si = E.spaceIndex(items);
-  const allRest = sel.length > 0 && sel.every((x) => x.kind === 'rest');
   const contiguous = idx.length > 1 && E.isContiguous(idx);
   const free = E.freePulses(doc);
   const first = sel[0];
@@ -146,14 +144,6 @@ export function SelectionBar() {
             Merge
           </button>
         )}
-        <button
-          type="button"
-          title="Sound or silence (R)"
-          disabled={!sel.length}
-          onClick={toggleSelectionKind}
-        >
-          {allRest ? 'Sound' : 'Silence'}
-        </button>
         <button
           type="button"
           title="A copy right after (D)"

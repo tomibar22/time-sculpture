@@ -9,12 +9,9 @@ const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 /**
  * The number pad: the touch way to write. Each digit inserts a group of that many pulses at the
- * caret (or replaces the selection); the switch above chooses sound or silence.
+ * caret (or replaces the selection).
  */
 export function Keypad() {
-  const kind = useUiStore((s) => s.addKind);
-  const set = useUiStore((s) => s.set);
-  const rest = kind === 'rest';
   // how many pulses a typed group may have right now: the range, or the selected tiles plus the
   // open space, or the open space; longer keys are dimmed (they still say why when tapped)
   const doc = useDocStore((s) => s.doc);
@@ -33,14 +30,6 @@ export function Keypad() {
   return (
     <div className="keypad" role="group" aria-label="Number pad">
       <div className="keypad-head">
-        <div className="segs text" role="group" aria-label="Write">
-          <button type="button" aria-pressed={!rest} onClick={() => set({ addKind: 'sound' })}>
-            Sound
-          </button>
-          <button type="button" aria-pressed={rest} onClick={() => set({ addKind: 'rest' })}>
-            Silence
-          </button>
-        </div>
         <div className="keypad-caret">
           <button
             type="button"
@@ -85,19 +74,15 @@ export function Keypad() {
             <button
               key={d}
               type="button"
-              className={`key ${rest ? 'rest' : ''}${d > room ? ' big' : ''}`}
+              className={`key${d > room ? ' big' : ''}`}
               data-testid={`key-${d}`}
               title={
                 d > room
                   ? `${d} does not fit: ${room} pulse${room === 1 ? '' : 's'} of room`
-                  : `${rest ? 'Silence' : 'Sound'} of ${d} pulse${d === 1 ? '' : 's'}`
+                  : `Sound of ${d} pulse${d === 1 ? '' : 's'}`
               }
-              style={
-                rest
-                  ? undefined
-                  : ({ '--key': col, '--key-ink': inkFor(col) } as React.CSSProperties)
-              }
-              onClick={() => typeDigit(d, kind)}
+              style={{ '--key': col, '--key-ink': inkFor(col) } as React.CSSProperties}
+              onClick={() => typeDigit(d, 'sound')}
             >
               {d}
             </button>

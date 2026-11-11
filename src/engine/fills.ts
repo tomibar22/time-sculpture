@@ -118,7 +118,13 @@ export function fillOptions(
     };
   };
   const options = tilings.map((t) => measure(t, undefined, shapeOf(t)));
-  for (const t of tihaiFills(R, sizes)) options.push(measure(t.sizes, t.rests, t.shape));
+  // a tihai is a plain tiling too (its gaps are tiles): name it, or add it when not listed yet
+  const byKey = new Map(options.map((o) => [o.key, o]));
+  for (const t of tihaiFills(R, sizes)) {
+    const o = byKey.get(t.sizes.join(' '));
+    if (o) o.shape = t.shape;
+    else options.push(measure(t.sizes, undefined, t.shape));
+  }
   return { options, total };
 }
 

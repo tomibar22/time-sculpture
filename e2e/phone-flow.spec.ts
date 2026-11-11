@@ -69,7 +69,7 @@ test('the gutters take the caret, even with sound tiles at the very start and en
   let s = await score(page);
   // make the opening silence (2) a sounding tile, so tiles touch both ends of the piece
   await tap(page, at(s, P(1)));
-  await page.keyboard.press('r');
+  await page.keyboard.press('2');
   await expectSeq(page, '2 3 3 2 │ 3 (1) 3 2 4');
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');

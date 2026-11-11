@@ -8,10 +8,8 @@ describe('fill options', () => {
   it('lists every tiling when there are few', () => {
     const { options, total } = fillOptions(meter, 0, 8, [2, 3]);
     expect(total).toBe(4n); // 2222, 233, 323, 332
-    const plain = options.filter((o) => !o.rests);
-    expect(plain.map((o) => o.key).sort()).toEqual(['2 2 2 2', '2 3 3', '3 2 3', '3 3 2']);
-    // and the tihai that fits: 2 (1) 2 (1) 2
-    expect(options.filter((o) => o.rests).map((o) => o.key)).toEqual(['2 (1) 2 (1) 2']);
+    expect(options.map((o) => o.key).sort()).toEqual(['2 2 2 2', '2 3 3', '3 2 3', '3 3 2']);
+    expect(options.some((o) => o.rests)).toBe(false);
   });
   it('samples distinct ones when there are many', () => {
     const { options, total } = fillOptions(meter, 0, 16, [1, 2, 3], 50);

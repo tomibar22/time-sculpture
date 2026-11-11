@@ -20,14 +20,14 @@ test.beforeEach(async ({ page }) => {
   await expectSeq(page, DEFAULT_SEQ);
 });
 
-test('tap a line to place a caret, then type sizes and silences', async ({ page }) => {
+test('tap a line to place a caret, then type sizes', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(5)));
   await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 2 +1/4');
   await page.keyboard.press('1');
   await expectSeq(page, '(2) 3 1 3 2 │ 3 (1) 3 2 4');
   await page.keyboard.press('Shift+2');
-  await expectSeq(page, '(2) 3 1 (2) 3 2 │ 3 (1) 3 2 4');
+  await expectSeq(page, '(2) 3 1 2 3 2 │ 3 (1) 3 2 4');
 });
 
 test('quick digits are separate groups', async ({ page }) => {

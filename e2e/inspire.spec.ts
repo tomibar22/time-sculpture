@@ -26,14 +26,14 @@ test('vary a passage: the same time said another way', async ({ page }) => {
 
 test('a tihai fills the open space and lands on 1', async ({ page }) => {
   await page.getByRole('button', { name: 'Browse fills…' }).click();
-  // 9 open pulses: 3 × phrase + 2 × breath = 9 → 1 (3) 1 (3) 1, once size 1 is allowed
+  // 9 open pulses: 3 × phrase + 2 × gap = 9 → 1 3 1 3 1, once size 1 is allowed
   await page.getByTestId('fill-1').click();
   await page.getByRole('button', { name: /^Tihai/ }).click();
   const list = page.getByRole('list', { name: 'Ways to fill' });
   await list.getByRole('button').first().click();
   await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
-  // phrase, breath, phrase, breath, phrase
-  await expect(page.getByTestId('sequence')).toContainText(/\(\d\) \d \(\d\)/);
+  // phrase, gap, phrase, gap, phrase: all sounding tiles
+  await expect(page.getByTestId('sequence')).toContainText('1 3 1 3 1');
 });
 
 test('loop the selection, and set the tempo by tapping', async ({ page }) => {

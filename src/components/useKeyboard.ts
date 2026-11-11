@@ -18,7 +18,6 @@ import {
   openVolta,
   toggleTotalOver,
   splitSelection,
-  toggleSelectionKind,
   undo,
 } from '../state/actions';
 import {
@@ -158,14 +157,14 @@ export function useKeyboard() {
         return;
       }
 
-      // digits: type a size (Shift+digit types a silence)
+      // digits: type a size
       const digit =
         /^Digit(\d)$/.exec(e.code)?.[1] ??
         /^Numpad(\d)$/.exec(e.code)?.[1] ??
         (/^\d$/.test(e.key) ? e.key : undefined);
       if (digit !== undefined) {
         e.preventDefault();
-        return typeDigit(Number(digit), e.shiftKey ? 'rest' : 'sound');
+        return typeDigit(Number(digit), 'sound');
       }
       if (e.key === '?') {
         // the help, opened and brought into view
@@ -279,7 +278,6 @@ export function useKeyboard() {
       if (k === 'b') return brushSelection();
       if (k === 's') splitSelection();
       else if (k === 'm') mergeSelection();
-      else if (k === 'r') toggleSelectionKind();
       else if (k === 'd') duplicateSelection();
     };
 

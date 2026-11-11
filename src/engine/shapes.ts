@@ -179,21 +179,20 @@ export function shapeOf(t: number[]): Shape | null {
 
 const sum = (t: number[]) => t.reduce((a, b) => a + b, 0);
 
-/** A shaped fill that has silences in it: `rests` are the indices of the silent tiles. */
-export interface RestedFill {
+/** A tihai: its sizes and its name. */
+export interface TihaiFill {
   sizes: number[];
-  rests: number[];
   shape: Shape;
 }
 
 /**
  * Tihais of exactly R pulses: a phrase (1–4 tiles of `sizes`) played three times with the same
- * silence between, so the third time ends exactly where the region ends (on 1, when the region
- * runs to the end). 3 × phrase + 2 × gap = R, gap 1–9. Shorter phrases first.
+ * tile between, so the third time ends exactly where the region ends (on 1, when the region
+ * runs to the end). 3 × phrase + 2 × gap = R, the gap one of `sizes`. Shorter phrases first.
  */
-export function tihaiFills(R: number, sizes: number[], limit = 40): RestedFill[] {
+export function tihaiFills(R: number, sizes: number[], limit = 40): TihaiFill[] {
   const S = [...new Set(sizes)].filter((n) => n >= 1).sort((a, b) => a - b);
-  const out: RestedFill[] = [];
+  const out: TihaiFill[] = [];
   if (R < 5 || !S.length) return out;
   let cells: number[][] = [[]];
   for (let len = 1; len <= 4; len++) {
@@ -201,20 +200,20 @@ export function tihaiFills(R: number, sizes: number[], limit = 40): RestedFill[]
     for (const c of cells) {
       const p = sum(c);
       const g = (R - 3 * p) / 2;
-      if (!Number.isInteger(g) || g < 1 || g > 9) continue;
+      if (!S.includes(g)) continue;
       // a phrase that is itself a repeat reads as a plain repeat, not as a phrase
       if (c.length > 1 && period(c)) continue;
-      const n = c.length;
       out.push({
         sizes: [...c, g, ...c, g, ...c],
-        rests: [n, 2 * n + 1],
-        shape: { family: 'tihai', label: `${cell(c)} ×3, breath of ${g}` },
+        shape: { family: 'tihai', label: `${cell(c)} ×3, ${g} between` },
       });
     }
   }
-  // the closest to "phrase and breath in proportion" first: short gaps, then shorter phrases
+  // the closest to "phrase and gap in proportion" first: short gaps, then shorter phrases
   out.sort(
-    (a, b) => a.sizes.length - b.sizes.length || a.sizes[a.rests[0]!]! - b.sizes[b.rests[0]!]!,
+    (a, b) =>
+      a.sizes.length - b.sizes.length ||
+      a.sizes[(a.sizes.length - 2) / 3]! - b.sizes[(b.sizes.length - 2) / 3]!,
   );
   return out.slice(0, limit);
 }

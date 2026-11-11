@@ -29,13 +29,6 @@ test('type on the number pad, then undo and redo', async ({ page }) => {
   await expectSeq(page, '(2) 3 3 2 2 │ 3 (1) 3 2 4');
 });
 
-test('the number pad writes silence too', async ({ page }) => {
-  await showPad(page);
-  await page.locator('.keypad').getByRole('button', { name: 'Silence', exact: true }).click();
-  await page.getByTestId('key-3').click();
-  await expectSeq(page, '(2) 3 3 2 (3) │ 3 (1) 3 2 4');
-});
-
 test('reshape the line between two groups', async ({ page }) => {
   const s = await score(page);
   await drag(page, at(s, P(5)), at(s, P(6)));
@@ -105,17 +98,15 @@ test('paint a subdivision on the lane', async ({ page }) => {
   await expect(page.getByTestId('toast')).toContainText('Beat 1.1 now 3:1');
 });
 
-test('keyboard: split, silence, remove, escape', async ({ page }) => {
+test('keyboard: split, remove, undo', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(3.5)));
   await page.keyboard.press('s');
   await expectSeq(page, '(2) 2 1 3 2 │ 3 (1) 3 2 4');
-  await page.keyboard.press('r');
-  await expectSeq(page, '(2) (2) (1) 3 2 │ 3 (1) 3 2 4');
   await page.keyboard.press('Delete');
   await expectSeq(page, '(2) 3 2 │ 3 (1) 3 2 4');
   await page.keyboard.press('z');
-  await expectSeq(page, '(2) (2) (1) 3 2 │ 3 (1) 3 2 4');
+  await expectSeq(page, '(2) 2 1 3 2 │ 3 (1) 3 2 4');
 });
 
 test('meter steppers', async ({ page }) => {

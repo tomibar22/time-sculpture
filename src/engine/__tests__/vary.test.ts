@@ -20,7 +20,7 @@ describe('variations', () => {
     expect(keys).toContain('3 2 3');
     expect(keys).toContain('6 2');
     expect(keys).toContain('2 1 2 1 1 1');
-    expect(keys).toContain('1 (2) 1 (2) 1 (1)');
+    expect(keys.some((k) => k.includes('('))).toBe(false);
     expect(keys).not.toContain('3 3 2');
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -52,31 +52,27 @@ describe('variations', () => {
 });
 
 describe('tihai', () => {
-  it('says a phrase three times with the same breath between, filling the region exactly', () => {
+  it('says a phrase three times with the same tile between, filling the region exactly', () => {
     const t = tihaiFills(16, [2, 3, 4]);
     expect(t.length).toBeGreaterThan(0);
     for (const o of t) {
       expect(o.sizes.reduce((a, b) => a + b, 0)).toBe(16);
-      expect(o.rests).toHaveLength(2);
-      const n = o.rests[0]!;
+      const n = (o.sizes.length - 2) / 3;
       const phrase = o.sizes.slice(0, n);
       expect(o.sizes.slice(n + 1, 2 * n + 1)).toEqual(phrase);
       expect(o.sizes.slice(2 * n + 2)).toEqual(phrase);
-      expect(o.sizes[o.rests[0]!]).toBe(o.sizes[o.rests[1]!]);
+      expect(o.sizes[n]).toBe(o.sizes[2 * n + 1]);
     }
-    // 4 (2) 4 (2) 4
     expect(t.some((o) => o.sizes.join(' ') === '4 2 4 2 4')).toBe(true);
   });
 
-  it('is offered among the fill options, with its silences', () => {
+  it('is offered among the fill options, all sounding', () => {
     const { options } = fillOptions(makeMeter(4, 2, 4), 0, 16, [2, 3, 4]);
     const tihai = options.filter((o) => o.shape?.family === 'tihai');
     expect(tihai.length).toBeGreaterThan(0);
-    const o = tihai.find((x) => x.key === '4 (2) 4 (2) 4')!;
-    expect(fillGroups(o).map((x) => x.kind)).toEqual(['sound', 'rest', 'sound', 'rest', 'sound']);
-    expect(o.tiles).toBe(3);
-    // onsets at pulses 0, 6, 12: on the beat at 0 and 12
-    expect(o.onBeat).toBe(2);
+    const o = tihai.find((x) => x.key === '4 2 4 2 4')!;
+    expect(fillGroups(o).every((x) => x.kind === 'sound')).toBe(true);
+    expect(o.tiles).toBe(5);
   });
 
   it('there is none when the pulses do not divide that way', () => {

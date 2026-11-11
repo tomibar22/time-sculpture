@@ -19,7 +19,7 @@ const total = (gs: readonly GroupSpec[]) => gs.reduce((a, g) => a + g.n, 0);
 /**
  * Ways to vary `groups` (at most `limit`), without the passage itself and without duplicates:
  * backwards, every rotation, sorted both ways, mirrored halves, neighbours joined in pairs, every
- * group halved, sound and silence swapped, and a few shuffles.
+ * group halved, and a few shuffles.
  */
 export function variations(
   groups: readonly GroupSpec[],
@@ -85,32 +85,6 @@ export function variations(
       : [g],
   );
   put(halved, 'Every group halved', 'weight');
-  if (base.some((g) => g.kind === 'sound' && g.n >= 2)) {
-    // an onset with air after it: each sound keeps its attack, the rest of it becomes silence
-    put(
-      base.flatMap((g) =>
-        g.kind === 'sound' && g.n >= 2
-          ? [
-              { n: 1, kind: 'sound' as const },
-              { n: g.n - 1, kind: 'rest' as const },
-            ]
-          : [g],
-      ),
-      'Only the attacks',
-      'weight',
-    );
-  }
-  if (N > 1 && base.some((g) => g.kind === 'sound')) {
-    // every other sound dropped out
-    let i = 0;
-    put(
-      base.map((g) =>
-        g.kind === 'sound' && i++ % 2 === 1 ? { n: g.n, kind: 'rest' as const } : g,
-      ),
-      'Every other one silent',
-      'weight',
-    );
-  }
 
   // shuffles of the same groups
   if (N > 2) {

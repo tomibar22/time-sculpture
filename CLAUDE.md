@@ -181,9 +181,14 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   with the old sorts, 🎲 Surprise applies a random one from the chosen family.
 
 - **Tihai** (`tihaiFills`, first in `SHAPE_FAMILIES`): a phrase of 1–4 tiles three times with
-  the same silence (1–9) between, 3 × phrase + 2 × gap = R. Fills may hold silences:
-  `FillOption.rests` (indices), `fillGroups(o)` → GroupSpec[]; `key` shows them as "(n)".
-  `sortFills` ("Anything") lists plain tilings only.
+  the same **sounding tile** (one of the allowed sizes) between, 3 × phrase + 2 × gap = R.
+- **No written silence** (user request: a rest after a stroke sounds like a longer tile, so
+  silence tiles only got in the way). The user never writes a rest: no Sound/Silence switch on
+  the pad, no Shift+digit, no R / "Silence" toggle, tihai gaps sound, Vary has no "only the
+  attacks" / "every other one silent". The model keeps `rest` internally because erasing and
+  moving must leave time empty without shifting other onsets (Backspace on a range, trims,
+  slides, the open space before the caret). `FillOption.rests` / `toggleKind` remain in the
+  engine, unused by the UI.
 - **Vary** (engine/vary.ts, third tab of the fill panel, `ui.fillPanel === 'vary'`, ⇧V / "Vary…"):
   `variations(groups)` of the selected passage (`regionGroups()` = `sliceRange` of the region):
   backwards, every rotation, growing / shrinking, halves swapped, pairs turned, joined in pairs,
@@ -430,7 +435,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   silence" and "Fill randomly…", whose dialog picks the allowed sizes 1–9, `ui.fillSizes`;
   the toast offers "Another" roll). Clear lives in the Library.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
-- Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split · R silence/sound ·
+- Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
   [ ] repeat signs · V ending · +/− on an end sign: times · F stage · G total · ⇧P name mark.
