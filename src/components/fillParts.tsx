@@ -3,7 +3,7 @@ import * as E from '../engine';
 import { fillRegion } from '../state/fill';
 import { useDocStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { HeartIcon } from './Icons';
+import { CloseIcon, HeartIcon } from './Icons';
 
 /**
  * A small picture of a fill: one coloured bar per tile, widths in proportion, with the beat
@@ -101,5 +101,49 @@ export function Heart({ on, onClick, label }: { on: boolean; onClick: () => void
       <HeartIcon filled={on} />
       <span className="sr-only">Keep {label}</span>
     </button>
+  );
+}
+
+/**
+ * What is being tried, and the one way to keep it. Everywhere in the panel a tap (a row, a dot
+ * on the map, a step between two fills) only tries: the fill shows in the score and plays in the
+ * listening loop. "Use" (or a second tap on the same thing) writes it.
+ */
+export function UseBar({
+  trying,
+  beats,
+  what,
+  onUse,
+  onCancel,
+}: {
+  /** The fill on trial, or null: the bar keeps its place (nothing jumps under a second tap). */
+  trying: { sizes: number[]; rests?: number[] } | null;
+  beats?: number[];
+  /** "fill" or "variation", for the hint. */
+  what: string;
+  onUse: () => void;
+  onCancel: () => void;
+}) {
+  if (!trying)
+    return (
+      <p className="fill-usebar idle">
+        Tap a {what} to try it in the score. Nothing is written until you tap Use.
+      </p>
+    );
+  return (
+    <div className="fill-usebar" role="group" aria-label="Trying">
+      <span className="fill-trying" role="status">
+        Trying
+        <span className="sr-only"> {trying.sizes.join(' ')}</span>
+      </span>
+      <Strip sizes={trying.sizes} rests={trying.rests} beats={beats} />
+      <button type="button" className="primary" onClick={onUse}>
+        Use
+      </button>
+      <button type="button" className="ghost icon" title="Stop trying it" onClick={onCancel}>
+        <CloseIcon />
+        <span className="sr-only">Stop trying it</span>
+      </button>
+    </div>
   );
 }

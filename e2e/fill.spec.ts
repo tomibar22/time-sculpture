@@ -41,6 +41,9 @@ test('browse fills for a selected range, sorted, and pick one', async ({ page })
   await expect(list.getByRole('button').first()).toContainText('3 ×2'); // shapes first
   await page.getByRole('button', { name: 'Anything' }).click();
   await page.locator('#fill-sort').selectOption('most');
+  // a tap tries it (shown, not written); Use writes it
   await list.getByRole('button').first().click();
+  await expectSeq(page, DEFAULT_SEQ);
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expectSeq(page, '(2) 2 2 2 2 │ 3 (1) 3 2 4');
 });

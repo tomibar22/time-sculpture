@@ -22,6 +22,7 @@ test('keep a fill, breed from it, and fill from the next generation', async ({ p
     'true',
   );
   await list.locator('.fill-main').first().click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
 });
 
@@ -31,6 +32,7 @@ test('the map: arrow keys walk between fills, Enter uses one', async ({ page }) 
   const map = page.getByRole('application', { name: /Map of/ });
   await map.focus();
   await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('group', { name: 'Trying' })).toBeVisible();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
 });
@@ -44,6 +46,7 @@ test('vary with a locked group: it keeps its place', async ({ page }) => {
   await expect(lock.getByRole('button').nth(1)).toHaveAttribute('aria-pressed', 'true');
   const list = page.getByRole('list', { name: 'Variations' });
   await list.locator('.fill-main').nth(1).click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expect(page.getByTestId('sequence')).toContainText('(2) 3');
   // a new branch, and back to the start through the trail
   await page.getByRole('button', { name: 'From here' }).click();

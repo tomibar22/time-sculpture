@@ -14,6 +14,7 @@ test('vary a passage: the same time said another way', async ({ page }) => {
   const list = page.getByRole('list', { name: 'Variations' });
   await expect(list).toBeVisible();
   await list.getByRole('button', { name: /Backwards/ }).click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
   // the whole written phrase backwards; the open space became silence inside the range
   const seq = page.getByTestId('sequence');
   await expect(seq).toContainText('4 2 3 (1) 3');
@@ -30,7 +31,8 @@ test('a tihai fills the open space and lands on 1', async ({ page }) => {
   await page.getByTestId('fill-1').click();
   await page.getByRole('button', { name: /^Tihai/ }).click();
   const list = page.getByRole('list', { name: 'Ways to fill' });
-  await list.getByRole('button').first().click();
+  // a second tap on the fill on trial writes it
+  await list.getByRole('button').first().dblclick();
   await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
   // phrase, gap, phrase, gap, phrase: all sounding tiles
   await expect(page.getByTestId('sequence')).toContainText('1 3 1 3 1');

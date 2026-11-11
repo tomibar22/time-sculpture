@@ -1,8 +1,7 @@
-import { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as E from '../engine';
 import {
   fillRegion,
-  fillSizes,
   previewSizes,
   previewVary,
   regionGroups,
@@ -11,7 +10,7 @@ import {
 } from '../state/fill';
 import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { Contour, GroupStrip, Heart, Strip, useRegionBeats } from './fillParts';
+import { Contour, GroupStrip, Heart, Strip, UseBar, useRegionBeats } from './fillParts';
 import { BranchIcon, LockIcon } from './Icons';
 
 /** A passage you varied from: the history of a session of varying is a tree of these. */
@@ -35,6 +34,10 @@ export function VaryPanel() {
   const [cur, setCur] = useState(0);
   const [locked, setLocked] = useState<number[]>([]);
   const [picked, setPicked] = useState<E.Variation | null>(null);
+  /** The variation on trial: shown and heard, not written yet. */
+  const [trying, setTrying] = useState<E.Variation | null>(null);
+  const tryingRef = useRef<E.Variation | null>(null);
+  tryingRef.current = trying;
   const base = useMemo(() => tree.find((n) => n.id === cur)?.groups ?? [], [tree, cur]);
 
   // a new region: a new tree, rooted in what is written there
@@ -43,27 +46,39 @@ export function VaryPanel() {
     setCur(0);
     setLocked([]);
     setPicked(null);
+    setTrying(null);
   }, [region?.a, region?.b]);
 
   const vars = useMemo(() => E.variations(base, 80, Math.random, locked), [base, locked]);
   const steps = useMemo(
     () =>
-      picked
+      (trying ?? picked)
         ? E.between(
             base.map((g) => g.n),
-            picked.groups.map((g) => g.n),
+            (trying ?? picked)!.groups.map((g) => g.n),
             5,
           )
         : [],
-    [base, picked],
+    [base, picked, trying],
   );
 
   const motifs = useUiStore((s) => s.motifs);
   const kept = useMemo(() => new Set(motifs.map((m) => m.join(' '))), [motifs]);
-  const pick = useCallback((v: E.Variation) => {
+  const write = useCallback((v: E.Variation) => {
     setPicked(v);
+    setTrying(null);
     varyWith(v);
   }, []);
+  // a tap tries; a second tap on the same variation (or "Use") writes it
+  const pick = useCallback(
+    (v: E.Variation) => {
+      if (tryingRef.current?.key === v.key) return write(v);
+      setTrying(v);
+      previewVary(v);
+    },
+    [write],
+  );
+  const settle = useCallback(() => previewVary(tryingRef.current), []);
   const branch = () => {
     const groups = regionGroups();
     if (E.formatGroups(groups) === E.formatGroups(base)) return;
@@ -72,11 +87,13 @@ export function VaryPanel() {
     setCur(id);
     setLocked([]);
     setPicked(null);
+    setTrying(null);
   };
   const goTo = (n: Node) => {
     setCur(n.id);
     setLocked([]);
     setPicked(null);
+    setTrying(null);
     varyWith({ groups: n.groups, key: E.formatGroups(n.groups), label: n.label, kind: 'order' });
   };
   const depth = (n: Node): number => {
@@ -135,6 +152,7 @@ export function VaryPanel() {
               }}
               onClick={() => {
                 setPicked(null);
+                setTrying(null);
                 setLocked(on ? locked.filter((x) => x !== i) : [...locked, i]);
               }}
             >
@@ -173,8 +191,14 @@ export function VaryPanel() {
               type="button"
               title={t.join(' ')}
               onMouseEnter={() => previewSizes(t)}
-              onFocus={() => previewSizes(t)}
-              onClick={() => fillSizes(t, 'On the way:')}
+              onClick={() =>
+                pick({
+                  groups: t.map((n) => ({ n, kind: 'sound' as const })),
+                  key: t.join(' '),
+                  label: 'On the way',
+                  kind: 'nudge',
+                })
+              }
             >
               <Strip sizes={t} />
               <span className="sr-only">{t.join(' ')}</span>
@@ -182,16 +206,18 @@ export function VaryPanel() {
           ))}
         </div>
       )}
-      <ul className="fill-list" aria-label="Variations" onMouseLeave={() => previewVary(null)}>
+      <ul className="fill-list" aria-label="Variations" onMouseLeave={settle}>
         <li>
           <div className="fill-row">
             <button
               type="button"
               className="fill-main"
-              aria-pressed={picked === null}
+              aria-pressed={false}
+              data-written={(picked === null && !trying) || undefined}
               onMouseEnter={() => previewVary(null)}
               onClick={() => {
                 setPicked(null);
+                setTrying(null);
                 varyWith({
                   groups: base,
                   key: E.formatGroups(base),
@@ -218,7 +244,8 @@ export function VaryPanel() {
                   <VaryRow
                     v={v}
                     beats={beats}
-                    picked={picked?.key === v.key}
+                    written={picked?.key === v.key}
+                    trying={trying?.key === v.key}
                     kept={kept.has(v.groups.map((g) => g.n).join(' '))}
                     onPick={pick}
                   />
@@ -228,6 +255,21 @@ export function VaryPanel() {
           );
         })}
       </ul>
+      <UseBar
+        trying={
+          trying && {
+            sizes: trying.groups.map((g) => g.n),
+            rests: trying.groups.flatMap((g, i) => (g.kind === 'rest' ? [i] : [])),
+          }
+        }
+        beats={beats}
+        what="variation"
+        onUse={() => trying && write(trying)}
+        onCancel={() => {
+          setTrying(null);
+          previewVary(null);
+        }}
+      />
     </div>
   );
 }
@@ -235,13 +277,15 @@ export function VaryPanel() {
 const VaryRow = memo(function VaryRow({
   v,
   beats,
-  picked,
+  written,
+  trying,
   kept,
   onPick,
 }: {
   v: E.Variation;
   beats: number[];
-  picked: boolean;
+  written: boolean;
+  trying: boolean;
   kept: boolean;
   onPick: (v: E.Variation) => void;
 }) {
@@ -251,10 +295,10 @@ const VaryRow = memo(function VaryRow({
       <button
         type="button"
         className="fill-main"
-        aria-pressed={picked}
+        aria-pressed={trying}
+        data-written={written || undefined}
+        title={trying ? 'Tap again to use it' : undefined}
         onMouseEnter={() => previewVary(v)}
-        onFocus={() => previewVary(v)}
-        onBlur={() => previewVary(null)}
         onClick={() => onPick(v)}
       >
         <GroupStrip groups={v.groups} beats={beats} />

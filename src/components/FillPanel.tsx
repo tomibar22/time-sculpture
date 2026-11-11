@@ -16,7 +16,7 @@ import {
 import { describePulse } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { Contour, Heart, Strip, useRegionBeats } from './fillParts';
+import { Contour, Heart, Strip, UseBar, useRegionBeats } from './fillParts';
 import { FillMap } from './FillMap';
 import { BreedIcon, CloseIcon, DiceIcon, HeadphonesIcon, HeartIcon, PinIcon } from './Icons';
 import { VaryPanel } from './VaryPanel';
@@ -119,7 +119,7 @@ export function FillPanel() {
       {playing && (
         <p className="lib-note fill-listening" role="status">
           This stretch is looping. Tap any {tab === 'vary' ? 'variation' : 'fill'} to hear it in
-          place; tap another to change it. Undo brings back what was there.
+          place; nothing is written until you tap Use.
         </p>
       )}
       {tab === 'vary' ? (
@@ -183,6 +183,10 @@ function Browse() {
   const [picked, setPicked] = useState<string | null>(null);
   /** The fill tried last (hovered, focused, touched on the map): B in an A/B comparison. */
   const [cand, setCand] = useState<Listed | null>(null);
+  /** The fill on trial: shown in the score and heard in the loop, not written yet. */
+  const [trying, setTrying] = useState<Listed | null>(null);
+  const tryingRef = useRef<Listed | null>(null);
+  tryingRef.current = trying;
   /** A fill pinned for comparison. */
   const [pin, setPin] = useState<Listed | null>(null);
   const [brood, setBrood] = useState<{ gen: number; kids: Listed[] }>({ gen: 0, kids: [] });
@@ -211,6 +215,7 @@ function Browse() {
     setBrood({ gen: 0, kids: [] });
     setPin(null);
     setCand(null);
+    setTrying(null);
   }, [region.a, R]);
   useEffect(() => {
     if (shape === 'mine' && !mine.length) set({ fillShape: 'shapes' });
@@ -255,12 +260,21 @@ function Browse() {
   const use = useCallback((o: Listed) => {
     setPicked(o.key);
     setCand(o);
+    setTrying(null);
     fillWith(o);
   }, []);
   const tryIt = useCallback((o: Listed) => {
     setCand(o);
+    setTrying(o);
     previewFill(o);
   }, []);
+  // a tap tries; a second tap on the same fill (or "Use") writes it
+  const choose = useCallback(
+    (o: Listed) => (tryingRef.current?.key === o.key ? use(o) : tryIt(o)),
+    [use, tryIt],
+  );
+  // after a hover, the score goes back to the fill on trial
+  const settle = useCallback(() => previewFill(tryingRef.current), []);
   const kept = useMemo(() => new Set(motifs.map((m) => m.join(' '))), [motifs]);
   const named = shape !== 'any';
   // a long list is drawn a screenful at a time: more rows arrive as the end comes into view
@@ -426,47 +440,47 @@ function Browse() {
           beats={beats}
           onUnpin={() => {
             setPin(null);
-            previewSizes(null);
+            previewFill(trying);
+          }}
+          onTry={(t) => {
+            const o = E.optionOf(meter, region.a, t);
+            setTrying(o);
+            previewFill(o);
           }}
         />
       )}
       {view === 'map' ? (
         <>
-          <FillMap options={list} cand={cand} onCand={setCand} onUse={use} />
-          <div aria-live="polite" className="fill-cand">
-            {cand ? (
-              <Row
-                o={cand}
-                beats={beats}
-                picked={picked === cand.key}
-                kept={kept.has(cand.key)}
-                named={named}
-                onUse={use}
-                onTry={tryIt}
-              />
-            ) : (
-              <p className="lib-note">Run a finger over the map to see each fill in the score.</p>
-            )}
-          </div>
+          <FillMap options={list} cand={cand} onCand={(o) => o && tryIt(o)} onUse={use} />
         </>
       ) : (
-        <ul className="fill-list" aria-label="Ways to fill" onMouseLeave={() => previewFill(null)}>
+        <ul className="fill-list" aria-label="Ways to fill" onMouseLeave={settle}>
           {list.slice(0, shown).map((o) => (
             <Row
               key={o.key}
               o={o}
               beats={beats}
-              picked={picked === o.key}
+              written={picked === o.key}
+              trying={trying?.key === o.key}
               kept={kept.has(o.key)}
               named={named}
-              onUse={use}
-              onTry={tryIt}
+              onChoose={choose}
               item
             />
           ))}
           {shown < list.length && <li ref={more} className="fill-more" aria-hidden="true" />}
         </ul>
       )}
+      <UseBar
+        trying={trying}
+        beats={beats}
+        what="fill"
+        onUse={() => trying && use(trying)}
+        onCancel={() => {
+          setTrying(null);
+          previewFill(null);
+        }}
+      />
     </div>
   );
 }
@@ -475,21 +489,23 @@ function Browse() {
 const Row = memo(function Row({
   o,
   beats,
-  picked,
+  written,
+  trying,
   kept,
   named,
-  onUse,
-  onTry,
+  onChoose,
   item,
 }: {
   o: Listed;
   beats: number[];
-  picked: boolean;
+  /** It is what is written there now. */
+  written: boolean;
+  /** It is on trial (a second tap writes it). */
+  trying: boolean;
   kept: boolean;
   /** Say the fill's shape (else its measures). */
   named: boolean;
-  onUse: (o: Listed) => void;
-  onTry: (o: Listed) => void;
+  onChoose: (o: Listed) => void;
   item?: boolean;
 }) {
   const meta =
@@ -499,11 +515,11 @@ const Row = memo(function Row({
       <button
         type="button"
         className="fill-main"
-        aria-pressed={picked}
-        onMouseEnter={() => onTry(o)}
-        onFocus={() => onTry(o)}
-        onBlur={() => previewFill(null)}
-        onClick={() => onUse(o)}
+        aria-pressed={trying}
+        data-written={written || undefined}
+        title={trying ? 'Tap again to use it' : undefined}
+        onMouseEnter={() => previewFill(o)}
+        onClick={() => onChoose(o)}
       >
         <Strip sizes={o.sizes} rests={o.rests} beats={beats} />
         <span className="fill-cap">
@@ -526,11 +542,13 @@ function Compare({
   cand,
   beats,
   onUnpin,
+  onTry,
 }: {
   pin: Listed;
   cand: Listed | null;
   beats: number[];
   onUnpin: () => void;
+  onTry: (sizes: number[]) => void;
 }) {
   const [showing, setShowing] = useState<'A' | 'B' | null>(null);
   const steps = useMemo(() => (cand ? E.between(pin.sizes, cand.sizes, 5) : []), [pin, cand]);
@@ -581,8 +599,7 @@ function Compare({
               type="button"
               title={t.join(' ')}
               onMouseEnter={() => previewSizes(t)}
-              onFocus={() => previewSizes(t)}
-              onClick={() => fillSizes(t, 'Between A and B:')}
+              onClick={() => onTry(t)}
             >
               <Strip sizes={t} />
               <span className="sr-only">{t.join(' ')}</span>

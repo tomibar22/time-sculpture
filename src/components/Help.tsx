@@ -195,7 +195,8 @@ export function Help() {
               said another way. Backwards, starting from another group, growing or shrinking, halves
               swapped, joined in pairs, every group halved, only the attacks, every other one
               silent, or shuffled. Pointing at one previews it; everything around the passage stays
-              where it is, so it still lands on 1. ↻ From here varies what is there now.
+              where it is, so it still lands on 1. A tap tries a variation in the score; Use writes
+              it. From here varies what is there now.
             </p>
           </details>
           <details className="help-topic">
