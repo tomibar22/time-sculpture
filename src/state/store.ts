@@ -65,7 +65,7 @@ function loadPrefs(): Partial<DevicePrefs> {
     if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
       out.moveMode = p.moveMode;
     if (Array.isArray(p.fillSizes)) {
-      const sizes = p.fillSizes.filter((n) => Number.isInteger(n) && n >= 1 && n <= 9);
+      const sizes = p.fillSizes.filter((n) => Number.isInteger(n) && n >= 1 && n <= 16);
       if (sizes.length) out.fillSizes = [...new Set(sizes)].sort((a, b) => a - b);
     }
     if (Array.isArray(p.motifs))

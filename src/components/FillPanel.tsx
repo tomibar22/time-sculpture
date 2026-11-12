@@ -16,14 +16,14 @@ import {
 import { describePulse } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { Contour, Heart, Strip, UseBar, useRegionBeats } from './fillParts';
+import { Contour, Heart, Strip, UseBar, useRegionBeats, type StripLine } from './fillParts';
 import { FillMap } from './FillMap';
 import { BreedIcon, CloseIcon, DiceIcon, HeadphonesIcon, HeartIcon, PinIcon } from './Icons';
 import { VaryPanel } from './VaryPanel';
 
 export { Strip } from './fillParts';
 
-const SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
 const LIMIT = 400;
 /** Rows drawn at a time in a long list. */
 const PAGE = 40;
@@ -497,7 +497,7 @@ const Row = memo(function Row({
   item,
 }: {
   o: Listed;
-  beats: number[];
+  beats: StripLine[];
   /** It is what is written there now. */
   written: boolean;
   /** It is on trial (a second tap writes it). */
@@ -546,7 +546,7 @@ function Compare({
 }: {
   pin: Listed;
   cand: Listed | null;
-  beats: number[];
+  beats: StripLine[];
   onUnpin: () => void;
   onTry: (sizes: number[]) => void;
 }) {

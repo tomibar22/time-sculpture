@@ -5,10 +5,17 @@ import { useDocStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 import { CloseIcon, HeartIcon } from './Icons';
 
+/** A line in a strip: where it falls (0–1 of the region) and whether a bar starts there. */
+export interface StripLine {
+  f: number;
+  bar: boolean;
+}
+
 /**
- * A small picture of a fill: one coloured bar per tile, widths in proportion, with the beat
- * lines it sits in drawn through it (`beats`: fractions of the way, 0–1) so the way it settles
- * into the frame of time shows at a glance.
+ * A small picture of a fill: one coloured bar per tile, placed exactly by its pulses, with the
+ * beat and bar lines it sits in drawn through it (`beats`) so the way it settles into the frame
+ * of time shows at a glance. Tiles are inset by 1 px on each side, so every tile edge is centred
+ * on its true time and a line on that time runs right through the gap.
  */
 export function Strip({
   sizes,
@@ -18,32 +25,40 @@ export function Strip({
 }: {
   sizes: number[];
   rests?: number[];
-  beats?: number[];
+  beats?: StripLine[];
   locked?: number[];
 }) {
+  const R = sizes.reduce((a, b) => a + b, 0) || 1;
+  let at = 0;
   return (
     <span className="strip" aria-hidden="true">
-      {sizes.map((n, i) =>
-        rests?.includes(i) ? (
-          <span key={i} className="strip-rest" style={{ flex: `${n} 1 0` }} />
+      {sizes.map((n, i) => {
+        const pos = { left: `${(at / R) * 100}%`, width: `${(n / R) * 100}%` };
+        at += n;
+        return rests?.includes(i) ? (
+          <span key={i} className="strip-rest" style={pos} />
         ) : (
           <span
             key={i}
             className={locked?.includes(i) ? 'strip-locked' : undefined}
-            style={{ flex: `${n} 1 0`, background: sizeColor(n), color: inkFor(sizeColor(n)) }}
+            style={{ ...pos, background: sizeColor(n), color: inkFor(sizeColor(n)) }}
           >
             {n}
           </span>
-        ),
-      )}
-      {beats?.map((f) => (
-        <i key={f} className="strip-beat" style={{ left: `${f * 100}%` }} />
+        );
+      })}
+      {beats?.map((l) => (
+        <i
+          key={l.f}
+          className={l.bar ? 'strip-beat strip-bar' : 'strip-beat'}
+          style={{ left: `${l.f * 100}%` }}
+        />
       ))}
     </span>
   );
 }
 
-export function GroupStrip({ groups, beats }: { groups: E.GroupSpec[]; beats?: number[] }) {
+export function GroupStrip({ groups, beats }: { groups: E.GroupSpec[]; beats?: StripLine[] }) {
   return (
     <Strip
       sizes={groups.map((g) => g.n)}
@@ -74,16 +89,19 @@ export function Contour({ sizes }: { sizes: number[] }) {
   );
 }
 
-/** Where the beat lines fall inside the region (fractions of its length). */
-export function useRegionBeats(): number[] {
+/** Where the beat and bar lines fall inside the region (fractions of its length). */
+export function useRegionBeats(): StripLine[] {
   const meter = useDocStore((s) => s.doc.meter);
   const region = fillRegion();
   const a = region?.a ?? 0;
   const b = region?.b ?? 0;
   return useMemo(() => {
     const grid = E.buildGrid(meter);
-    const out: number[] = [];
-    for (let k = a + 1; k < b; k++) if (E.isOnBeat(grid, k)) out.push((k - a) / (b - a));
+    const bars = new Set(E.barMap(meter).barStarts);
+    const out: StripLine[] = [];
+    for (let k = a + 1; k < b; k++)
+      if (E.isOnBeat(grid, k))
+        out.push({ f: (k - a) / (b - a), bar: bars.has(Math.round(grid.times[k]!)) });
     return out;
   }, [meter, a, b]);
 }
@@ -118,7 +136,7 @@ export function UseBar({
 }: {
   /** The fill on trial, or null: the bar keeps its place (nothing jumps under a second tap). */
   trying: { sizes: number[]; rests?: number[] } | null;
-  beats?: number[];
+  beats?: StripLine[];
   /** "fill" or "variation", for the hint. */
   what: string;
   onUse: () => void;

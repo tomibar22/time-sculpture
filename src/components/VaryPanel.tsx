@@ -10,7 +10,15 @@ import {
 } from '../state/fill';
 import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { Contour, GroupStrip, Heart, Strip, UseBar, useRegionBeats } from './fillParts';
+import {
+  Contour,
+  GroupStrip,
+  Heart,
+  Strip,
+  UseBar,
+  useRegionBeats,
+  type StripLine,
+} from './fillParts';
 import { BranchIcon, LockIcon } from './Icons';
 
 /** A passage you varied from: the history of a session of varying is a tree of these. */
@@ -146,7 +154,7 @@ export function VaryPanel() {
               className={g.kind === 'rest' ? 'rest' : undefined}
               title={on ? 'Unlock: free to change' : 'Lock: keep this group where it is'}
               style={{
-                flexGrow: g.n,
+                flex: `${g.n} 1 0`,
                 background: g.kind === 'rest' ? 'transparent' : col,
                 color: g.kind === 'rest' ? undefined : inkFor(col),
               }}
@@ -162,8 +170,12 @@ export function VaryPanel() {
             </button>
           );
         })}
-        {beats.map((f) => (
-          <i key={f} className="strip-beat" style={{ left: `${(f * 100).toFixed(3)}%` }} />
+        {beats.map((l) => (
+          <i
+            key={l.f}
+            className={l.bar ? 'strip-beat strip-bar' : 'strip-beat'}
+            style={{ left: `${(l.f * 100).toFixed(3)}%` }}
+          />
         ))}
       </div>
       <div className="fill-sort">
@@ -283,7 +295,7 @@ const VaryRow = memo(function VaryRow({
   onPick,
 }: {
   v: E.Variation;
-  beats: number[];
+  beats: StripLine[];
   written: boolean;
   trying: boolean;
   kept: boolean;

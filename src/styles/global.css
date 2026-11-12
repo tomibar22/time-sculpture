@@ -1059,14 +1059,18 @@ button.link-btn {
 }
 .strip {
   flex: 1;
-  display: flex;
+  display: block;
   height: 26px;
 }
-/* widths are exactly proportional (basis 0, no gap) so the beat lines land on tile edges;
-   the separation is a transparent border that the background does not paint under */
+/* every tile is placed by its pulses (left/width in %), so the beat and bar lines meet tile
+   edges exactly; the gap is a transparent 1 px border on each side, centred on the edge */
 .strip span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   box-sizing: border-box;
-  border-right: 2px solid transparent;
+  border: 0 solid transparent;
+  border-width: 0 1px;
   background-clip: padding-box;
   border-radius: 5px;
   font-family: var(--f-mono);
@@ -1086,7 +1090,8 @@ button.link-btn {
 }
 /* the fill panel stays compact so the score (and the live preview) remains visible */
 .fillpanel .fill-sizes {
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  /* 1–16 in two rows of eight */
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 .fillpanel .fill-sizes button {
   min-height: 38px;
@@ -1190,10 +1195,10 @@ button.link-btn {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1.5px;
-  margin-left: -0.75px;
+  width: 1px;
+  margin-left: -0.5px;
   background: var(--fg);
-  opacity: 0.3;
+  opacity: 0.28;
   border-radius: 1px;
   pointer-events: none;
 }
@@ -1382,7 +1387,7 @@ button.link-btn {
   font-size: 0;
   padding: 0;
   border-radius: 3px;
-  border-right-width: 1px;
+  border-width: 0 0.5px;
 }
 
 /* the map: every fill a dot, two measures as axes */
@@ -1483,9 +1488,13 @@ button.link-btn {
 .vary-base {
   position: relative;
   display: flex;
-  gap: 2px;
 }
+/* exact widths (basis 0, no gap) so beat and bar lines meet edges; the gap is a border */
 .vary-base button {
+  box-sizing: border-box;
+  border: 0 solid transparent;
+  border-width: 0 1px;
+  background-clip: padding-box;
   display: flex;
   min-width: 0;
   min-height: 44px;
@@ -1509,9 +1518,23 @@ button.link-btn {
     inset 0 0 0 2px var(--fg),
     inset 0 0 0 3.5px var(--card);
 }
+/* a bar line: stronger, and it reaches past the tiles so bars read at a glance */
+.strip .strip-bar,
+.vary-base .strip-bar {
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--land);
+  opacity: 0.85;
+}
 .vary-base .strip-beat {
   top: 6px;
   bottom: 6px;
+}
+.vary-base .strip-bar {
+  top: 0;
+  bottom: 0;
 }
 
 @media (pointer: coarse) {

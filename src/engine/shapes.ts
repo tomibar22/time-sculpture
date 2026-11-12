@@ -281,7 +281,7 @@ export function tihaiFills(R: number, sizes: number[], limit = 40): TihaiFill[] 
   const gaps: TihaiFill[] = [];
   if (R < 5 || !S.length) return out;
   let cells: number[][] = [[]];
-  for (let len = 1; len <= 4; len++) {
+  for (let len = 1; len <= (S.length > 9 ? 3 : 4); len++) {
     cells = cells.flatMap((c) => S.map((v) => [...c, v]));
     for (const c of cells) {
       // a phrase that is itself a repeat reads as a plain repeat, not as a phrase
@@ -363,7 +363,9 @@ export function shapeFills(
 
   // repeats and cadences of cells of 1–4 tiles
   const cells: number[][] = [[]];
-  for (let len = 1; len <= 4; len++) {
+  // with many sizes, cells of 4 would be |S|⁴ (65 536 for 16 sizes): stop at 3
+  const maxCell = S.length > 9 ? 3 : 4;
+  for (let len = 1; len <= maxCell; len++) {
     for (const c of cells.filter((x) => x.length === len - 1))
       for (const v of S) cells.push([...c, v]);
   }
