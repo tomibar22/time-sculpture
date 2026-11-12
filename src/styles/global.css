@@ -1090,8 +1090,17 @@ button.link-btn {
 }
 /* the fill panel stays compact so the score (and the live preview) remains visible */
 .fillpanel .fill-sizes {
-  /* 1–16 in two rows of eight */
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  /* 1–16 in one row; where they don't fit (phones) it scrolls sideways */
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.fillpanel .fill-sizes::-webkit-scrollbar {
+  display: none;
+}
+.fillpanel .fill-sizes button {
+  flex: 1 0 44px;
 }
 .fillpanel .fill-sizes button {
   min-height: 38px;

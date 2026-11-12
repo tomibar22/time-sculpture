@@ -201,8 +201,8 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 - Fill strips (`Strip` in fillParts.tsx) place every tile absolutely by its pulses (left/width in
   %, a 1 px transparent border each side as the gap), so lines meet tile edges exactly;
   `useRegionBeats` returns `StripLine {f, bar}`: beat lines faint, bar lines red and taller.
-  The Vary lock row uses `flex: n 1 0` with the same border gap. Fill sizes go 1–16 (two rows
-  of 8); with more than 9 sizes, shape cells stop at 3 tiles (|S|⁴ would be too slow).
+  The Vary lock row uses `flex: n 1 0` with the same border gap. Fill sizes go 1–16 (one row,
+  scrolling sideways where it doesn't fit); with more than 9 sizes, shape cells stop at 3 tiles (|S|⁴ would be too slow).
 - Fill list performance (iPhone): rows are `memo`, get `kept` / `named` as props (no store
   subscription per row: the playhead updates the ui store every frame), are drawn `PAGE` (40) at
   a time (an IntersectionObserver on `.fill-more` adds more), use `content-visibility: auto`,
