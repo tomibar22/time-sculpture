@@ -25,12 +25,12 @@ export function Strip({
     <span className="strip" aria-hidden="true">
       {sizes.map((n, i) =>
         rests?.includes(i) ? (
-          <span key={i} className="strip-rest" style={{ flexGrow: n }} />
+          <span key={i} className="strip-rest" style={{ flex: `${n} 1 0` }} />
         ) : (
           <span
             key={i}
             className={locked?.includes(i) ? 'strip-locked' : undefined}
-            style={{ flexGrow: n, background: sizeColor(n), color: inkFor(sizeColor(n)) }}
+            style={{ flex: `${n} 1 0`, background: sizeColor(n), color: inkFor(sizeColor(n)) }}
           >
             {n}
           </span>

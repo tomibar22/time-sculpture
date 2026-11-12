@@ -1060,10 +1060,14 @@ button.link-btn {
 .strip {
   flex: 1;
   display: flex;
-  gap: 2px;
   height: 26px;
 }
+/* widths are exactly proportional (basis 0, no gap) so the beat lines land on tile edges;
+   the separation is a transparent border that the background does not paint under */
 .strip span {
+  box-sizing: border-box;
+  border-right: 2px solid transparent;
+  background-clip: padding-box;
   border-radius: 5px;
   font-family: var(--f-mono);
   font-size: 0.78rem;
@@ -1372,13 +1376,13 @@ button.link-btn {
 .fill-between .strip,
 .vary-trail .strip {
   height: 16px;
-  gap: 1px;
 }
 .fill-between .strip span,
 .vary-trail .strip span {
   font-size: 0;
   padding: 0;
   border-radius: 3px;
+  border-right-width: 1px;
 }
 
 /* the map: every fill a dot, two measures as axes */
