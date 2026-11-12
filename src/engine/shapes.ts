@@ -437,6 +437,31 @@ export function shapeFills(
       put([...up, ...up.slice(0, -1).reverse()]);
       put([...[...up].reverse(), ...up.slice(1)]);
     }
+  // golden section: one longest stroke M starting near 0.618 (or 0.382) of R, the rest smaller.
+  // Built directly with a fixed generator so the list is the same every time.
+  {
+    let seed = 12345;
+    const fixed = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const tol = Math.max(0.5, R * 0.02);
+    for (const M of S) {
+      const small = S.filter((v) => v < M);
+      if (!small.length || M < 2 * small[0]!) continue;
+      for (const g of [0.618, 0.382])
+        for (let at = Math.ceil(g * R - tol); at <= Math.floor(g * R + tol); at++) {
+          const tail = R - M - at;
+          if (at < 1 || tail < 1) continue;
+          if (countWays(at, small) === 0n || countWays(tail, small) === 0n) continue;
+          for (let i = 0; i < 6; i++) {
+            const h = sampleTiling(at, small, fixed);
+            const e = sampleTiling(tail, small, fixed);
+            if (h && e) put([...h, M, ...e]);
+          }
+        }
+    }
+  }
   // even spreads: n tiles of ⌊R/n⌋ and ⌈R/n⌉, every rotation
   for (let n = 3; n <= Math.min(R, 64); n++) {
     const base = Array.from(

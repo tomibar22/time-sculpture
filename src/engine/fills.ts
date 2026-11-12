@@ -197,6 +197,9 @@ export function fillOptions(
     }
   }
   // shaped fills are built directly: random sampling almost never finds them
+  // golden fills are built directly too; a random draw that happens to be golden would make the
+  // family's count change on every opening
+  if (total > BigInt(limit)) tilings = tilings.filter((t) => shapeOf(t)?.family !== 'golden');
   const have = new Set(tilings.map((t) => t.join(' ')));
   for (const s of shapeFills(R, sizes, 40, rng)) {
     const k = s.sizes.join(' ');
