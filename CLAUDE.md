@@ -215,7 +215,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   **Use**, and a second tap on the same row also writes. Hover previews and settles back on
   the fill on trial. Direct writes: Surprise, "Use A", "As it was".
 - **Listen** (`toggleListen`, a named button in the panel head): loops the region, so whatever
-  is on trial (or written) is heard in place. While on, a status line says so.
+  is on trial (or written) is heard in place. While on, a status line says so (screen readers only: visually hidden to save room on phones, user request).
 - **Vary, deeper** (VaryPanel.tsx): tap groups to lock them (`variations(…, locked)` varies the
   free stretches only); kinds grouped (Nearby = `nudges`, Reordered, Broader/denser incl.
   `scaleTo` augment/diminish, Shuffled); "On the way" steps to the picked variation; a history

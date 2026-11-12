@@ -117,7 +117,7 @@ export function FillPanel() {
         </button>
       </div>
       {playing && (
-        <p className="lib-note fill-listening" role="status">
+        <p className="sr-only" role="status">
           This stretch is looping. Tap any {tab === 'vary' ? 'variation' : 'fill'} to hear it in
           place; nothing is written until you tap Use.
         </p>
