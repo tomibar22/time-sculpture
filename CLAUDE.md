@@ -511,7 +511,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 ### The dock, kept low (phone review, user request "do everything")
 
 - The score is what the screen is for: on an iPhone two rows stay in sight with a group selected.
-- **State line**: the selection / caret bar's head is one thin line (24 px): what is selected on
+- **State line** (replaces the old "N open · Fill with silence · Fill randomly… · Browse fills…" row under the score, removed at the user's request; Random is a tab in the fill panel): the selection / caret bar's head is one thin line (24 px): what is selected on
   the left, `PieceState` (Status.tsx) on the right: "N to go" + "Fill it…" (opens Browse), or
   "On the 1". With nothing selected the bar is `.selbar.bare` (the line alone). The status line
   under the score stays (and is what the e2e tests read).

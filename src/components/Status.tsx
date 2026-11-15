@@ -1,5 +1,5 @@
 import * as E from '../engine';
-import { adjustEnd, fillWithSilence } from '../state/actions';
+import { adjustEnd } from '../state/actions';
 import { beatsLabel } from '../score/draw';
 import { openFill } from '../state/fill';
 import { useDocStore } from '../state/store';
@@ -13,22 +13,7 @@ export function Status() {
 
   return (
     <div className="status" data-testid="status">
-      {R === 0 ? (
-        <span className="ok">Complete · lands on 1</span>
-      ) : (
-        <span className="open-state">
-          <span className="warn">{R} open</span>
-          <button type="button" className="link-btn" onClick={fillWithSilence}>
-            Fill with silence
-          </button>
-          <button type="button" className="link-btn" onClick={() => openFill('random')}>
-            Fill randomly…
-          </button>
-          <button type="button" className="link-btn" onClick={() => openFill('browse')}>
-            Browse fills…
-          </button>
-        </span>
-      )}
+      {R === 0 ? <span className="ok">Complete · lands on 1</span> : null}
       {doc.meter.sections?.length ? <Landing /> : null}
       <span className="seq sr-only" data-testid="sequence">
         {start.join(' ') || '·'} │ {ending.join(' ') || '·'}

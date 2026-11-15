@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('keep a fill, breed from it, and fill from the next generation', async ({ page }) => {
-  await page.getByRole('button', { name: 'Browse fills…' }).click();
+  await page.getByRole('button', { name: 'Fill it…' }).click();
   await fillFold(page, 'Sizes');
   await page.getByTestId('fill-1').click();
   const list = page.getByRole('list', { name: 'Ways to fill' });
@@ -30,7 +30,7 @@ test('keep a fill, breed from it, and fill from the next generation', async ({ p
 });
 
 test('the map: arrow keys walk between fills, Enter uses one', async ({ page }) => {
-  await page.getByRole('button', { name: 'Browse fills…' }).click();
+  await page.getByRole('button', { name: 'Fill it…' }).click();
   await page.getByRole('button', { name: 'Map', exact: true }).click();
   const map = page.getByRole('application', { name: /Map of/ });
   await map.focus();
@@ -62,6 +62,6 @@ test('deleting everything leaves open space, ready to fill again', async ({ page
   await page.keyboard.press('Shift+KeyA');
   await page.keyboard.press('Delete');
   await expect(page.getByTestId('status')).not.toContainText('Complete');
-  await page.getByRole('button', { name: 'Browse fills…' }).click();
+  await page.getByRole('button', { name: 'Fill it…' }).click();
   await expect(page.getByRole('list', { name: 'Ways to fill' })).toBeVisible();
 });

@@ -26,7 +26,7 @@ test('vary a passage: the same time said another way', async ({ page }) => {
 });
 
 test('a tihai fills the open space and lands on 1', async ({ page }) => {
-  await page.getByRole('button', { name: 'Browse fills…' }).click();
+  await page.getByRole('button', { name: 'Fill it…' }).click();
   // 9 open pulses: 3 × phrase + 2 × gap = 9 → 1 3 1 3 1, once size 1 is allowed
   await fillFold(page, 'Sizes');
   await page.getByTestId('fill-1').click();
