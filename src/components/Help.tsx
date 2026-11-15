@@ -63,12 +63,12 @@ export function Help() {
             <summary>Subdivision</summary>
             <p>
               The dotted band under each row shows the pulses of every beat (beats that differ are
-              tinted, and each change of ratio is named once, in the band). Pick 1:1 to 8:1, then
-              tap or drag along the band, or select groups and press B. Groups keep their moments in
-              time and snap to the nearest new pulse; you can undo. Right where you work:
-              Subdivision… (in the bar above the number pad) gives the beats under the selection,
-              range or caret a ratio, and you can try one after another. On a phone, the brush (with
-              beats, bars and drag mode) is in the line above the score.
+              tinted, and each change of ratio is named once, in the band). Tap a beat in the band,
+              or drag along it to pick several (⇧ reaches on): the ratios 1:1 to 8:1 open above the
+              transport, and you can try one after another. “Every beat” picks the whole piece.
+              Groups keep their moments in time and snap to the nearest new pulse; you can undo.
+              Subdivision… (in the bar above the number pad) or B does the same for the beats under
+              the selection, range or caret.
             </p>
           </details>
           <details className="help-topic">
@@ -247,9 +247,9 @@ export function Help() {
               Space play · ⇧Space loop the selection, or play from the caret · Enter line break · P
               phrase mark · T modulate · ← → move the selection or the caret · ⇧← ⇧→ select like
               text · Home / End caret to the start or end · 1–9 type · Delete remove · M merge · S
-              split · D duplicate · + − resize · ⌥← ⌥→ trim · B brush · [ ] repeat signs · V ending
-              · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ? this help · ⇧P name a
-              phrase mark · F stage · Esc clear
+              split · D duplicate · + − resize · ⌥← ⌥→ trim · B subdivision · [ ] repeat signs · V
+              ending · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ? this help · ⇧P
+              name a phrase mark · F stage · Esc clear
             </p>
           </details>
           <details className="help-topic">

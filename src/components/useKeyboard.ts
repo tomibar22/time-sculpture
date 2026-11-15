@@ -21,7 +21,7 @@ import {
   undo,
 } from '../state/actions';
 import {
-  brushSelection,
+  openSubdivision,
   copySelection,
   caretHome,
   deleteAtCaret,
@@ -270,12 +270,12 @@ export function useKeyboard() {
         deleteAtCaret(e.key === 'Backspace' ? -1 : 1);
         return;
       }
-      if (k === 'b' && useUiStore.getState().range) return brushSelection();
+      if (k === 'b' && useUiStore.getState().range) return openSubdivision();
       if (!hasSel) return;
       if (e.key === '+' || e.key === '=') return resizeSelection(1);
       if (e.key === '-' || e.key === '_') return resizeSelection(-1);
       if (k === 'r' && e.shiftKey) return reverseSelection();
-      if (k === 'b') return brushSelection();
+      if (k === 'b') return openSubdivision();
       if (k === 's') splitSelection();
       else if (k === 'm') mergeSelection();
       else if (k === 'd') duplicateSelection();

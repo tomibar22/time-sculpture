@@ -125,7 +125,7 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
     doc,
     selection: new Set<string>(),
     lifted: new Set<string>(),
-    painting: null,
+    picked: null,
     activeBoundary: null,
     hoverBoundary: null,
     showHandles: false,

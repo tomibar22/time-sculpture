@@ -139,6 +139,7 @@ export function extendSelection(dir: -1 | 1): void {
 /** Esc: a selection or range collapses to a caret at its end; a lone caret is dismissed. */
 export function escape(): void {
   const s = ui();
+  if (s.beatSel) return void setUi({ beatSel: null, subPanel: false });
   if (s.selection.length || s.range) {
     const k = caretPulse();
     setUi({ selection: [], anchor: null, multi: false });
@@ -390,27 +391,21 @@ export function trimSelection(side: 'start' | 'end', dir: -1 | 1): void {
   else announce(`${now?.n} pulses`);
 }
 
-/** B: paint the brush subdivision on the beats under the selection. */
-export function brushSelection(): void {
-  const d = doc();
-  const region = selectedRegion();
-  if (!region) return sfx.nope();
-  const grid = E.buildGrid(d.meter);
-  const s0 = region.a;
-  const e0 = region.b;
-  const b0 = E.beatOfPulse(grid, s0);
-  const b1 = E.beatOfPulse(grid, Math.max(s0, e0 - 1));
-  const beats: number[] = [];
-  for (let b = b0; b <= b1; b++) beats.push(b);
-  paintSubdivision(beats);
-}
-
 /* ------------------------------------------------------------------ subdivision where you are */
 
-/** Beats under the selection or range, or the caret's beat (the beat it starts, or is inside). */
+/**
+ * The beats the subdivision row works on: those picked in the band, else the beats under the
+ * selection or range, else the caret's beat (the beat it starts, or is inside).
+ */
 export function beatsHere(): number[] {
   const d = doc();
   const grid = E.buildGrid(d.meter);
+  const picked = ui().beatSel;
+  if (picked) {
+    const out: number[] = [];
+    for (let x = Math.max(0, picked.a); x <= Math.min(picked.b, grid.NB - 1); x++) out.push(x);
+    return out;
+  }
   const region = selectedRegion();
   const caret = ui().caret;
   if (!region && caret === null) return [];
@@ -425,9 +420,31 @@ export function beatsHere(): number[] {
 export function openSubdivision(): void {
   if (!beatsHere().length) {
     sfx.nope();
-    return void toast('Place the caret or select tiles first');
+    return void toast('Tap the band under the tiles to pick beats');
   }
   setUi({ subPanel: true, fillPanel: null });
+}
+
+/**
+ * Pick beats in the band (a tap, or a drag along it): they light up there and the row of ratios
+ * opens for them. One selection at a time: tiles and ranges let go.
+ */
+export function pickBeats(a: number, b: number): void {
+  const s = ui();
+  if (s.selection.length || s.range) escape();
+  setUi({ beatSel: { a: Math.min(a, b), b: Math.max(a, b) }, subPanel: true, fillPanel: null });
+  const n = Math.abs(b - a) + 1;
+  announce(`${plural(n, 'beat')} picked. Choose a ratio.`);
+}
+
+/** Every beat of the piece, for one ratio throughout. */
+export function pickAllBeats(): void {
+  pickBeats(0, doc().meter.subdivision.length - 1);
+}
+
+/** Close the row of ratios and let go of the beats picked in the band. */
+export function closeSubdivision(): void {
+  setUi({ subPanel: false, beatSel: null });
 }
 
 /**
@@ -441,6 +458,7 @@ export function subdivideBeats(beats: readonly number[], d: number): void {
   const grid = E.buildGrid(doc().meter);
   const a = grid.pre[beats[0]!]!;
   const b = grid.pre[beats[beats.length - 1]! + 1] ?? grid.TS;
+  if (before.beatSel) return; // beats picked in the band stay picked: try another ratio
   if (before.range) setRange(a, b);
   else if (before.caret !== null && !before.selection.length) setCaret(a, { quiet: true });
 }

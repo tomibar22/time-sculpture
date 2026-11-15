@@ -203,8 +203,10 @@ export interface UiState {
   fillAxes: [FillAxis, FillAxis];
   /** Fills saved with ♥ (device preference). */
   motifs: number[][];
-  /** The docked subdivision row, for the beats under the selection, range or caret. */
+  /** The docked subdivision row, for the beats picked in the band, or under the selection, range or caret. */
   subPanel: boolean;
+  /** Beats picked in the subdivision band (first to last, both included): what the row works on. */
+  beatSel: { a: number; b: number } | null;
   /** The modulation dialog: adding one at a beat, or editing one (index into meter.sections). */
   modDialog: { at: number } | { index: number } | null;
   /** The endings dialog: a new ending over pulses [ka, kb), or editing one (index into voltas). */
@@ -280,6 +282,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillAxes: ['tiles', 'sync'],
   motifs: [],
   subPanel: false,
+  beatSel: null,
   modDialog: null,
   voltaDialog: null,
   markDialog: null,

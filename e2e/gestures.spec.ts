@@ -89,13 +89,27 @@ test('long-press enters multi-select, then taps add', async ({ page }) => {
   await expect(page.getByTestId('selname')).toContainText('2 selected');
 });
 
-test('paint a subdivision on the lane', async ({ page }) => {
-  await openSetup(page);
-  await page.getByRole('button', { name: '3:1', exact: true }).click();
+test('tap a beat in the band, then pick its ratio; drag picks a run of beats', async ({ page }) => {
   const s = await score(page);
   await tap(page, laneAt(s, 0));
+  const panel = page.getByRole('group', { name: /Subdivision · bar 1, beat 1/ });
+  await panel.getByRole('button', { name: '3:1', exact: true }).click();
   await expect(page.getByTestId('status')).toContainText('3:1 4:1');
   await expect(page.getByTestId('toast')).toContainText('Beat 1.1 now 3:1');
+  // the beat stays picked: try another ratio on it
+  await panel.getByRole('button', { name: '5:1', exact: true }).click();
+  await expect(page.getByTestId('status')).toContainText('4:1 5:1 · 33 pulses');
+  // a drag along the band picks every beat it passes
+  await drag(page, laneAt(s, 1), laneAt(s, 3));
+  const run = page.getByRole('group', { name: /Subdivision · bar 1, beats 2–4/ });
+  await run.getByRole('button', { name: '2:1', exact: true }).click();
+  await expect(page.getByTestId('status')).toContainText('2:1 4:1 5:1 · 27 pulses');
+  // every beat at once
+  await page.getByRole('button', { name: 'Every beat' }).click();
+  await page.getByRole('button', { name: '3:1', exact: true }).click();
+  await expect(page.getByTestId('status')).toContainText('4×2 · 3:1 · 24 pulses');
+  await page.getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('button', { name: '3:1', exact: true })).toHaveCount(0);
 });
 
 test('keyboard: split, remove, undo', async ({ page }) => {

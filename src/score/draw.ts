@@ -31,8 +31,8 @@ export interface DrawState {
   doc: Doc;
   selection: ReadonlySet<ItemId>;
   lifted: ReadonlySet<ItemId>;
-  /** Beats being painted and the brush. */
-  painting: { beats: ReadonlySet<number>; d: number } | null;
+  /** Beats picked in the subdivision band (being swept, or the ones the ratios row works on). */
+  picked: ReadonlySet<number> | null;
   activeBoundary: string | null;
   hoverBoundary: string | null;
   showHandles: boolean;
@@ -195,21 +195,25 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.fillStyle = P.soft;
     rr(c, L.margin, by, rowW, L.bandH, 7);
     c.fill();
-    const ratioAt = (b: number) =>
-      s.painting && s.painting.beats.has(b) ? s.painting.d : (sd[b] ?? 0);
+    const ratioAt = (b: number) => sd[b] ?? 0;
     const labels: { x: number; text: string }[] = [];
     for (let gb = bFirst; gb <= bLast; gb++) {
-      const painting = !!s.painting && s.painting.beats.has(gb);
+      const painting = !!s.picked && s.picked.has(gb);
       const d = ratioAt(gb);
       const odd = d !== common;
       if (odd || painting) {
         const x0 = xAt(Math.max(gb, row.b0));
         const x1 = xAt(Math.min(gb + 1, row.b0 + row.nb));
-        c.fillStyle = P.accent;
+        c.fillStyle = painting ? P.sel : P.accent;
         c.globalAlpha = painting ? 0.3 : 0.13;
         rr(c, x0 + 1, by, Math.max(0, x1 - x0 - 2), L.bandH, 6);
         c.fill();
         c.globalAlpha = 1;
+        if (painting) {
+          c.strokeStyle = P.sel;
+          c.lineWidth = 1.5;
+          c.stroke();
+        }
       }
       // named at the start of the piece and of each section, and wherever the ratio changes
       // (back to the main one too)

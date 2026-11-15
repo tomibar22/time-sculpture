@@ -1,10 +1,8 @@
-import { applySubdivisionEverywhere } from '../state/actions';
 import { useDocStore, useUiStore } from '../state/store';
 
 export function Options() {
   const ticks = useUiStore((s) => s.ticks);
   const click = useUiStore((s) => s.click);
-  const brush = useUiStore((s) => s.brush);
   const set = useUiStore((s) => s.set);
   const log = useDocStore((s) => s.log);
   return (
@@ -27,11 +25,6 @@ export function Options() {
           />{' '}
           Hear the subdivisions
         </label>
-        <div>
-          <button type="button" onClick={applySubdivisionEverywhere}>
-            Apply {brush}:1 to every beat
-          </button>
-        </div>
         {log.length > 0 && <p className="hist">Recent: {log.join(' → ')}</p>}
       </div>
     </details>

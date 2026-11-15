@@ -227,7 +227,7 @@ export function SelectionBar() {
         <button
           type="button"
           disabled={!sel.length}
-          title="Subdivision of the beats under the selection (B paints the brush)"
+          title="Subdivision of the beats under the selection (B)"
           onClick={openSubdivision}
         >
           Subdivision…

@@ -39,6 +39,7 @@ function adopt(id: string, raw: unknown, rename?: (name: string) => string): str
     preview: null,
     fillPanel: null,
     subPanel: false,
+    beatSel: null,
     overview: false,
     selection: [],
     caret: null,
@@ -143,6 +144,7 @@ export async function createPiece(doc: Doc = blankDoc(), name = 'Untitled'): Pro
     preview: null,
     fillPanel: null,
     subPanel: false,
+    beatSel: null,
     overview: false,
   });
   await savePiece(id, currentSaved());

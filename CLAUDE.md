@@ -541,6 +541,21 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   e2e `openShare(page)`) → Compositions → rename → files. No emoji (DiceIcon).
 - Stage: "Loop on / off" in words, like its neighbours.
 
+### Subdivision: pick beats in the band, then a ratio (user request: the brush was clumsy)
+
+- There is **no brush in the UI** any more (no ratio picker in the settings, no "Apply to every
+  beat" in Options, nothing is painted). The band under the tiles is selectable like the tiles:
+  a tap picks a beat, a drag a run of beats (⇧ reaches on from what is picked) → `pickBeats(a, b)`
+  sets `ui.beatSel {a, b}` (beat indices, inclusive) and opens the ratios row (`SubdivPanel`,
+  `ui.subPanel`). Picked beats are drawn in `--sel` in the band (`DrawState.picked`).
+- `beatsHere()` = `beatSel`, else the beats under the selection / range, else the caret's beat.
+  `subdivideBeats` keeps `beatSel` (try one ratio after another). "Every beat" in the row's head
+  = `pickAllBeats`. `closeSubdivision()` (Close, Esc, a press anywhere else in the score, the
+  fill panel opening) lets go of them. One selection at a time: picking beats clears tiles/range.
+- **B** and "Subdivision…" open the same row for the beats under the selection / range / caret.
+- `ui.brush` remains only as "the ratio used last" (new bars and beats get it: `resizeMeter`,
+  `resizeBeats`). The settings line shows the piece's ratios instead ("4×2 · 3:1 4:1 · pulse").
+
 ## Design tokens (src/styles/tokens.css)
 
 | token                 | light   | dark    |

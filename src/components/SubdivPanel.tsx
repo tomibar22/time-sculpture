@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import * as E from '../engine';
-import { beatsHere, subdivideBeats } from '../state/editing';
+import { beatsHere, closeSubdivision, pickAllBeats, subdivideBeats } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 
 /**
@@ -14,11 +14,14 @@ export function SubdivPanel() {
   useUiStore((s) => s.selection);
   useUiStore((s) => s.range);
   useUiStore((s) => s.caret);
+  useUiStore((s) => s.beatSel);
   const meter = useDocStore((s) => s.doc.meter);
   const beats = open ? beatsHere() : [];
   // nothing to work on any more (the caret was removed): close, so it does not pop up later
   useEffect(() => {
-    if (open && !beats.length) set({ subPanel: false });
+    if (open && !beats.length) closeSubdivision();
+    // closed from elsewhere (the fill panel opened): the picked beats go with it
+    if (!open && useUiStore.getState().beatSel) set({ beatSel: null });
   });
   if (!open || !beats.length) return null;
   const first = E.barBeat(meter, beats[0]!);
@@ -26,7 +29,11 @@ export function SubdivPanel() {
   const where =
     beats.length === 1
       ? `bar ${first.bar}, beat ${first.beat}`
-      : `bar ${first.bar} beat ${first.beat} – bar ${last.bar} beat ${last.beat} (${beats.length} beats)`;
+      : beats.length === meter.subdivision.length
+        ? 'every beat'
+        : first.bar === last.bar
+          ? `bar ${first.bar}, beats ${first.beat}–${last.beat}`
+          : `bar ${first.bar} beat ${first.beat} – bar ${last.bar} beat ${last.beat}`;
   const ds = new Set(beats.map((b) => meter.subdivision[b]));
   const current = ds.size === 1 ? [...ds][0] : null;
 
@@ -36,7 +43,17 @@ export function SubdivPanel() {
         <span id="subpanel-h" className="selname">
           Subdivision <span className="dim">· {where}</span>
         </span>
-        <button type="button" className="ghost" onClick={() => set({ subPanel: false })}>
+        {beats.length < meter.subdivision.length && (
+          <button
+            type="button"
+            className="ghost"
+            title="Pick every beat of the piece, for one ratio throughout"
+            onClick={pickAllBeats}
+          >
+            Every beat
+          </button>
+        )}
+        <button type="button" className="ghost" onClick={closeSubdivision}>
           Close
         </button>
       </div>

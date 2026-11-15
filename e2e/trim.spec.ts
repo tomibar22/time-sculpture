@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, drag, expectSeq, P, openSetup, score, tap, ready } from './helpers';
+import { at, DEFAULT_SEQ, drag, expectSeq, P, score, tap, ready } from './helpers';
 
 // Default: (2) 3 3 2 │ 3 (1) 3 2 4 — the first 3 spans pulses 2–5.
 
@@ -41,12 +41,11 @@ test('⌥ arrows trim the end, ⌥⇧ arrows the start', async ({ page }) => {
   await expectSeq(page, '(3) 2 (1) 2 2 │ 3 (1) 3 2 4');
 });
 
-test('B paints the brush on the beats under the selection', async ({ page }) => {
-  await openSetup(page);
-  await page.getByRole('button', { name: '3:1', exact: true }).click();
+test('B opens the ratios for the beats under the selection', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(3.5)));
   await page.keyboard.press('b');
+  await page.getByRole('button', { name: '3:1', exact: true }).click();
   await expect(page.getByTestId('status')).toContainText('3:1 4:1');
   await expect(page.getByTestId('toast')).toContainText('Beats 1.1–1.2 now 3:1');
 });

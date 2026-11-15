@@ -2,17 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import * as E from '../engine';
 import type { Doc, ItemId, OpResult } from '../engine';
 import { ui as sfx } from '../audio/voices';
-import {
-  announce,
-  flash,
-  paintSubdivision,
-  reportSlide,
-  run,
-  select,
-  splitSelection,
-  toast,
-} from '../state/actions';
-import { setCaret, setRange } from '../state/editing';
+import { announce, flash, reportSlide, run, select, splitSelection, toast } from '../state/actions';
+import { setCaret, setRange, closeSubdivision, pickBeats } from '../state/editing';
 import { diveAt, zoomStep } from '../state/zoom';
 import { OVERVIEW_LEVELS, zoomLevels } from './rows';
 import { anchorAtPoint, restoreAnchor, view } from './view';
@@ -106,6 +97,14 @@ function overviewPer(width: number, doc: Doc, perRow: number, fit: boolean): num
   return ls[ls.length - 1] ?? perRow;
 }
 
+/** The beats picked in the band, as a set for drawing. */
+function pickedBeats(sel: { a: number; b: number } | null): ReadonlySet<number> | null {
+  if (!sel) return null;
+  const out = new Set<number>();
+  for (let b = sel.a; b <= sel.b; b++) out.add(b);
+  return out;
+}
+
 export function Score() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -175,7 +174,7 @@ export function Score() {
         stage,
         selection: new Set(stage ? [] : s.selection),
         lifted: new Set(s.lifted),
-        painting: gs?.kind === 'lane' ? { beats: gs.beats, d: s.brush } : null,
+        picked: gs?.kind === 'lane' ? gs.beats : stage ? null : pickedBeats(s.beatSel),
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
         showHandles: !stage && gs?.kind !== 'slide' && gs?.kind !== 'place',
@@ -493,11 +492,19 @@ export function Score() {
         return;
       }
     }
+    // the band under the tiles is selectable like the tiles: a tap picks a beat, a drag a run
+    // of beats (⇧ reaches on from the beats already picked), and the row of ratios opens for them
     if (h.zone === 'lane') {
-      gesture.current = { kind: 'lane', beats: new Set([h.beat]) };
+      const had = e.shiftKey ? ui().beatSel : null;
+      const beats = new Set<number>([h.beat]);
+      if (had)
+        for (let b = Math.min(had.a, h.beat); b <= Math.max(had.b, h.beat); b++) beats.add(b);
+      gesture.current = { kind: 'lane', beats };
       request();
       return;
     }
+    // anything else lets go of the beats picked in the band
+    if (ui().beatSel) closeSubdivision();
     const touch = e.pointerType === 'touch';
     // a single selected group shows trim grips on its edges; they win over the line handles
     const sel = E.selectedIndices(doc.items, ui().selection);
@@ -647,7 +654,10 @@ export function Score() {
     if (gs.kind === 'lane') {
       const beat = hit(g, x, y).beat;
       if (!gs.beats.has(beat)) {
-        gs.beats.add(beat);
+        // a run, not a scatter: everything between the ends is in
+        const lo = Math.min(beat, ...gs.beats);
+        const hi = Math.max(beat, ...gs.beats);
+        for (let b = lo; b <= hi; b++) gs.beats.add(b);
         request();
       }
       return;
@@ -794,7 +804,7 @@ export function Score() {
     }
     if (gs.kind === 'lane') {
       request();
-      if (!cancelled) paintSubdivision([...gs.beats]);
+      if (!cancelled) pickBeats(Math.min(...gs.beats), Math.max(...gs.beats));
       return;
     }
     if (gs.kind === 'boundary') {

@@ -2793,3 +2793,17 @@ button.lib-fold {
 button.lib-fold {
   white-space: nowrap;
 }
+
+/* the ratios row: its head stays on one line */
+.subpanel .fill-head .selname {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.subpanel .fill-head button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 0 10px;
+}
