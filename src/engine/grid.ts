@@ -4,6 +4,10 @@ export const MIN_BEATS = 3;
 export const MAX_BEATS = 13;
 export const MIN_CYCLES = 1;
 export const MAX_CYCLES = 32;
+/** Longest pattern of bar sizes ("5 5 4"). */
+export const MAX_PATTERN = 8;
+/** Most bars a row may be asked to hold. */
+export const MAX_ROW_BARS = 16;
 export const MIN_SUBDIVISION = 1;
 export const MAX_SUBDIVISION = 8;
 

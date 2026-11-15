@@ -1,4 +1,4 @@
-import { barMap, buildGrid, EPS, nearestPulse, sectionAt } from '../engine';
+import { barMap, buildGrid, EPS, MAX_ROW_BARS, nearestPulse, rowSizeAt } from '../engine';
 import type { Meter } from '../engine';
 
 /**
@@ -64,12 +64,17 @@ export interface RowSpan {
 export function rowLayout(meter: Meter, perRow: number): RowSpan[] {
   const grid = buildGrid(meter);
   // whole bars per row, or (zoomed in) a share of each bar
-  const per =
+  const zoom =
     perRow < 1 ? Math.max(0.25, perRow) : Math.max(1, Math.min(MAX_OVERVIEW, Math.round(perRow)));
   const map = barMap(meter);
   const breaks = meter.breaks ?? [];
-  // a modulation always starts a new row
-  const sectionStarts = map.sections.slice(1).map((s) => s.at);
+  // a modulation always starts a new row (a change of metre alone does not)
+  const sectionStarts = map.sections
+    .slice(1)
+    .filter((s) => s.from !== s.to)
+    .map((s) => s.at);
+  // rows that were given a size of their own: a row starts where a size begins
+  const sizes = (meter.rowSizes ?? []).map((r) => r.at).filter((t) => t > EPS);
   const rows: RowSpan[] = [];
   let t0 = 0;
   let manual = false;
@@ -77,17 +82,30 @@ export function rowLayout(meter: Meter, perRow: number): RowSpan[] {
   while (t0 < grid.NB - EPS) {
     while (bi < breaks.length && breaks[bi]! <= t0 + EPS) bi++;
     const nextBreak = breaks[bi] ?? Infinity;
-    const nextSection = sectionStarts.find((a) => a > t0 + EPS) ?? Infinity;
+    const nextSection = Math.min(
+      sectionStarts.find((a) => a > t0 + EPS) ?? Infinity,
+      sizes.find((a) => a > t0 + EPS) ?? Infinity,
+    );
+    // this row's own size wins over the zoom
+    const own = rowSizeAt(meter, t0);
+    const per = own > 0 ? Math.min(MAX_ROW_BARS, own) : zoom;
     // wrap after `per` bars of the section we are in; from a mid-bar break, after the same span
-    const sec = map.sections[sectionAt(meter, t0)]!;
     const barIdx = map.barStarts.indexOf(Math.round(t0));
     const onBarLine = Math.abs(t0 - Math.round(t0)) < EPS && barIdx >= 0;
     let auto: number;
     if (per < 1) {
       // a share of the bar, restarting at every bar line
       const nextBar = map.barStarts.find((b) => b > t0 + EPS) ?? grid.NB;
-      auto = Math.min(t0 + subBarBeats(sec.beatsPerBar, per), nextBar);
-    } else auto = onBarLine ? (map.barStarts[barIdx + per] ?? grid.NB) : t0 + per * sec.beatsPerBar;
+      const barStart = [...map.barStarts].reverse().find((b) => b <= t0 + EPS) ?? 0;
+      auto = Math.min(t0 + subBarBeats(nextBar - barStart, per), nextBar);
+    } else if (onBarLine) auto = map.barStarts[barIdx + per] ?? grid.NB;
+    else {
+      // from inside a bar: the same number of bar lines further on, at the same place in the bar
+      const bi0 = map.barStarts.filter((b) => b <= t0 + EPS).length - 1;
+      const into = t0 - (map.barStarts[bi0] ?? 0);
+      const target = map.barStarts[bi0 + per];
+      auto = target === undefined ? grid.NB : Math.min(target + into, grid.NB);
+    }
     const t1 = Math.min(nextBreak, nextSection, auto, grid.NB);
     let k1 = t1 >= grid.NB - EPS ? grid.TS : nearestPulse(grid, t1);
     const k0 = nearestPulse(grid, t0);

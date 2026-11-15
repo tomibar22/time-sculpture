@@ -10,7 +10,7 @@ import {
   MIN_SUBDIVISION,
   nearestPulse,
 } from '../grid';
-import { barMap } from '../sections';
+import { barMap, isFree } from '../sections';
 import { resizeBeats, setMainBarSize } from './sections';
 import {
   group,
@@ -21,6 +21,7 @@ import {
   syncSpace,
   withBreaks,
   withMarks,
+  withRowSizes,
 } from '../doc';
 import { fail, report } from '../report';
 import type { Doc, Item, ItemId, Meter, OpResult } from '../types';
@@ -115,7 +116,7 @@ export function resizeMeter(
   if (beatsPerCycle === meter.beatsPerCycle && cycles === meter.cycles)
     return { doc, report: fail('no-change') };
   // with modulations: beats regroup the main section; bars are added or cut at the end
-  if (meter.sections?.length) {
+  if (isFree(meter)) {
     if (beatsPerCycle !== meter.beatsPerCycle) return setMainBarSize(doc, beatsPerCycle);
     const map = barMap(meter);
     const lastBar = map.sections[map.sections.length - 1]!.beatsPerBar;
@@ -138,7 +139,10 @@ export function resizeMeter(
   const atEnd = (t: number) => (Math.abs(t - oNB) < EPS ? nNB : t);
   const nm: Meter = withForm(
     withMarks(
-      withBreaks({ beatsPerCycle, cycles, subdivision }, meter.breaks ?? []),
+      withBreaks(
+        withRowSizes({ beatsPerCycle, cycles, subdivision }, meter.rowSizes ?? []),
+        meter.breaks ?? [],
+      ),
       meter.marks ?? [],
       meter.markNames,
     ),
@@ -237,7 +241,8 @@ export function prependBars(doc: Doc, n: number): OpResult {
   const B = meter.beatsPerCycle;
   if (!Number.isInteger(n) || n < 1) return { doc, report: fail('out-of-range') };
   const sections = meter.sections ?? [];
-  const maxBars = sections.length ? MAX_CYCLES * 2 : MAX_CYCLES;
+  const free = isFree(meter);
+  const maxBars = free ? MAX_CYCLES * 2 : MAX_CYCLES;
   if (meter.cycles + n > maxBars) return { doc, report: fail('out-of-range') };
   const add = n * B;
   const first = meter.subdivision.slice(0, B);
@@ -251,9 +256,10 @@ export function prependBars(doc: Doc, n: number): OpResult {
     ...(meter.marks?.length ? { marks: meter.marks.map(shift) } : {}),
     ...(meter.markNames ? { markNames: meter.markNames } : {}),
     ...(sections.length ? { sections: sections.map((x) => ({ ...x, at: x.at + add })) } : {}),
+    ...(meter.bars ? { bars: meter.bars } : {}),
   };
-  const withBars = sections.length ? { ...base, cycles: barMap(base).barStarts.length } : base;
-  const nm = withForm(withBars, formOf(meter), shift);
+  const withBars = free ? { ...base, cycles: barMap(base).barStarts.length } : base;
+  const nm = withForm(withRowSizes(withBars, meter.rowSizes ?? [], shift), formOf(meter), shift);
 
   // the new bars are the open space: everything written goes after it
   const { ids, nextId } = mintIds(doc, 1);
@@ -285,8 +291,8 @@ export function prependBars(doc: Doc, n: number): OpResult {
 export function appendBars(doc: Doc, n: number): OpResult {
   const { meter } = doc;
   if (!Number.isInteger(n) || n < 1) return { doc, report: fail('out-of-range') };
-  const sections = meter.sections ?? [];
-  const maxBars = sections.length ? MAX_CYCLES * 2 : MAX_CYCLES;
+  const free = isFree(meter);
+  const maxBars = free ? MAX_CYCLES * 2 : MAX_CYCLES;
   if (meter.cycles + n > maxBars) return { doc, report: fail('out-of-range') };
   const map = barMap(meter);
   const size = map.sections[map.sections.length - 1]!.beatsPerBar;
@@ -295,7 +301,7 @@ export function appendBars(doc: Doc, n: number): OpResult {
   const base: Meter = { ...meter, subdivision: [...meter.subdivision, ...tail] };
   const nm: Meter = {
     ...base,
-    cycles: sections.length ? barMap(base).barStarts.length : meter.cycles + n,
+    cycles: free ? barMap(base).barStarts.length : meter.cycles + n,
   };
 
   // everything written comes first; the new bars are the open space before the new end

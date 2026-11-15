@@ -15,5 +15,6 @@ export * from './fills';
 export * from './shapes';
 export * from './sections';
 export * from './ops/sections';
+export * from './ops/bars';
 export * from './form';
 export * from './vary';

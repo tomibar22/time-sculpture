@@ -25,6 +25,8 @@ export interface SectionInfo {
   mainAt: number;
   from: number;
   to: number;
+  /** Its bar sizes, going round (one entry when every bar is alike). */
+  pattern: readonly number[];
 }
 
 export interface BarMap {
@@ -41,6 +43,23 @@ export interface BarMap {
 }
 
 const cache = new WeakMap<Meter, BarMap>();
+
+const patternOf = (bars: readonly number[] | undefined, size: number): readonly number[] => {
+  const ok = (bars ?? []).filter((n) => Number.isInteger(n) && n >= 1);
+  return ok.length ? ok : [Math.max(1, size)];
+};
+
+/**
+ * Is the piece free of the plain "beats × bars" shape? True with modulations, metre changes or a
+ * pattern of bars: then its length is its subdivision's and `cycles` counts its bars.
+ */
+export const isFree = (meter: Meter) => !!(meter.sections?.length || meter.bars?.length);
+
+/** Does the tempo ever change (a real modulation, not only a change of metre)? */
+export const hasTempoChange = (meter: Meter) => (meter.sections ?? []).some((s) => s.from !== s.to);
+
+/** "5+5+4" or "7": a section's bars as a time signature would say them. */
+export const patternLabel = (pattern: readonly number[]) => pattern.join('+');
 
 export function barMap(meter: Meter): BarMap {
   const hit = cache.get(meter);
@@ -64,6 +83,7 @@ export function barMap(meter: Meter): BarMap {
       mainAt,
       from: s?.from ?? 1,
       to: s?.to ?? 1,
+      pattern: patternOf(s ? s.bars : meter.bars, s ? s.beatsPerBar : meter.beatsPerCycle),
     });
     mainAt += (end - at) * scale;
   }
@@ -72,12 +92,18 @@ export function barMap(meter: Meter): BarMap {
   const beatInBar: number[] = [];
   const barStarts: number[] = [];
   sections.forEach((sec, si) => {
+    let j = 0;
+    let pi = 0;
     for (let b = sec.at; b < sec.end; b++) {
-      const j = (b - sec.at) % sec.beatsPerBar;
+      if (j >= sec.pattern[pi % sec.pattern.length]!) {
+        j = 0;
+        pi++;
+      }
       if (j === 0) barStarts.push(b);
       sectionOf.push(si);
       barOf.push(barStarts.length - 1);
       beatInBar.push(j);
+      j++;
     }
   });
   const map: BarMap = { NB, sections, sectionOf, barOf, beatInBar, barStarts, totalMain: mainAt };
@@ -124,7 +150,21 @@ export interface Landing {
 /** Does the whole piece end on beat 1 of the main tempo? (Only meaningful with modulations.) */
 export function landing(meter: Meter): Landing {
   const map = barMap(meter);
-  const bar = meter.beatsPerCycle;
+  if (!hasTempoChange(meter)) {
+    // one tempo throughout: it lands when its last bar is whole
+    const lastSec = map.sections[map.sections.length - 1]!;
+    const start = map.barStarts[map.barStarts.length - 1] ?? 0;
+    const have = map.NB - start;
+    const pi = map.barStarts.filter((b) => b >= lastSec.at).length - 1;
+    const want = lastSec.pattern[pi % lastSec.pattern.length]!;
+    if (have >= want) return { lands: true, late: 0, fixes: [] };
+    return {
+      lands: false,
+      late: have,
+      fixes: [want - have, ...(start > lastSec.at ? [-have] : [])],
+    };
+  }
+  const bar = meter.bars?.length ? meter.bars.reduce((a, n) => a + n, 0) : meter.beatsPerCycle;
   let late = map.totalMain % bar;
   if (late < 1e-7 || bar - late < 1e-7) late = 0;
   const last = map.sections[map.sections.length - 1]!;

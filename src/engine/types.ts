@@ -66,6 +66,23 @@ export interface Meter {
    * they hold, to show the larger division a run of groups makes ("3 3 2" → 8). Ascending by a.
    */
   readonly totals?: readonly Total[];
+  /**
+   * The main section's bars when they are not all alike: a pattern of bar sizes in beats that
+   * goes round ("5 5 4"). Absent = every bar has `beatsPerCycle` beats. With a pattern the piece
+   * is as long as its subdivision and `cycles` counts the bars (as with modulations).
+   */
+  readonly bars?: readonly number[];
+  /**
+   * Row sizes of the score: from each `at` (beats) a row holds `per` bars (0 = follow the zoom
+   * again). A row always starts there. Ascending by `at`. See score/rows.ts.
+   */
+  readonly rowSizes?: readonly RowSize[];
+}
+
+/** From `at` on, rows hold `per` bars (0 = the zoom decides again). */
+export interface RowSize {
+  readonly at: number;
+  readonly per: number;
 }
 
 /** A bracket over [a, b) that shows its number of pulses. */
@@ -95,6 +112,12 @@ export interface Section {
   readonly to: number;
   /** Beats per bar in this section (1..13). */
   readonly beatsPerBar: number;
+  /**
+   * A pattern of bar sizes that goes round in this section ("5 5 4"), when its bars are not all
+   * alike; `beatsPerBar` is then its first bar. A section with `from` = `to` only changes the
+   * metre: the tempo stays.
+   */
+  readonly bars?: readonly number[];
 }
 
 /** The undoable document. Immutable: operations return new objects and share unchanged ones. */

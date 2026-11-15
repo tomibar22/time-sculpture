@@ -5,13 +5,15 @@ import {
   nearestPulse,
   MAX_BEATS,
   MAX_CYCLES,
+  MAX_PATTERN,
+  MAX_ROW_BARS,
   MAX_SUBDIVISION,
   MIN_BEATS,
   MIN_CYCLES,
   MIN_SUBDIVISION,
 } from './grid';
-import type { Doc, Group, GroupKind, Item, ItemId, Meter, Space } from './types';
-import { barMap } from './sections';
+import type { Doc, Group, GroupKind, Item, ItemId, Meter, RowSize, Space } from './types';
+import { barMap, isFree } from './sections';
 import { SPACE_ID } from './types';
 
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -93,6 +95,37 @@ export function withMarks(
   }
   if (!out.length) return base;
   return { ...base, marks: out, ...(outNames.some(Boolean) ? { markNames: outNames } : {}) };
+}
+
+/**
+ * A meter with these row sizes (see `Meter.rowSizes`): each moved by `map` (NaN = its moment was
+ * cut), kept inside the piece on the nearest pulse, ascending; of two at one moment the later
+ * wins, and one that changes nothing (the same size as before it) is dropped.
+ */
+export function withRowSizes(
+  meter: Meter,
+  list: readonly RowSize[],
+  map: (t: number) => number = (t) => t,
+): Meter {
+  const { rowSizes: _old, ...rest } = meter;
+  void _old;
+  const base: Meter = rest;
+  const grid = buildGrid(base);
+  const out: RowSize[] = [];
+  const moved = list
+    .map((r, i) => ({ t: map(r.at), per: r.per, i }))
+    .filter((r) => Number.isFinite(r.t) && r.t > -EPS && r.t < grid.NB - EPS)
+    .sort((x, y) => x.t - y.t || x.i - y.i);
+  for (const r of moved) {
+    const at = grid.times[nearestPulse(grid, r.t)]!;
+    const per = Math.max(0, Math.min(MAX_ROW_BARS, Math.round(r.per)));
+    const last = out[out.length - 1];
+    if (last && at - last.at <= EPS) out[out.length - 1] = { at, per };
+    else out.push({ at, per });
+  }
+  // an entry that repeats the size before it only matters as a row start: keep it (it is one)
+  while (out.length && out[0]!.per === 0 && out[0]!.at <= EPS) out.shift();
+  return out.length ? { ...base, rowSizes: out } : base;
 }
 
 export const isSpace = (x: Item): x is Space => x.kind === 'space';
@@ -201,16 +234,31 @@ export function checkInvariants(doc: Doc): string[] {
     meter.beatsPerCycle > MAX_BEATS
   )
     errs.push(`beatsPerCycle out of range: ${meter.beatsPerCycle}`);
-  const maxBars = meter.sections?.length ? MAX_CYCLES * 2 : MAX_CYCLES;
+  const maxBars = isFree(meter) ? MAX_CYCLES * 2 : MAX_CYCLES;
   if (!Number.isInteger(meter.cycles) || meter.cycles < MIN_CYCLES || meter.cycles > maxBars)
     errs.push(`cycles out of range: ${meter.cycles}`);
   const NBm = meter.subdivision.length;
-  if (!meter.sections?.length) {
+  const okPattern = (bars: readonly number[] | undefined) =>
+    !bars ||
+    (bars.length >= 1 &&
+      bars.length <= MAX_PATTERN &&
+      bars.every((n) => Number.isInteger(n) && n >= 1 && n <= MAX_BEATS));
+  if (!okPattern(meter.bars)) errs.push('bad pattern of bars');
+  let prevRow = -1;
+  for (const r of meter.rowSizes ?? []) {
+    if (!(r.at > prevRow + EPS) || r.at < 0 || r.at >= NBm - EPS)
+      errs.push(`bad row size at ${r.at}`);
+    if (!Number.isInteger(r.per) || r.per < 0 || r.per > MAX_ROW_BARS)
+      errs.push(`bad row size ${r.per}`);
+    prevRow = r.at;
+  }
+  if (!isFree(meter)) {
     if (NBm !== meter.beatsPerCycle * meter.cycles)
       errs.push(`subdivision length ${NBm} != ${meter.beatsPerCycle * meter.cycles}`);
   } else {
     let prevAt = 0;
-    for (const sec of meter.sections) {
+    for (const sec of meter.sections ?? []) {
+      if (!okPattern(sec.bars)) errs.push('bad pattern of bars');
       if (!Number.isInteger(sec.at) || sec.at <= prevAt || sec.at >= NBm)
         errs.push(`bad section start ${sec.at}`);
       if (![sec.from, sec.to].every((v) => Number.isInteger(v) && v >= 1 && v <= MAX_SUBDIVISION))

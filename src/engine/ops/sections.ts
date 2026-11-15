@@ -1,8 +1,8 @@
 import { buildGrid, EPS, MAX_BEATS, MAX_CYCLES, MAX_SUBDIVISION, MIN_SUBDIVISION } from '../grid';
 import { formOf, withForm } from '../form';
-import { groupSum, spaceIndex, syncSpace, withBreaks, withMarks } from '../doc';
+import { groupSum, spaceIndex, syncSpace, withBreaks, withMarks, withRowSizes } from '../doc';
 import { fail, report } from '../report';
-import { barMap } from '../sections';
+import { barMap, isFree } from '../sections';
 import type { Doc, ItemId, Meter, OpResult, Section } from '../types';
 
 /** Highest number of beats a piece may have. */
@@ -12,13 +12,13 @@ const okRatio = (n: number) => Number.isInteger(n) && n >= MIN_SUBDIVISION && n 
 const okBar = (n: number) => Number.isInteger(n) && n >= 1 && n <= MAX_BEATS;
 
 /** A meter with these sections, its bar count (`cycles`) recomputed. */
-function withSections(meter: Meter, sections: readonly Section[]): Meter {
+export function withSections(meter: Meter, sections: readonly Section[]): Meter {
   const { sections: _old, ...rest } = meter;
   void _old;
   let base: Meter = sections.length ? { ...rest, sections: [...sections] } : rest;
   // back to plain bars: the piece must be whole bars again, so complete the last one by
   // repeating the last beat's subdivision (the open space takes the new pulses)
-  const over = sections.length ? 0 : base.subdivision.length % base.beatsPerCycle;
+  const over = isFree(base) ? 0 : base.subdivision.length % base.beatsPerCycle;
   if (over) {
     const pad = base.beatsPerCycle - over;
     base = {
@@ -30,7 +30,7 @@ function withSections(meter: Meter, sections: readonly Section[]): Meter {
 }
 
 /** A meter change that may change the number of pulses: the open space absorbs the difference. */
-const withMeter = (doc: Doc, meter: Meter): Doc => ({
+export const withMeter = (doc: Doc, meter: Meter): Doc => ({
   ...doc,
   meter,
   items: syncSpace(doc.items, buildGrid(meter).TS),
@@ -88,11 +88,12 @@ export function removeSection(doc: Doc, index: number): OpResult {
 export function setMainBarSize(doc: Doc, beatsPerBar: number): OpResult {
   if (!Number.isInteger(beatsPerBar) || beatsPerBar < 3 || beatsPerBar > MAX_BEATS)
     return { doc, report: fail('out-of-range') };
-  if (beatsPerBar === doc.meter.beatsPerCycle) return { doc, report: fail('no-change') };
-  const meter = withSections(
-    { ...doc.meter, beatsPerCycle: beatsPerBar },
-    doc.meter.sections ?? [],
-  );
+  if (beatsPerBar === doc.meter.beatsPerCycle && !doc.meter.bars)
+    return { doc, report: fail('no-change') };
+  // one bar size again: a pattern of bars the main section had is gone
+  const { bars: _bars, ...plain } = doc.meter;
+  void _bars;
+  const meter = withSections({ ...plain, beatsPerCycle: beatsPerBar }, doc.meter.sections ?? []);
   return { doc: withMeter(doc, meter), report: report() };
 }
 
@@ -111,7 +112,7 @@ export function resizeBeats(doc: Doc, delta: number, fill: number): OpResult {
   const last = map.sections[map.sections.length - 1]!;
   if (!Number.isInteger(delta) || delta === 0) return { doc, report: fail('no-change') };
   // without modulations the piece stays whole bars
-  if (!meter.sections?.length && delta % meter.beatsPerCycle !== 0)
+  if (!isFree(meter) && delta % meter.beatsPerCycle !== 0)
     return { doc, report: fail('out-of-range') };
   const nNB = NB + delta;
   if (nNB < 1 || nNB > MAX_TOTAL_BEATS) return { doc, report: fail('out-of-range') };
@@ -135,13 +136,21 @@ export function resizeBeats(doc: Doc, delta: number, fill: number): OpResult {
   const sections = (meter.sections ?? [])
     .map((s) => ({ ...s, at: s.at <= at ? s.at : s.at + delta }))
     .filter((s) => s.at > 0 && s.at < nNB);
-  const base: Meter = { beatsPerCycle: meter.beatsPerCycle, cycles: meter.cycles, subdivision };
+  const base: Meter = {
+    beatsPerCycle: meter.beatsPerCycle,
+    cycles: meter.cycles,
+    subdivision,
+    ...(meter.bars ? { bars: meter.bars } : {}),
+  };
   // repeat signs inside a cut disappear; endings shrink with it (and go when nothing is left)
   const squeeze = (t: number) =>
     t <= at + EPS ? t : delta > 0 ? t + delta : Math.max(at, t + delta);
   const nm = withForm(
     withMarks(
-      withBreaks(withSections(base, sections), shiftTimes(meter.breaks)),
+      withBreaks(
+        withRowSizes(withSections(base, sections), meter.rowSizes ?? [], shift),
+        shiftTimes(meter.breaks),
+      ),
       // NaN (cut) and out-of-range marks are dropped there, each with its name
       (meter.marks ?? []).map(shift),
       meter.markNames,

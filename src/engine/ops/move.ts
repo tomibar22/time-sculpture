@@ -138,3 +138,57 @@ export function slide(doc: Doc, ids: Iterable<ItemId>, delta: number): OpResult 
 
   return { doc: withItems(doc, out, nextId), report: report({ shortened, covered, created }) };
 }
+
+/** The selected items as runs of neighbours, front to back. */
+function runsOf(doc: Doc, ids: Iterable<ItemId>): ItemId[][] {
+  const idx = selectedIndices(doc.items, ids);
+  const runs: ItemId[][] = [];
+  idx.forEach((i, j) => {
+    if (j && idx[j - 1] === i - 1) runs[runs.length - 1]!.push(doc.items[i]!.id);
+    else runs.push([doc.items[i]!.id]);
+  });
+  return runs;
+}
+
+/** Clamp a slide of any selection (several runs move as one): the run in front sets the limit. */
+export function clampRuns(doc: Doc, ids: Iterable<ItemId>, d: number): number {
+  const runs = runsOf(doc, ids);
+  if (!runs.length) return 0;
+  return clampSlide(doc, d > 0 ? runs[runs.length - 1]! : runs[0]!, d);
+}
+
+/**
+ * Slide any selection by d pulses: groups that are not neighbours move together, each run as
+ * `slide` moves it, the run in front first, so the ones behind follow into the room it left.
+ */
+export function slideRuns(doc: Doc, ids: Iterable<ItemId>, delta: number): OpResult {
+  const runs = runsOf(doc, ids);
+  if (!runs.length) return { doc, report: fail('nothing-selected') };
+  if (runs.length === 1) return slide(doc, runs[0]!, delta);
+  const d = clampRuns(doc, runs.flat(), delta);
+  if (d === 0) return { doc, report: fail('out-of-range') };
+  const order = d > 0 ? [...runs].reverse() : runs;
+  let cur = doc;
+  const shortened = new Set<ItemId>();
+  const covered = new Set<ItemId>();
+  const created = new Set<ItemId>();
+  for (const run of order) {
+    const r = slide(cur, run, d);
+    if (!r.report.ok) continue;
+    cur = r.doc;
+    r.report.shortened.forEach((id) => shortened.add(id));
+    r.report.covered.forEach((id) => covered.add(id));
+    r.report.created.forEach((id) => created.add(id));
+  }
+  if (cur === doc) return { doc, report: fail('out-of-range') };
+  const alive = new Set(cur.items.map((x) => x.id));
+  const before = new Set(doc.items.map((x) => x.id));
+  return {
+    doc: cur,
+    report: report({
+      shortened: [...shortened].filter((id) => alive.has(id)),
+      covered: [...covered].filter((id) => before.has(id)),
+      created: [...created].filter((id) => alive.has(id)),
+    }),
+  };
+}
