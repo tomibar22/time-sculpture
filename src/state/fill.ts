@@ -22,7 +22,7 @@ export function fillRegion(): { a: number; b: number; kind: 'selection' | 'space
   return s.b > s.a ? { ...s, kind: 'space' } : null;
 }
 
-export function openFill(tab: 'random' | 'browse' | 'vary'): void {
+export function openFill(tab: 'browse' | 'vary'): void {
   const region = fillRegion();
   if (tab === 'vary' && region?.kind !== 'selection') {
     sfx.nope();

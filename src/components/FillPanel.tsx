@@ -4,13 +4,11 @@ import type { FillOption } from '../engine';
 import {
   closeFill,
   describeRegion,
-  fillRandom,
   fillRegion,
   fillSizes,
   fillWith,
   previewFill,
   previewSizes,
-  toggleListen,
   toggleMotif,
 } from '../state/fill';
 import { describePulse } from '../state/editing';
@@ -18,15 +16,7 @@ import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 import { Contour, Heart, Strip, UseBar, useRegionBeats, type StripLine } from './fillParts';
 import { FillMap } from './FillMap';
-import {
-  BreedIcon,
-  ChevronIcon,
-  CloseIcon,
-  DiceIcon,
-  HeadphonesIcon,
-  HeartIcon,
-  PinIcon,
-} from './Icons';
+import { BreedIcon, ChevronIcon, CloseIcon, DiceIcon, HeartIcon, PinIcon } from './Icons';
 import { PHONE, useMedia } from './useMedia';
 import { VaryPanel } from './VaryPanel';
 
@@ -44,7 +34,6 @@ type Listed = FillOption & { note?: string };
 export function FillPanel() {
   const tab = useUiStore((s) => s.fillPanel);
   const sizes = useUiStore((s) => s.fillSizes);
-  const playing = useUiStore((s) => s.playing);
   const set = useUiStore((s) => s.set);
   // re-read the region whenever the document or the selection changes
   useDocStore((s) => s.version);
@@ -58,7 +47,7 @@ export function FillPanel() {
   const [fold, setFold] = useState<'sizes' | 'shapes' | null>(null);
   useEffect(() => setFold((f) => (f === 'shapes' ? null : f)), [shape]);
   if (!tab) return null;
-  const folded = phone && tab === 'browse';
+  const folded = phone && tab !== 'vary';
   const shapeName =
     shape === 'shapes'
       ? 'All shapes'
@@ -86,67 +75,19 @@ export function FillPanel() {
 
   return (
     <section className="fillpanel" aria-label="Fill">
-      <div className="fill-head">
-        <div className="segs text" role="group" aria-label="Fill mode">
+      {tab === 'vary' && (
+        <div className="fill-head">
+          <span className="fill-where">Vary {where}</span>
           <button
             type="button"
-            aria-pressed={tab === 'random'}
-            onClick={() => set({ fillPanel: 'random' })}
+            className="ghost icon"
+            aria-label="Close"
+            title="Close"
+            onClick={closeFill}
           >
-            Random
+            <CloseIcon />
           </button>
-          <button
-            type="button"
-            aria-pressed={tab === 'browse'}
-            onClick={() => set({ fillPanel: 'browse' })}
-          >
-            Browse
-          </button>
-          {region?.kind === 'selection' && (
-            <button
-              type="button"
-              aria-pressed={tab === 'vary'}
-              title="The same passage said another way"
-              onClick={() => set({ fillPanel: 'vary' })}
-            >
-              Vary
-            </button>
-          )}
         </div>
-        <span className="fill-where">
-          {tab === 'vary' ? 'Vary' : 'Fill'} {where}
-        </span>
-        {region && (
-          <button
-            type="button"
-            className="fill-listen"
-            aria-pressed={playing}
-            title={
-              playing
-                ? 'Stop listening'
-                : 'Listen: loop this stretch, and hear every fill you try in it'
-            }
-            onClick={toggleListen}
-          >
-            <HeadphonesIcon />
-            {playing ? 'Listening' : 'Listen'}
-          </button>
-        )}
-        <button
-          type="button"
-          className="ghost icon"
-          aria-label="Close"
-          title="Close"
-          onClick={closeFill}
-        >
-          <CloseIcon />
-        </button>
-      </div>
-      {playing && (
-        <p className="sr-only" role="status">
-          This stretch is looping. Tap any {tab === 'vary' ? 'variation' : 'fill'} to hear it in
-          place; nothing is written until you tap Use.
-        </p>
       )}
       {tab === 'vary' ? (
         <VaryPanel />
@@ -215,16 +156,6 @@ export function FillPanel() {
             </p>
           ) : total === 0n ? (
             <p className="lib-note">These sizes can&apos;t fill {R} pulses exactly.</p>
-          ) : tab === 'random' ? (
-            <div className="fill-random">
-              <p className="lib-note">
-                {total.toLocaleString('en-US')} possible fill{total === 1n ? '' : 's'}, each equally
-                likely.
-              </p>
-              <button type="button" className="primary" onClick={fillRandom}>
-                Fill
-              </button>
-            </div>
           ) : (
             <Browse shapesHidden={folded && fold !== 'shapes'} />
           )}
@@ -491,6 +422,15 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
             <span className="tool-lbl">Surprise</span>
           </button>
         </span>
+        <button
+          type="button"
+          className="ghost icon fill-close"
+          aria-label="Close"
+          title="Close"
+          onClick={closeFill}
+        >
+          <CloseIcon />
+        </button>
       </div>
       <p className="lib-note fill-hint">
         {hint ??

@@ -537,6 +537,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   small names under their icons; the idle Use bar is one short line (phones only: elsewhere it
   keeps its height so no row moves under a second tap). The map places dots by a mix of value
   and rank, so bunched families spread. e2e: `fillFold(page, 'Sizes' | 'Shape')`.
+- **No head row in Browse** (user request: no Random tab, no Listen button, no Browse tab to switch): the panel opens straight on sizes / shapes / List|Map|tools, with ✕ (Close) at the end of the tools line. Random is gone from the UI (Surprise, the dice, writes a random fill; `fillRandom` / `toggleListen` stay in state/fill.ts unused; Play loops the region while the panel is open, so every fill tried is heard). `ui.fillPanel` is `'browse' | 'vary'`; only Vary keeps a head (title + ✕).
 - **Fill panel height** (user request: more of the score in view): `.fillpanel` is a short window (44dvh ≤ 400 px; 40dvh on phones; 48dvh touch-landscape) and is itself the one scroller: its head (Random/Browse/Listen/✕) is sticky, everything else (sizes, shapes, tools, fills) scrolls under it.
 - **Library**: New (one sideways-scrolling line) → "Save and share" folded (`sharing` state;
   e2e `openShare(page)`) → Compositions → rename → files. No emoji (DiceIcon).

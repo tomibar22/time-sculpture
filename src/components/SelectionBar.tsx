@@ -298,9 +298,6 @@ function CaretBar() {
             ⇥
           </button>
           <LoopButton />
-          <button type="button" onClick={() => openFill('random')}>
-            Fill randomly
-          </button>
           <button type="button" onClick={() => openFill('browse')}>
             Browse fills
           </button>

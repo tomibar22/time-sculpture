@@ -2848,3 +2848,8 @@ button.lib-fold {
   padding: 0;
   margin: 0;
 }
+/* no head row in Browse: the list's own line carries the close button */
+.fill-sort .fill-close {
+  flex: 0 0 auto;
+  min-width: 44px;
+}

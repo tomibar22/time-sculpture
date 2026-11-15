@@ -9,21 +9,20 @@ test.beforeEach(async ({ page }) => {
 
 test('fill the open space randomly with chosen sizes', async ({ page }) => {
   await page.getByRole('button', { name: 'Fill it…' }).click();
-  await page.getByRole('button', { name: 'Random', exact: true }).click();
-  // only 3s: 9 open pulses → exactly 3 3 3
+  // only 3s: 9 open pulses → exactly 3 3 3, which Surprise writes
+  await fillFold(page, 'Sizes');
   for (const n of [2, 4, 5, 7]) await page.getByTestId(`fill-${n}`).click();
-  await expect(page.locator('.fillpanel')).toContainText('1 possible fill');
-  await page.getByRole('button', { name: 'Fill', exact: true }).click();
+  await page.getByRole('button', { name: 'Surprise' }).click();
   await expectSeq(page, '(2) 3 3 2 3 3 3 │ 3 (1) 3 2 4');
   await expect(page.getByTestId('status')).toContainText('Complete');
 });
 
 test('sizes that cannot fill the space are refused', async ({ page }) => {
   await page.getByRole('button', { name: 'Fill it…' }).click();
-  await page.getByRole('button', { name: 'Random', exact: true }).click();
+  await fillFold(page, 'Sizes');
   for (const n of [2, 3, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // only 4 left
   await expect(page.locator('.fillpanel')).toContainText("can't fill 9");
-  await expect(page.getByRole('button', { name: 'Fill', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Surprise' })).toHaveCount(0);
 });
 
 test('⇧A selects every tile', async ({ page }) => {

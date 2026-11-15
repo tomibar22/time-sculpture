@@ -194,7 +194,7 @@ export interface UiState {
   /** Tile sizes the fill panel may use. */
   fillSizes: number[];
   /** The fill panel: closed, or open on the random, browse or vary tab. */
-  fillPanel: 'random' | 'browse' | 'vary' | null;
+  fillPanel: 'browse' | 'vary' | null;
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
   fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred';
