@@ -33,18 +33,23 @@ function Readout() {
         data-testid="play-from"
         onClick={() => set({ startDialog: true })}
       >
-        <span className="sr-only">Play </span>
-        {from ? (
-          <>
-            <span className="now-long">from </span>bar <b>{from.bar}</b>
-            {from.beat > 1 ? <span className="now-long"> · beat {from.beat}</span> : null}
-          </>
-        ) : (
-          <>
-            <span className="now-long">from the </span>
-            <b>top</b>
-          </>
-        )}
+        <span className="sr-only">Starts </span>
+        <span className="start-long">
+          {from ? (
+            <>
+              from bar <b>{from.bar}</b>
+              {from.beat > 1 ? ` · beat ${from.beat}` : null}
+            </>
+          ) : (
+            <>
+              from <b>the top</b>
+            </>
+          )}
+        </span>
+        {/* phones: just the bar it starts at */}
+        <span className="start-short" aria-hidden="true">
+          ▸<b>{from ? from.bar : 1}</b>
+        </span>
       </button>
     );
   }

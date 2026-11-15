@@ -127,3 +127,57 @@ export async function openShare(page: Page) {
   await page.locator('.lib-btn').click();
   await page.getByRole('button', { name: /Save and share/ }).click();
 }
+
+/** Fingers on the screen (touch projects only): raw touch events through the DevTools protocol. */
+export async function fingers(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  type Pt = { x: number; y: number };
+  const send = (type: string, pts: Pt[]) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type: type as 'touchStart',
+      touchPoints: pts.map((p, i) => ({ x: Math.round(p.x), y: Math.round(p.y), id: i })),
+    });
+  return {
+    /** One finger along a path; `hold` ms before it moves (a long press). */
+    async swipe(path: Pt[], hold = 0) {
+      await send('touchStart', [path[0]!]);
+      if (hold) await page.waitForTimeout(hold);
+      for (let i = 1; i < path.length; i++) {
+        const a = path[i - 1]!;
+        const b = path[i]!;
+        const n = Math.max(3, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 10));
+        for (let j = 1; j <= n; j++) {
+          await send('touchMove', [
+            { x: a.x + ((b.x - a.x) * j) / n, y: a.y + ((b.y - a.y) * j) / n },
+          ]);
+          await page.waitForTimeout(8);
+        }
+      }
+      await send('touchEnd', []);
+    },
+    async tap(p: Pt) {
+      await send('touchStart', [p]);
+      await page.waitForTimeout(30);
+      await send('touchEnd', []);
+    },
+    /** A tap with n fingers side by side, twice. */
+    async doubleTap(p: Pt, n: number) {
+      const pts = Array.from({ length: n }, (_, i) => ({ x: p.x + i * 46, y: p.y }));
+      for (let i = 0; i < 2; i++) {
+        await send('touchStart', pts);
+        await page.waitForTimeout(40);
+        await send('touchEnd', []);
+        await page.waitForTimeout(90);
+      }
+    },
+  };
+}
+
+/** The knob under the caret or a range end at time t (beats): mirrors geometry KNOB_DROP. */
+export function knobAt(s: ScoreBox, t: number, row = Math.floor(t / s.beats + 1e-9)) {
+  const bw = (s.w - 2 * M) / s.beats;
+  return {
+    x: s.x + M + (t - row * s.beats) * bw,
+    y: s.y + TILE_TOP + 52 + 5 + 22 + 8 + row * STRIDE,
+  };
+}

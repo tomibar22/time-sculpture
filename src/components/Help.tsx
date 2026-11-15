@@ -23,10 +23,13 @@ export function Help() {
           <details className="help-topic">
             <summary>Select</summary>
             <p>
-              Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. On a phone, press
-              and hold a group, or turn on “Select several”, then tap more. ⌘A or ⇧A (or Select all)
-              selects every group; Esc clears the selection. On a phone, swipe up and down over the
-              score to scroll; drags that start sideways move and shape tiles.
+              Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. ⌘A or ⇧A (or
+              Select all) selects every group; Esc clears the selection. <b>By touch:</b> select
+              first, then edit. A finger dragged sideways over the score selects a stretch of time
+              and never moves or resizes anything; drag the knob under either end of the selection
+              (or under the caret) to carry it on, across rows too. The page holds still under such
+              a drag and scrolls by itself near the edges; a swipe that starts up or down scrolls.
+              “Select several” lets you tap groups, or sweep a finger over them, to add them.
             </p>
           </details>
           <details className="help-topic">
@@ -36,14 +39,18 @@ export function Help() {
               along the grid in those steps. Whatever it runs into gives way: open space and
               silences shrink, sounding groups are shortened, and the time it leaves behind becomes
               silence. With <b>Place</b>, dragging reorders groups instead and the others make room.
-              The arrow keys follow the same choice.
+              The arrow keys follow the same choice. Several selected groups move together, even
+              when they are not neighbours. By touch, drag a group that is already selected, or hold
+              a finger on any group until it is picked up and drag on; drag from inside a selected
+              range to move the groups in it.
             </p>
           </details>
           <details className="help-topic">
             <summary>Reshape</summary>
             <p>
               Drag the line between two groups. Drag a green edge into the open space to stretch. To
-              merge, select neighbouring groups and press Merge.
+              merge, select neighbouring groups and press Merge. By touch, lines reshape only next
+              to a selected group (elsewhere a drag from a line selects from exactly there).
             </p>
           </details>
           <details className="help-topic">
@@ -91,12 +98,15 @@ export function Help() {
           <details className="help-topic">
             <summary>Listen and loop</summary>
             <p>
-              Space plays from the top; with tiles or a range selected, only the selection plays.
-              The group that sounds lights up as it goes. Select tiles (or a range) and press
-              ⇧Space, or ↻ Loop: that stretch plays round and round, to hear it or practise over it;
-              change it while it loops and you hear the change. Tap the tempo number for exact steps
-              and <b>Tap the beat</b>. In Options you can turn off the click on the beats (the 1
-              always sounds) and the subdivision ticks.
+              Space plays from the top; with tiles or a range selected, only the selection plays. To
+              start somewhere else, tap “from the top” beside Play and choose a bar by its number,
+              or place the caret and press ▶ Start here: a green flag marks the place and Play
+              starts (and comes round again) from there until you take it away. The group that
+              sounds lights up as it goes. Select tiles (or a range) and press ⇧Space, or ↻ Loop:
+              that stretch plays round and round, to hear it or practise over it; change it while it
+              loops and you hear the change. Tap the tempo number for exact steps and{' '}
+              <b>Tap the beat</b>. In Options you can turn off the click on the beats (the 1 always
+              sounds) and the subdivision ticks.
             </p>
           </details>
           <details className="help-topic">
@@ -118,7 +128,8 @@ export function Help() {
               again at the same place to join the rows. Wrapping restarts after a break, so a phrase
               that does not start on beat 1 lines up row under row. Join rows removes every break.
               Fit rows stretches rows that end early to the full width (their beats get wider, so
-              they no longer line up with full rows).
+              they no longer line up with full rows). <b>Row…</b> at the caret gives that row its
+              own number of bars, for that row only or for every row from it on, whatever the zoom.
             </p>
           </details>
           <details className="help-topic">
@@ -157,16 +168,37 @@ export function Help() {
             </p>
           </details>
           <details className="help-topic">
+            <summary>Bars and metre</summary>
+            <p>
+              <b>Bars…</b> (at the caret, or “Add or remove bars…” in the settings) adds any number
+              of bars before or after any bar, or removes a run of bars with what is in it; the
+              music after them moves along with its marks. Duplicate (D) never needs room made for
+              it: with no space left, the bars it needs are added at the end. <b>Metre…</b> changes
+              the bars without touching the tempo, the subdivision or what is written: one bar size,
+              or a pattern that goes round. 42 beats in bars of 7 become 5 + 5 + 4 three times by
+              setting the bars to 5, 5, 4. From the settings it is the whole piece; at the caret on
+              a beat line, from there on. The new bars are named above the row; tap the name to
+              change them.
+            </p>
+          </details>
+          <details className="help-topic">
+            <summary>Undo by touch</summary>
+            <p>
+              A double tap with two fingers undoes; a double tap with three fingers redoes. The
+              arrows in the transport, Z and Y do the same.
+            </p>
+          </details>
+          <details className="help-topic">
             <summary>Modulation</summary>
             <p>
               Put the caret on a beat line (mid-bar is fine) and press T (or Modulate…): choose the
               pulse equation, e.g. 2:1 = 3:1 (a pulse of 2:1 before equals a pulse of 3:1 after, so
               ♩ 72 becomes 48), and the bars after it. Beats keep their width on screen; the new
-              section starts a new row, an amber marker names it, and dashed red lines show where
-              the main tempo's bar lines fall. The status says whether the piece ends on 1 of the
-              main tempo and offers whole beats to add or cut at the end. Click a marker to edit or
-              remove it. With modulations, Beats regroups the main bars and Bars adds or cuts a bar
-              at the end.
+              section starts a new row, an amber marker above the row names it, and dashed red lines
+              show where the main tempo's bar lines fall. The status says whether the piece ends on
+              1 of the main tempo and offers whole beats to add or cut at the end. Click a marker to
+              edit or remove it. With modulations, Beats regroups the main bars and Bars adds or
+              cuts a bar at the end.
             </p>
           </details>
           <details className="help-topic">

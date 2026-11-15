@@ -57,9 +57,10 @@ test('Bar after adds an open bar at the end; what was written stays in place', a
   await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 3 │ ·');
 });
 
-test('+ Bar at the end in the settings', async ({ page }) => {
+test('a bar added after the last one, from the settings', async ({ page }) => {
   await openSetup(page);
-  await page.getByRole('button', { name: '+ Bar at the end' }).click();
+  await page.getByRole('button', { name: 'Add or remove bars…' }).click();
+  await page.getByRole('button', { name: 'Add 1 bar after bar 2' }).click();
   await expect(page.getByTestId('bars-value')).toHaveText('3');
   await expectSeq(page, '(2) 3 3 2 (9) 3 (1) 3 2 4 │ ·');
 });

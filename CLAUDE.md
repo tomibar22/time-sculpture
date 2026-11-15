@@ -15,7 +15,7 @@ breadth. Every gesture has a keyboard and a button equivalent.
 ## Workflow
 
 - The user wants every milestone **merged into `main` and pushed** (they review on Vercel).
-  Develop on `claude/beautiful-cerf-j0e88k`, then fast-forward/merge into `main` and push both.
+  Develop on the session's branch, then fast-forward/merge into `main` and push both.
 - Small, well-named commits. After each milestone, report: what works, what's next, decisions.
 - Keep this file updated when the model, conventions, or tokens change.
 
@@ -47,6 +47,7 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/shape.ts     reshapeLine, stretchEdge, snap helpers
   ops/move.ts      reorder (Place), slide (Pulse/Beat), stepDelta, clampSlide
   ops/meter.ts     setSubdivision, resizeMeter
+  ops/bars.ts      setBars (metre / bar patterns), insertBars, removeBars, setRowSize
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
                    copyGroups, formatGroups / parseGroups ("3 (2) 4"), trimEdge
 src/state/         Zustand store: document (undo/redo) + ui; actions.ts, editing.ts (caret)
@@ -209,7 +210,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   a time (an IntersectionObserver on `.fill-more` adds more), use `content-visibility: auto`,
   and the dock drops its `backdrop-filter` while the panel is open.
 - **Try, then Use** (one rule for the list, the map, the steps between two fills, and Vary;
-  user request: the map and the list felt different): a tap only *tries* (`trying` state:
+  user request: the map and the list felt different): a tap only _tries_ (`trying` state:
   `ui.preview` shows it in the score and the loop plays it; nothing is written); the `UseBar`
   at the foot of the panel (sticky; it appears only while something is on trial, with no idle hint text: user request) has
   **Use**, and a second tap on the same row also writes. Hover previews and settles back on
@@ -316,7 +317,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 - `meter.marks` (times in beats, any pulse, 0 allowed; `toggleMark`, `withMarks`, same snapping /
   dropping rules as breaks), toggled with P at the caret or "Phrase mark". Optional names:
   `meter.markNames` (one per mark, '' = none; absent when none is named). `withMarks(meter, marks,
-  names = meter.markNames)` carries each name with its mark (callers that move marks pass the
+names = meter.markNames)` carries each name with its mark (callers that move marks pass the
   moved times unfiltered, NaN = cut). `nameMark` / `markNameAt`; ⇧P, "Name…" or a tap on the flag
   opens `MarkDialog`. Drawn in the score's ink (`P.fg`, never a tile colour): a thin line through
   the tiles and a flag in the number row (a small triangle, or a pill with the name). Saved as
@@ -404,7 +405,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   heard via `playOrder`, pitch by size, tempo + time signature metas per section), JSON, share
   link, Copy as text (`phraseText`).
 - Backup: "Back up everything" writes `{format: 'time-sculpture-library', version: 1, saved,
-  pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchanged pieces are
+pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchanged pieces are
   skipped, changed ones come in as "… (from backup)"; nothing is replaced).
 - New piece: Blank, Same grid (`sameGridDoc`), Duplicate, Surprise me (`surpriseDoc`: a meter and
   a shaped fill that lands).
@@ -557,6 +558,62 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 - **B** and "Subdivision…" open the same row for the beats under the selection / range / caret.
 - `ui.brush` remains only as "the ratio used last" (new bars and beats get it: `resizeMeter`,
   `resizeBeats`). The settings line shows the piece's ratios instead ("4×2 · 3:1 4:1 · pulse").
+
+### Touch: select first, then edit (user request: selecting kept moving or resizing tiles)
+
+- Applies to `pointerType === 'touch'` only; a mouse (and a Pencil) keep the direct drags.
+- A finger dragged sideways over anything that is **not selected** selects a pulse range (from
+  a tile, a line or the open space); it never moves or resizes. A tap still selects the tile.
+- Moving by touch is deliberate: drag a tile that **is selected** (all selected tiles move), or
+  **hold** a tile (450 ms) until it is picked up and drag on; holding without dragging turns on
+  "Select several". A drag from inside the selected range moves the groups that begin in it.
+- Lines reshape by touch only next to a selected group (`boundary.armed`; `DrawState.armed`
+  draws only those handles after a touch). Trim grips need a single selected group as before.
+- **Knobs** (`handlePos` / `hitHandle` in geometry.ts, `knob` in draw.ts): the caret and both
+  ends of a range have a knob under the band; dragging one extends the selection (the other end
+  stays), across rows. They are hit before anything else. `noKnobs` hides them in print.
+- **The page holds still under a drag that is ours**: `lock()` sets `locked`; a non-passive
+  native `touchmove` listener on the canvas calls `preventDefault()` while it is set
+  (`touch-action: pan-y` alone lets the browser take over on the first vertical move and cancel
+  the pointer). `claim()` decides: a finger must first move sideways (a swipe that starts up or
+  down drops the gesture and scrolls); knobs and held tiles are locked from the start. While
+  locked, `autoScroll` scrolls the window near the top of the screen or the dock and calls
+  `dragTo` again. All gesture logic lives in `dragTo(clientX, clientY)`.
+- "Select several" + a finger swept over tiles adds them (`paint` gesture).
+- Any selection slides together: `slideRuns` / `clampRuns` (engine/ops/move.ts) move every run
+  of neighbours by the same number of pulses, the run in front first; arrows use it too.
+- **Undo / redo by touch** (`components/useTouchUndo.ts`, document level): double tap with two
+  fingers = undo, with three = redo (not in dialogs, fields or on the stage).
+- e2e: `fingers(page)` (CDP touch events) and `knobAt` in helpers; `e2e/touch.spec.ts`.
+
+### Bars, metre, rows, where Play starts (engine/ops/bars.ts, components/PieceDialogs.tsx)
+
+- **Metre without a modulation**: `meter.bars` (main section) and `Section.bars` are patterns of
+  bar sizes that go round ("5 5 4"); a section with `from === to` is only a change of metre (no
+  new row, no ghost grid, named in the lane in the score's ink; modulations stay amber).
+  `barMap` reads the patterns (`SectionInfo.pattern`). `isFree(meter)` = sections or a pattern:
+  then the length is `subdivision.length` and `cycles` counts bars; use it instead of
+  `sections?.length`. `hasTempoChange` tells real modulations; with one tempo `landing` only
+  asks that the last bar is whole. `setBars(doc, at, pattern)` (at 0 = the whole piece) never
+  changes pulses or items. `meterSummary` words it ("9 bars · 5+5+4").
+- **Modulation / metre markers sit in the lane above the row** (`needsLane` is true with
+  sections or a pattern), so beat numbers are never covered (user bug report).
+- `insertBars(doc, atBar, n)` / `removeBars(doc, fromBar, count)`: anywhere; marks, breaks,
+  sections, repeats, row sizes move along. New time is open space when it touches the open
+  space, else silence; a group cut by the bar line is split. Removing keeps the head of a group
+  that began before the cut; a tail whose attack was cut becomes silence. The action `addBars`
+  uses `prependBars` / `appendBars` at the two ends (the new bars are the open space).
+- **Duplicate never fails for room** (`roomFor` in actions.ts): the bars it needs are appended
+  first, in the same undo step. D also duplicates a range (`duplicateRange`).
+- **Row sizes**: `meter.rowSizes` `{at, per}` (per 0 = the zoom again); a row starts at every
+  entry; `setRowSize(doc, a, per, b?)` (with `b`: that stretch only). Saved in
+  `layout.rowSizes`. Ops that rebuild the meter carry them with `withRowSizes`.
+- **Where Play starts**: `ui.playStart` (beats, not in the piece). Play starts there and comes
+  round to there; a green flag marks it. Set from the transport's idle line (`StartDialog`:
+  bar number, the caret, the top) or "▶ Start here" in the caret bar. Not used on the stage.
+- Dialogs: `MeterDialog` (steppers per bar of the pattern, shows how the stretch divides),
+  `BarsDialog`, `RowDialog`, `StartDialog`; opened by `ui.meterDialog / barsDialog / rowDialog /
+startDialog`. Settings: "Add or remove bars…", "Metre…"; caret bar: Row…, Bars…, Metre….
 
 ## Design tokens (src/styles/tokens.css)
 

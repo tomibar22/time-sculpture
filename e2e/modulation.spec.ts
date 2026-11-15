@@ -34,8 +34,9 @@ test('modulate mid-bar, see where the piece lands, fix it, edit and remove', asy
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   const s2 = await score(page);
-  // the modulation starts a new row: its marker sits right after that row's "1"
-  await page.mouse.click(s2.x + M + 40, s2.y + 4 + 127 + 10);
+  // the modulation starts a new row: its marker sits in the lane above that row, clear of the
+  // beat numbers (every row is 18 px taller for the lane)
+  await page.mouse.click(s2.x + M + 40, s2.y + 4 + (127 + 18) + 9);
   await expect(dialog).toContainText('Modulation');
   await dialog.getByRole('button', { name: 'Remove modulation' }).click();
   await expect(page.getByTestId('landing')).toHaveCount(0);

@@ -2938,7 +2938,23 @@ button.now.start-btn.set b {
   /* phones: the short form ("top", "bar 3") stays in the transport */
   button.now.idle.start-btn {
     display: inline-block;
-    margin-left: 0;
+    margin-left: -4px;
     padding: 6px 4px;
+    min-width: 36px;
   }
+  /* still read out: only hidden from the eye */
+  .start-btn .start-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  button.now.start-btn .start-short {
+    display: inline;
+  }
+}
+.start-btn .start-short {
+  display: none;
 }

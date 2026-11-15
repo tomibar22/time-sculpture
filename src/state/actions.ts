@@ -289,14 +289,20 @@ export function toggleSelectionKind(): void {
   announce(toRest ? 'Silenced' : 'Sounding');
 }
 
-/** Bars to add at the end so that `need` more pulses fit (0 when they fit already). */
-function barsFor(d: Doc, need: number): number {
-  const short = need - E.freePulses(d);
-  if (short <= 0) return 0;
-  const map = E.barMap(d.meter);
-  const last = map.barStarts[map.barStarts.length - 1] ?? 0;
-  const perBar = d.meter.subdivision.slice(last).reduce((x, y) => x + y, 0) || 1;
-  return Math.ceil(short / perBar);
+/**
+ * Bars to add at the end so that `need` more pulses fit (0 when they fit already), and the piece
+ * with them. Null when the piece cannot get that long.
+ */
+function roomFor(d: Doc, need: number): { bars: number; doc: Doc } | null {
+  if (need <= E.freePulses(d)) return { bars: 0, doc: d };
+  for (let n = 1; n <= E.MAX_CYCLES * 2; n++) {
+    const grown = E.appendBars(d, n);
+    if (!grown.report.ok) return null;
+    // open space that ended up beside the new bars is open again
+    const joined = E.joinRests(grown.doc);
+    if (E.freePulses(joined) >= need) return { bars: n, doc: joined };
+  }
+  return null;
 }
 
 /**
@@ -308,16 +314,12 @@ export function duplicateSelection(): void {
   const sel = selectedIds();
   if (!sel.length) return;
   const need = sel.reduce((a, id) => a + (E.findItem(before, id)?.n ?? 0), 0);
-  const bars = barsFor(before, need);
-  let base = before;
-  if (bars) {
-    const grown = E.appendBars(before, bars);
-    if (!grown.report.ok) {
-      sfx.nope();
-      return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
-    }
-    base = grown.doc;
+  const room = roomFor(before, need);
+  if (!room) {
+    sfx.nope();
+    return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
   }
+  const { bars, doc: base } = room;
   const r = E.duplicate(base, sel);
   if (
     run(r, {
@@ -337,16 +339,12 @@ export function duplicateRange(): void {
   if (!range) return;
   const groups = E.sliceRange(before, range.a, range.b);
   const need = range.b - range.a;
-  const bars = barsFor(before, need);
-  let base = before;
-  if (bars) {
-    const grown = E.appendBars(before, bars);
-    if (!grown.report.ok) {
-      sfx.nope();
-      return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
-    }
-    base = grown.doc;
+  const room = roomFor(before, need);
+  if (!room) {
+    sfx.nope();
+    return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
   }
+  const { bars, doc: base } = room;
   const r = E.insertAtPulse(base, range.b, groups);
   if (!run(r, { label: `dup ${E.formatGroups(groups)}`, select: 'none', sound: () => sfx.add(3) }))
     return;
@@ -694,7 +692,14 @@ export function openModulation(k: number): void {
 /** Add `n` empty bars before bar `atBar` (0-based; the bar count = after the last). */
 export function addBars(atBar: number, n: number): boolean {
   const before = doc();
-  const r = E.insertBars(before, atBar, n);
+  const nBars = E.barMap(before.meter).barStarts.length;
+  // at the very start or end the new bars are the open space, ready to write in
+  const r =
+    atBar <= 0
+      ? E.prependBars(before, n)
+      : atBar >= nBars
+        ? E.appendBars(before, n)
+        : E.insertBars(before, atBar, n);
   if (!r.report.ok) {
     sfx.nope();
     toast('The piece cannot have that many bars');
