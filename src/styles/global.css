@@ -2807,3 +2807,44 @@ button.lib-fold {
   white-space: nowrap;
   padding: 0 10px;
 }
+
+/* the fill panel is a short window: the score above it stays in view, the fills scroll
+   (one scroller, the panel's own, on every screen) */
+.fillpanel {
+  max-height: min(44dvh, 400px);
+}
+.fillpanel .fill-browse .fill-list {
+  max-height: none;
+  overflow: visible;
+}
+@media (max-width: 560px) {
+  .fillpanel {
+    max-height: 40dvh;
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) {
+  .fillpanel {
+    max-height: 48dvh;
+  }
+}
+/* the whole panel scrolls under its head (sizes, shapes and tools go up with the fills), so a
+   short window still shows fills, not just controls */
+.fillpanel {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.fillpanel > .fill-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--card);
+  padding-bottom: 4px;
+}
+.fillpanel > .fill-browse {
+  overflow: visible;
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+}

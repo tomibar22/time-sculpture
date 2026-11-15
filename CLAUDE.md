@@ -537,6 +537,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   small names under their icons; the idle Use bar is one short line (phones only: elsewhere it
   keeps its height so no row moves under a second tap). The map places dots by a mix of value
   and rank, so bunched families spread. e2e: `fillFold(page, 'Sizes' | 'Shape')`.
+- **Fill panel height** (user request: more of the score in view): `.fillpanel` is a short window (44dvh ≤ 400 px; 40dvh on phones; 48dvh touch-landscape) and is itself the one scroller: its head (Random/Browse/Listen/✕) is sticky, everything else (sizes, shapes, tools, fills) scrolls under it.
 - **Library**: New (one sideways-scrolling line) → "Save and share" folded (`sharing` state;
   e2e `openShare(page)`) → Compositions → rename → files. No emoji (DiceIcon).
 - Stage: "Loop on / off" in words, like its neighbours.
