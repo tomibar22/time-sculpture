@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { barBeat } from '../engine';
 import { togglePlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
@@ -49,6 +49,16 @@ export function Dock() {
   const phone = useMedia(PHONE);
   const filling = useUiStore((s) => s.fillPanel !== null) && phone;
   const ref = useRef<HTMLDivElement>(null);
+  // scrolled on to the options or the help: the score is off the screen, so the bar and the pad
+  // step aside and only the transport stays
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    const panel = document.querySelector('.panel');
+    if (!panel || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((es) => setAway(!es[es.length - 1]!.isIntersecting));
+    io.observe(panel);
+    return () => io.disconnect();
+  }, []);
   // let the page and the toasts keep clear of the dock, whatever its height
   useEffect(() => {
     const el = ref.current!;
@@ -63,8 +73,8 @@ export function Dock() {
       <div className="dock-inner">
         <FillPanel />
         <SubdivPanel />
-        {docked && !filling && <SelectionBar />}
-        {keypad && !subPanel && !filling && <Keypad />}
+        {docked && !filling && !away && <SelectionBar />}
+        {keypad && !subPanel && !filling && !away && <Keypad />}
         <Transport />
       </div>
     </div>

@@ -16,7 +16,7 @@ function mainSize(sizes: number[]): number {
 function jitter(key: string): [number, number] {
   let h = 2166136261;
   for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
-  return [((h & 255) / 255 - 0.5) * 0.05, (((h >> 8) & 255) / 255 - 0.5) * 0.05];
+  return [((h & 255) / 255 - 0.5) * 0.09, (((h >> 8) & 255) / 255 - 0.5) * 0.09];
 }
 
 /**
@@ -46,7 +46,14 @@ export function FillMap({
       const v = options.map((o) => o[k]);
       const lo = Math.min(...v);
       const hi = Math.max(...v);
-      return (x: number) => (hi > lo ? (x - lo) / (hi - lo) : 0.5);
+      // where a value falls among the others (its rank), mixed with where it falls on the
+      // scale: a family whose values bunch at the two ends still spreads over the map
+      const sorted = [...new Set(v)].sort((a, b) => a - b);
+      const rank = new Map(
+        sorted.map((x, i) => [x, sorted.length > 1 ? i / (sorted.length - 1) : 0.5]),
+      );
+      return (x: number) =>
+        hi > lo ? 0.4 * ((x - lo) / (hi - lo)) + 0.6 * (rank.get(x) ?? 0.5) : 0.5;
     };
     const fx = range(ax);
     const fy = range(ay);

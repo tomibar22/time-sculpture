@@ -453,12 +453,17 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       const on = s.activeBoundary === b.key || s.hoverBoundary === b.key;
       if (b.kind === 'line') {
         if (!on && g.rows[p.r]!.bw / maxD < 9) continue;
+        // at rest a line's handle is a slim, quiet mark (a row of them was louder than the
+        // tiles); it takes its full size under the pointer or the finger
         c.fillStyle = on ? P.fg : P.card;
-        rr(c, p.x - 3.5, ty + L.tileH / 2 - 12, 7, 24, 3.5);
+        if (on) rr(c, p.x - 3.5, ty + L.tileH / 2 - 12, 7, 24, 3.5);
+        else rr(c, p.x - 2.5, ty + L.tileH / 2 - 9, 5, 18, 2.5);
         c.fill();
         c.strokeStyle = on ? P.fg : P.muted;
+        c.globalAlpha = on ? 1 : 0.55;
         c.lineWidth = 1;
         c.stroke();
+        c.globalAlpha = 1;
       } else {
         c.fillStyle = P.accent;
         c.globalAlpha = on ? 1 : 0.9;

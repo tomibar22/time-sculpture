@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, fillFold, P, ready, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -35,10 +35,12 @@ test('browse fills for a selected range, sorted, and pick one', async ({ page })
   await tap(page, at(s, P(3.5)));
   await tap(page, at(s, P(6.5)), ['Shift']);
   await page.getByRole('button', { name: 'Refill…' }).click();
+  await fillFold(page, 'Sizes');
   for (const n of [4, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // 2 and 3 left
   const list = page.getByRole('list', { name: 'Ways to fill' });
   await expect(list.getByRole('listitem')).toHaveCount(2); // 6 pulses: 2 2 2 or 3 3
   await expect(list.getByRole('button').first()).toContainText('3 ×2'); // shapes first
+  await fillFold(page, 'Shape');
   await page.getByRole('button', { name: 'Anything' }).click();
   await page.locator('#fill-sort').selectOption('most');
   // a tap tries it (shown, not written); Use writes it

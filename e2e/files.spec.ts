@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, ready } from './helpers';
+import { DEFAULT_SEQ, expectSeq, openShare, ready } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('save as PDF gives a printable score sheet', async ({ page }) => {
-  await page.locator('.lib-btn').click();
+  await openShare(page);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PDF score' }).click();
   const d = await download;
@@ -20,7 +20,7 @@ test('save as PDF gives a printable score sheet', async ({ page }) => {
 });
 
 test('save as JSON, then open the file again', async ({ page }) => {
-  await page.locator('.lib-btn').click();
+  await openShare(page);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'JSON', exact: true }).click();
   const d = await download;
@@ -48,9 +48,9 @@ test('save as JSON, then open the file again', async ({ page }) => {
 });
 
 test('save as MusicXML and MIDI', async ({ page }) => {
-  await page.locator('.lib-btn').click();
+  await openShare(page);
   let download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'MusicXML' }).click();
+  await page.getByRole('button', { name: 'MusicXML', exact: true }).click();
   let d = await download;
   expect(d.suggestedFilename()).toBe('First phrase.musicxml');
   const xml = readFileSync((await d.path())!, 'utf8');
@@ -60,7 +60,7 @@ test('save as MusicXML and MIDI', async ({ page }) => {
   expect(xml).toContain('<tied type="start"/>');
 
   download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'MIDI' }).click();
+  await page.getByRole('button', { name: 'MIDI', exact: true }).click();
   d = await download;
   expect(d.suggestedFilename()).toBe('First phrase.mid');
   const bytes = readFileSync((await d.path())!);
@@ -70,9 +70,9 @@ test('save as MusicXML and MIDI', async ({ page }) => {
 });
 
 test('save a picture of the sheet', async ({ page }) => {
-  await page.locator('.lib-btn').click();
+  await openShare(page);
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Picture' }).click();
+  await page.getByRole('button', { name: 'Picture', exact: true }).click();
   const d = await download;
   expect(d.suggestedFilename()).toBe('First phrase.png');
   const bytes = readFileSync((await d.path())!);

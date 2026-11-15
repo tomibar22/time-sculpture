@@ -18,7 +18,16 @@ import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 import { Contour, Heart, Strip, UseBar, useRegionBeats, type StripLine } from './fillParts';
 import { FillMap } from './FillMap';
-import { BreedIcon, CloseIcon, DiceIcon, HeadphonesIcon, HeartIcon, PinIcon } from './Icons';
+import {
+  BreedIcon,
+  ChevronIcon,
+  CloseIcon,
+  DiceIcon,
+  HeadphonesIcon,
+  HeartIcon,
+  PinIcon,
+} from './Icons';
+import { PHONE, useMedia } from './useMedia';
 import { VaryPanel } from './VaryPanel';
 
 export { Strip } from './fillParts';
@@ -42,7 +51,24 @@ export function FillPanel() {
   useUiStore((s) => s.range);
   useUiStore((s) => s.selection);
   const region = fillRegion();
+  // a phone folds the sizes and the shapes into one line of two buttons while browsing, so the
+  // fills themselves get the room; a tap on either opens its row
+  const phone = useMedia(PHONE);
+  const shape = useUiStore((s) => s.fillShape);
+  const [fold, setFold] = useState<'sizes' | 'shapes' | null>(null);
+  useEffect(() => setFold((f) => (f === 'shapes' ? null : f)), [shape]);
   if (!tab) return null;
+  const folded = phone && tab === 'browse';
+  const shapeName =
+    shape === 'shapes'
+      ? 'All shapes'
+      : shape === 'any'
+        ? 'Anything'
+        : shape === 'mine'
+          ? 'Mine'
+          : shape === 'bred'
+            ? 'Bred'
+            : (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.label ?? 'Shapes');
 
   const toggle = (n: number) =>
     set({
@@ -126,7 +152,46 @@ export function FillPanel() {
         <VaryPanel />
       ) : (
         <>
-          <div className="fill-sizes" role="group" aria-label="Tile sizes to use">
+          {folded && (
+            <div className="fill-folds">
+              <button
+                type="button"
+                aria-expanded={fold === 'sizes'}
+                title="The tile sizes the fills are made of"
+                onClick={() => setFold(fold === 'sizes' ? null : 'sizes')}
+              >
+                <span className="fold-lbl">Sizes</span>
+                <span className="fold-sizes">
+                  {sizes.length ? (
+                    sizes.map((n) => (
+                      <i key={n} style={{ background: sizeColor(n), color: inkFor(sizeColor(n)) }}>
+                        {n}
+                      </i>
+                    ))
+                  ) : (
+                    <span className="dim">none</span>
+                  )}
+                </span>
+                <ChevronIcon />
+              </button>
+              <button
+                type="button"
+                aria-expanded={fold === 'shapes'}
+                title="The kind of shape to look through"
+                onClick={() => setFold(fold === 'shapes' ? null : 'shapes')}
+              >
+                <span className="fold-lbl">Shape</span>
+                <span className="fold-val">{shapeName}</span>
+                <ChevronIcon />
+              </button>
+            </div>
+          )}
+          <div
+            className="fill-sizes"
+            role="group"
+            aria-label="Tile sizes to use"
+            hidden={folded && fold !== 'sizes'}
+          >
             {SIZES.map((n) => {
               const on = sizes.includes(n);
               const col = sizeColor(n);
@@ -161,7 +226,7 @@ export function FillPanel() {
               </button>
             </div>
           ) : (
-            <Browse />
+            <Browse shapesHidden={folded && fold !== 'shapes'} />
           )}
         </>
       )}
@@ -169,7 +234,7 @@ export function FillPanel() {
   );
 }
 
-function Browse() {
+function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   const sizes = useUiStore((s) => s.fillSizes);
   const sort = useUiStore((s) => s.fillSort);
   const shape = useUiStore((s) => s.fillShape);
@@ -304,7 +369,7 @@ function Browse() {
 
   return (
     <div className="fill-browse">
-      <div className="fill-shapes" role="group" aria-label="Shapes">
+      <div className="fill-shapes" role="group" aria-label="Shapes" hidden={shapesHidden}>
         {mine.length > 0 && (
           <button
             type="button"

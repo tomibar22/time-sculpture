@@ -27,67 +27,52 @@ export function Keypad() {
     else if (!deleteAtCaret(-1)) sfx.nope();
   };
 
+  const digit = (d: number) => {
+    const col = sizeColor(d);
+    return (
+      <button
+        key={d}
+        type="button"
+        className={`key${d > room ? ' big' : ''}`}
+        data-testid={`key-${d}`}
+        title={
+          d > room
+            ? `${d} does not fit: ${room} pulse${room === 1 ? '' : 's'} of room`
+            : `Sound of ${d} pulse${d === 1 ? '' : 's'}`
+        }
+        style={{ '--key': col, '--key-ink': inkFor(col) } as React.CSSProperties}
+        onClick={() => typeDigit(d, 'sound')}
+      >
+        {d}
+      </button>
+    );
+  };
+
   return (
     <div className="keypad" role="group" aria-label="Number pad">
-      <div className="keypad-head">
-        <div className="keypad-caret">
-          <button
-            type="button"
-            className="icon"
-            aria-label="Caret to the start"
-            title="Caret to the very start (Home)"
-            onClick={() => caretHome(false)}
-          >
-            ⇤
-          </button>
-          <button
-            type="button"
-            className="icon"
-            aria-label="Caret left"
-            onClick={() => moveCaret(-1)}
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            className="icon"
-            aria-label="Caret right"
-            onClick={() => moveCaret(1)}
-          >
-            →
-          </button>
-          <button
-            type="button"
-            className="icon"
-            aria-label="Caret to the end"
-            title="Caret to the very end (End)"
-            onClick={() => caretHome(true)}
-          >
-            ⇥
-          </button>
-        </div>
-      </div>
       <div className="keypad-keys">
-        {DIGITS.map((d) => {
-          const col = sizeColor(d);
-          return (
-            <button
-              key={d}
-              type="button"
-              className={`key${d > room ? ' big' : ''}`}
-              data-testid={`key-${d}`}
-              title={
-                d > room
-                  ? `${d} does not fit: ${room} pulse${room === 1 ? '' : 's'} of room`
-                  : `Sound of ${d} pulse${d === 1 ? '' : 's'}`
-              }
-              style={{ '--key': col, '--key-ink': inkFor(col) } as React.CSSProperties}
-              onClick={() => typeDigit(d, 'sound')}
-            >
-              {d}
-            </button>
-          );
-        })}
+        {/* a phone: the digits and delete in five columns, the caret keys a block of four beside
+            them; wider screens put it all on one line (see the order in the stylesheet) */}
+        {DIGITS.slice(0, 5).map(digit)}
+        <button
+          type="button"
+          className="key nav nav-home"
+          aria-label="Caret to the start"
+          title="Caret to the very start (Home)"
+          onClick={() => caretHome(false)}
+        >
+          ⇤
+        </button>
+        <button
+          type="button"
+          className="key nav nav-end"
+          aria-label="Caret to the end"
+          title="Caret to the very end (End)"
+          onClick={() => caretHome(true)}
+        >
+          ⇥
+        </button>
+        {DIGITS.slice(5).map(digit)}
         <button
           type="button"
           className="key del"
@@ -96,6 +81,22 @@ export function Keypad() {
           onClick={backspace}
         >
           ⌫
+        </button>
+        <button
+          type="button"
+          className="key nav nav-left"
+          aria-label="Caret left"
+          onClick={() => moveCaret(-1)}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          className="key nav nav-right"
+          aria-label="Caret right"
+          onClick={() => moveCaret(1)}
+        >
+          →
         </button>
       </div>
     </div>

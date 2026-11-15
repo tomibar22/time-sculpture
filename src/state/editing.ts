@@ -195,7 +195,9 @@ function write(groups: GroupSpec[], label: string): boolean {
     toast(
       free
         ? `${text} needs ${plural(sum(groups), 'pulse')}; only ${free} open`
-        : 'No open space left',
+        : d.items.some((x) => x.kind === 'rest')
+          ? 'No room at the caret. Tap an empty stretch to write there'
+          : 'The piece is full. Remove or shorten a group to write',
     );
     return false;
   }

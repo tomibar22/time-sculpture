@@ -22,7 +22,7 @@ import { clearAll, toast } from '../state/actions';
 import { sameGridDoc, surpriseDoc } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { MenuIcon } from './Icons';
+import { MenuIcon, ChevronIcon, DiceIcon, ShareIcon } from './Icons';
 
 const when = (t: number) =>
   new Date(t).toLocaleString(undefined, {
@@ -61,6 +61,7 @@ export function LibraryMenu() {
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [sharing, setSharing] = useState(false);
   const currentId = useUiStore((s) => s.currentId);
   const currentName = useUiStore((s) => s.currentName);
   const [name, setName] = useState(currentName);
@@ -141,29 +142,9 @@ export function LibraryMenu() {
               Close
             </button>
           </div>
-          <form
-            className="lib-rename"
-            onSubmit={(e) => {
-              e.preventDefault();
-              rename();
-            }}
-          >
-            <label htmlFor="lib-name">Name of this composition</label>
-            <div className="row">
-              <input
-                id="lib-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={80}
-                enterKeyHint="done"
-              />
-              <button type="submit">Rename</button>
-            </div>
-          </form>
-
           <section className="lib-sec" aria-labelledby="lib-new">
             <h3 id="lib-new">New</h3>
-            <div className="lib-actions">
+            <div className="lib-actions lib-row">
               <button
                 type="button"
                 className="primary"
@@ -198,14 +179,26 @@ export function LibraryMenu() {
                   })
                 }
               >
-                🎲 Surprise me
+                <DiceIcon /> Surprise me
               </button>
             </div>
           </section>
 
-          <section className="lib-sec" aria-labelledby="lib-save">
-            <h3 id="lib-save">Save and share</h3>
-            <div className="lib-actions">
+          {/* folded away: the list of compositions is what the library is opened for */}
+          <section className="lib-sec lib-share">
+            <button
+              type="button"
+              className="lib-fold"
+              aria-expanded={sharing}
+              aria-controls="lib-save"
+              onClick={() => setSharing(!sharing)}
+            >
+              <ShareIcon />
+              Save and share
+              <span className="dim"> · PDF, picture, MusicXML, MIDI, link</span>
+              <ChevronIcon />
+            </button>
+            <div id="lib-save" className="lib-actions" hidden={!sharing}>
               <button
                 type="button"
                 className="primary"
@@ -253,7 +246,7 @@ export function LibraryMenu() {
                 Copy as text
               </button>
             </div>
-            <p className="lib-note">
+            <p className="lib-note" hidden={!sharing}>
               PDF and Picture are sheets to play from. MusicXML opens as notation (Dorico, Sibelius,
               MuseScore), MIDI in any DAW. JSON is the composition itself.
             </p>
@@ -316,6 +309,26 @@ export function LibraryMenu() {
             </ul>
             {q && !shown.length && <p className="lib-note">Nothing called “{query.trim()}”.</p>}
           </section>
+
+          <form
+            className="lib-rename"
+            onSubmit={(e) => {
+              e.preventDefault();
+              rename();
+            }}
+          >
+            <label htmlFor="lib-name">Name of this composition</label>
+            <div className="row">
+              <input
+                id="lib-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={80}
+                enterKeyHint="done"
+              />
+              <button type="submit">Rename</button>
+            </div>
+          </form>
 
           <div className="lib-actions lib-foot">
             <button

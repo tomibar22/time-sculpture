@@ -69,3 +69,33 @@ function Landing() {
     </span>
   );
 }
+
+/**
+ * The state of the piece in a few words, at the top of the dock where it is always in sight:
+ * how much is still open (and the way to fill it), or that it lands.
+ */
+export function PieceState() {
+  const doc = useDocStore((s) => s.doc);
+  const R = E.freePulses(doc);
+  if (R === 0) {
+    const lands = !doc.meter.sections?.length || E.landing(doc.meter).lands;
+    return (
+      <span className="piece-state" data-testid="piece-state">
+        <span className="ok">{lands ? 'On the 1' : 'Full'}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="piece-state" data-testid="piece-state">
+      <span className="warn">{R} to go</span>
+      <button
+        type="button"
+        className="link-btn"
+        title="Fill the open space: shapes, every way, or at random"
+        onClick={() => openFill('browse')}
+      >
+        Fill it…
+      </button>
+    </span>
+  );
+}

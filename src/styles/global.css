@@ -2440,3 +2440,356 @@ dialog.tempo-dialog {
 .key.big {
   opacity: 0.38;
 }
+
+/* ---------------------------------------------------------------- the dock, kept low
+   (the score is what the screen is for) */
+.selbar {
+  --selbar-bg: color-mix(in srgb, var(--sel) 9%, var(--card));
+  background: var(--selbar-bg);
+}
+/* one thin line: what is selected, and the state of the piece (how much is open, or that it
+   lands), always in sight above the pad */
+.dock .selbar {
+  gap: 2px;
+  padding: 2px 6px 6px;
+}
+.dock .selbar.bare {
+  background: transparent;
+  padding: 0 6px;
+}
+.dock .selbar-head {
+  min-height: 24px;
+}
+.dock .selbar-head .selname {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0 4px;
+  font-size: 0.82rem;
+}
+.piece-state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.piece-state .ok {
+  color: var(--accent);
+  font-weight: 700;
+}
+.piece-state .warn {
+  color: var(--warn);
+  font-weight: 700;
+}
+.piece-state button.link-btn {
+  min-height: 24px;
+  padding: 0 2px;
+  font-size: 0.82rem;
+  position: relative;
+}
+/* small to look at, still easy to hit with a finger */
+.piece-state button.link-btn::after {
+  content: '';
+  position: absolute;
+  inset: -10px -8px;
+}
+.selbar button.selbar-icon {
+  min-width: var(--touch);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Done stays at the right end while the row scrolls under it; the fade says there is more */
+.selbar button.selbar-done {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  order: 99;
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: var(--touch);
+  min-height: var(--touch);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--sel);
+}
+.selbar button.selbar-done::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: -22px;
+  right: -6px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--selbar-bg) 20px);
+}
+/* the pad: the digits, delete and the caret keys in one block (no row of their own) */
+.keypad-keys {
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+}
+.key.nav {
+  color: var(--muted);
+  font-family: var(--f-body);
+  font-size: 1.05rem;
+}
+@media (min-width: 561px) {
+  .key.del {
+    order: 1;
+  }
+  .key.nav-home {
+    order: 2;
+  }
+  .key.nav-left {
+    order: 3;
+  }
+  .key.nav-right {
+    order: 4;
+  }
+  .key.nav-end {
+    order: 5;
+  }
+}
+@media (max-width: 560px) {
+  .keypad-keys {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .key {
+    min-height: 44px;
+  }
+  .dock-inner {
+    gap: 8px;
+  }
+  .dock {
+    padding-top: 8px;
+  }
+}
+/* a toast lies over the dock's state line, not over the tiles being worked on */
+.toast {
+  bottom: calc(var(--dock-h, 80px) - 36px);
+}
+.dock:has(.fillpanel) ~ .toast {
+  bottom: calc(var(--dock-h, 80px) + 8px);
+}
+.toast.show {
+  opacity: 1;
+}
+/* the settings line: the long form where there is room, the short one on a phone */
+.sum-short {
+  display: none;
+}
+@media (max-width: 560px) {
+  .sum-long {
+    /* still read by screen readers */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sum-short {
+    display: block;
+  }
+  /* a long name gets smaller before it is cut off */
+  .piece-title.long {
+    font-size: 1.05rem;
+  }
+  .piece-title.longer {
+    font-size: 0.9rem;
+  }
+}
+/* stage: Loop says its state in words, like its neighbours */
+.stage-opts > button[aria-pressed='true'] {
+  background: transparent;
+  color: var(--muted);
+}
+/* library: the ways to start anew on one line, saving and sharing folded, then the list */
+.lib-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.lib-row::-webkit-scrollbar {
+  display: none;
+}
+.lib-row > button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+button.lib-fold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+.lib-fold .dim {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.lib-fold svg {
+  flex-shrink: 0;
+}
+.lib-fold svg:last-child {
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.lib-fold[aria-expanded='true'] svg:last-child {
+  transform: rotate(180deg);
+}
+.lib-actions[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- fill panel, more fills in sight */
+.fill-sizes[hidden],
+.fill-shapes[hidden] {
+  display: none !important;
+}
+/* phones, browsing: the sizes and the shapes are one line of two buttons until one is opened */
+.fill-folds {
+  display: flex;
+  gap: 6px;
+}
+.fill-folds > button {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  text-align: left;
+  font-weight: 400;
+}
+.fill-folds > button[aria-expanded='true'] {
+  box-shadow: inset 0 0 0 1.5px var(--sel);
+}
+.fill-folds .fold-lbl {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fill-folds .fold-val,
+.fill-folds .fold-sizes {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+.fill-folds .fold-sizes {
+  display: flex;
+  gap: 2px;
+  /* more sizes than fit fade out instead of being cut */
+  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+}
+.fill-folds .fold-sizes i {
+  flex: 0 0 auto;
+  min-width: 18px;
+  padding: 0 3px;
+  border-radius: 5px;
+  font: 600 0.72rem/18px var(--f-mono);
+  text-align: center;
+}
+.fill-folds .dim {
+  color: var(--muted);
+  font-weight: 400;
+}
+.fill-folds svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.fill-folds > button[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+/* nothing on trial: one quiet line (the bar is at the foot, so its height moves no row) */
+@media (max-width: 560px) {
+  /* a phone's list scrolls under the bar; elsewhere the bar keeps its height so that no row
+     moves under a second tap */
+  .fill-usebar.idle {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+}
+.fill-usebar.idle b {
+  color: var(--fg);
+}
+/* rows scroll away under the bar, not past its round corners */
+.fill-usebar::before {
+  content: '';
+  position: absolute;
+  inset: -6px -4px -4px;
+  z-index: -1;
+  background: var(--card);
+  pointer-events: none;
+}
+@media (max-width: 560px) {
+  /* the tools keep their names on a phone, small, under the icons (no hover to ask there) */
+  .fill-tools .tool-lbl {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    font-size: 0.62rem;
+    font-weight: 400;
+    line-height: 1;
+  }
+  .fill-tools button {
+    flex-direction: column;
+    gap: 3px;
+    min-width: 52px;
+    padding: 0 4px;
+  }
+}
+/* the bar's ring is drawn over its backing */
+.fill-usebar,
+.fill-usebar.idle {
+  box-shadow: none;
+}
+.fill-usebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--sel);
+  pointer-events: none;
+}
+.fill-usebar.idle::after {
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.fill-usebar.idle {
+  display: block;
+  line-height: 24px;
+}
+@media (min-width: 561px) {
+  .fill-usebar.idle {
+    line-height: 44px;
+  }
+}
+button.lib-fold {
+  white-space: nowrap;
+}

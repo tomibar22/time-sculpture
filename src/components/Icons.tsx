@@ -112,3 +112,15 @@ export const BranchIcon = () => (
     <path d="M6 7v10M18 10c0 4-6 3-11 6" />
   </svg>
 );
+export const TrashIcon = () => (
+  <svg {...base}>
+    <path d="M4 7h16M10 11v6M14 11v6" />
+    <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+  </svg>
+);
+export const ShareIcon = () => (
+  <svg {...base}>
+    <path d="M12 15V4M8 8l4-4 4 4" />
+    <path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+  </svg>
+);

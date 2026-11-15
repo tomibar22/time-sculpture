@@ -112,3 +112,18 @@ export async function clearAll(page: Page) {
 /** Wait until the app has loaded its composition from storage. */
 export const ready = (page: Page) =>
   page.waitForSelector('html[data-ready]', { state: 'attached' });
+
+/**
+ * On a phone the fill panel folds the sizes and the shapes into two buttons while browsing:
+ * open the one that is needed (a no-op on wider screens, where both rows are always there).
+ */
+export async function fillFold(page: Page, which: 'Sizes' | 'Shape') {
+  const b = page.locator('.fill-folds button', { hasText: which });
+  if ((await b.count()) && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+}
+
+/** Open the library with its "Save and share" part unfolded. */
+export async function openShare(page: Page) {
+  await page.locator('.lib-btn').click();
+  await page.getByRole('button', { name: /Save and share/ }).click();
+}

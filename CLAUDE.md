@@ -508,6 +508,39 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   after" (caret at TS) and "+ Bar at the end"; the caret goes to the old end. The Bars stepper
   still uses `resizeMeter` (bars appear in the middle, in the open space).
 
+### The dock, kept low (phone review, user request "do everything")
+
+- The score is what the screen is for: on an iPhone two rows stay in sight with a group selected.
+- **State line**: the selection / caret bar's head is one thin line (24 px): what is selected on
+  the left, `PieceState` (Status.tsx) on the right: "N to go" + "Fill it…" (opens Browse), or
+  "On the 1". With nothing selected the bar is `.selbar.bare` (the line alone). The status line
+  under the score stays (and is what the e2e tests read).
+- **Action row order** = how often it is needed: tiles: −1 +1 Split (Merge) Duplicate Remove
+  (trash icon) · ← → · Loop Vary Refill (Reverse) · Copy Cut (Paste) · Select several / all ·
+  Total Ending Subdivision. Caret: (Paste) (Bar before/after) Select ⇥, Break line, Phrase mark,
+  Subdivision · Modulate, repeats · Select all. **Done** is an ✕ (`.selbar-done`) that sticks to
+  the row's right end with a fade, which also says the row scrolls.
+- **Number pad** has no row of its own for the caret keys: phones 7 columns (1–5 ⇤ ⇥ / 6–9 ⌫ ← →,
+  keys 44 px), wider screens one line of 14 (CSS `order`).
+- **Toasts** lie over the dock's state line (not over the tiles); above the dock while the fill
+  or subdivision panel is open. A refused digit says why: "No room at the caret. Tap an empty
+  stretch…" when there is silence elsewhere, else "The piece is full…".
+- The dock steps aside (transport only) when the score panel is scrolled off the screen
+  (`away` in Transport.tsx), so Options and Help are read in full.
+- Settings line: phones show the short form ("4×2 · 4:1 · pulse", `.sum-short`); the long one
+  stays for wider screens and screen readers. A long piece name gets smaller on phones
+  (`.piece-title.long` / `.longer`).
+- Line handles are slim and quiet at rest (5×18, half-opaque outline), full size when hovered
+  or dragged.
+- **Fill panel on phones**: while browsing, sizes and shapes fold into one line of two buttons
+  (`.fill-folds`, local `fold` state in FillPanel; picking a shape closes its row); the tools keep
+  small names under their icons; the idle Use bar is one short line (phones only: elsewhere it
+  keeps its height so no row moves under a second tap). The map places dots by a mix of value
+  and rank, so bunched families spread. e2e: `fillFold(page, 'Sizes' | 'Shape')`.
+- **Library**: New (one sideways-scrolling line) → "Save and share" folded (`sharing` state;
+  e2e `openShare(page)`) → Compositions → rename → files. No emoji (DiceIcon).
+- Stage: "Loop on / off" in words, like its neighbours.
+
 ## Design tokens (src/styles/tokens.css)
 
 | token                 | light   | dark    |

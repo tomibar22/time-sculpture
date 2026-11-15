@@ -263,7 +263,7 @@ export function Stage() {
                 title="Play again from the top, or stop when the piece lands on 1"
                 onClick={() => setStagePrefs({ loop: !prefs.loop })}
               >
-                Loop
+                Loop <b>{prefs.loop ? 'on' : 'off'}</b>
               </button>
             )}
             <ZoomControl />

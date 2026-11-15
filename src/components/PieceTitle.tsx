@@ -44,7 +44,7 @@ export function PieceTitle() {
   };
   return (
     <input
-      className="piece-title"
+      className={`piece-title${name.length > 26 ? ' longer' : name.length > 14 ? ' long' : ''}`}
       aria-label="Name of the composition"
       title="The name of this composition: tap to rename"
       value={name}

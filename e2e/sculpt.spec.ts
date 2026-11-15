@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, ready } from './helpers';
+import { DEFAULT_SEQ, expectSeq, fillFold, ready } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -9,14 +9,17 @@ test.beforeEach(async ({ page }) => {
 
 test('keep a fill, breed from it, and fill from the next generation', async ({ page }) => {
   await page.getByRole('button', { name: 'Browse fills…' }).click();
+  await fillFold(page, 'Sizes');
   await page.getByTestId('fill-1').click();
   const list = page.getByRole('list', { name: 'Ways to fill' });
   await list
     .getByRole('button', { name: /^Keep / })
     .first()
     .click();
+  await fillFold(page, 'Shape');
   await expect(page.getByRole('button', { name: /Mine/ })).toBeVisible();
   await page.getByRole('button', { name: /Breed/ }).click();
+  await fillFold(page, 'Shape');
   await expect(page.getByRole('button', { name: /Generation 1/ })).toHaveAttribute(
     'aria-pressed',
     'true',

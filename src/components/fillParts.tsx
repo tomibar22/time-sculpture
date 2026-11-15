@@ -145,7 +145,7 @@ export function UseBar({
   if (!trying)
     return (
       <p className="fill-usebar idle">
-        Tap a {what} to try it in the score. Nothing is written until you tap Use.
+        Tap a {what} to try it. <b>Use</b> writes it.
       </p>
     );
   return (

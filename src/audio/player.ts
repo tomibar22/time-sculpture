@@ -227,9 +227,7 @@ export function togglePlayback(): void {
     const a = grid.times[region.a]!;
     const b = grid.times[Math.min(region.b, grid.TS)]!;
     // while choosing a fill, the stretch loops so every fill tried is heard over and over
-    return ui.fillPanel
-      ? startPlayback(a, { a, b })
-      : startPlayback(a, { a, b }, { once: true });
+    return ui.fillPanel ? startPlayback(a, { a, b }) : startPlayback(a, { a, b }, { once: true });
   }
   startPlayback(0);
 }

@@ -23,6 +23,9 @@ export function Toolbar() {
   const shape = meter.sections?.length
     ? `${meter.cycles} bars · ${meter.sections.length + 1} tempi`
     : `${meter.beatsPerCycle} beats × ${meter.cycles} bar${meter.cycles === 1 ? '' : 's'}`;
+  const short = meter.sections?.length
+    ? `${meter.cycles} bars`
+    : `${meter.beatsPerCycle}×${meter.cycles}`;
 
   return (
     <div className="toolbar-block">
@@ -35,11 +38,19 @@ export function Toolbar() {
           aria-controls="setup-body"
           onClick={() => set({ setupOpen: !open })}
         >
-          <span className="setup-sum">
+          {/* a phone has room for the short form only; cut off, the long one said nothing */}
+          <span className="setup-sum sum-long">
             <b>{shape}</b>
             <span className="dim">
               {' '}
               · brush {brush}:1 · drag by {moveMode}
+            </span>
+          </span>
+          <span className="setup-sum sum-short" aria-hidden="true">
+            <b>{short}</b>
+            <span className="dim">
+              {' '}
+              · {brush}:1 · {moveMode}
             </span>
           </span>
           <ChevronIcon />

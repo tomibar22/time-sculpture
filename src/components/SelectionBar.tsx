@@ -36,6 +36,8 @@ import {
 } from '../state/editing';
 import { openFill } from '../state/fill';
 import { useDocStore, useUiStore } from '../state/store';
+import { CloseIcon, TrashIcon } from './Icons';
+import { PieceState } from './Status';
 
 export function SelectionBar() {
   const doc = useDocStore((s) => s.doc);
@@ -70,47 +72,10 @@ export function SelectionBar() {
             </>
           )}
         </span>
-        <button
-          type="button"
-          className="selbar-done"
-          aria-label="Done, clear the selection"
-          onClick={clearSelection}
-        >
-          Done
-        </button>
+        <PieceState />
       </div>
       <div className="selbar-actions">
-        <button
-          type="button"
-          aria-pressed={multi}
-          title="Tap groups to add them to the selection"
-          onClick={() => toggleMulti()}
-        >
-          Select several
-        </button>
-        {sel.length < items.length - 1 && (
-          <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
-            Select all
-          </button>
-        )}
-        <span className="selbar-sep" aria-hidden="true" />
-        {/* place and size */}
-        <button
-          type="button"
-          aria-label="Move left"
-          disabled={!sel.length || idx[0] === 0}
-          onClick={() => moveSelection(-1)}
-        >
-          ←
-        </button>
-        <button
-          type="button"
-          aria-label="Move right"
-          disabled={!sel.length || idx[idx.length - 1] === items.length - 1}
-          onClick={() => moveSelection(1)}
-        >
-          →
-        </button>
+        {/* what is done to a group most comes first: its size, then the group itself */}
         <button
           type="button"
           aria-label="−1 pulse"
@@ -129,8 +94,6 @@ export function SelectionBar() {
         >
           +1
         </button>
-        <span className="selbar-sep" aria-hidden="true" />
-        {/* the groups themselves */}
         <button
           type="button"
           title="Split in two (S, or double-tap the group)"
@@ -154,11 +117,31 @@ export function SelectionBar() {
         </button>
         <button
           type="button"
+          className="selbar-icon"
+          aria-label="Remove"
           title="Remove (Delete)"
           disabled={!sel.length}
           onClick={removeSelection}
         >
-          Remove
+          <TrashIcon />
+        </button>
+        <span className="selbar-sep" aria-hidden="true" />
+        {/* its place */}
+        <button
+          type="button"
+          aria-label="Move left"
+          disabled={!sel.length || idx[0] === 0}
+          onClick={() => moveSelection(-1)}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          aria-label="Move right"
+          disabled={!sel.length || idx[idx.length - 1] === items.length - 1}
+          onClick={() => moveSelection(1)}
+        >
+          →
         </button>
         <span className="selbar-sep" aria-hidden="true" />
         {/* hear it, say it another way */}
@@ -216,6 +199,21 @@ export function SelectionBar() {
           </button>
         )}
         <span className="selbar-sep" aria-hidden="true" />
+        {/* selecting more */}
+        <button
+          type="button"
+          aria-pressed={multi}
+          title="Tap groups to add them to the selection"
+          onClick={() => toggleMulti()}
+        >
+          Select several
+        </button>
+        {sel.length < items.length - 1 && (
+          <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+            Select all
+          </button>
+        )}
+        <span className="selbar-sep" aria-hidden="true" />
         {/* marks on the score */}
         <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
         <button
@@ -234,8 +232,24 @@ export function SelectionBar() {
         >
           Subdivision…
         </button>
+        <Done label="Done, clear the selection" onClick={clearSelection} />
       </div>
     </div>
+  );
+}
+
+/** The way out of a selection or a caret: it stays at the row's right end while the row scrolls. */
+function Done({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="selbar-done"
+      aria-label={label}
+      title="Done (Esc)"
+      onClick={onClick}
+    >
+      <CloseIcon />
+    </button>
   );
 }
 
@@ -249,7 +263,15 @@ function CaretBar() {
   const range = useUiStore((s) => s.range);
   const clip = useUiStore((s) => s.clipboard);
   const keypad = useUiStore((s) => s.keypad);
-  if (caret === null && !range) return null;
+  if (caret === null && !range)
+    return (
+      <div className="selbar bare">
+        <div className="selbar-head">
+          <span className="selname" />
+          <PieceState />
+        </div>
+      </div>
+    );
   const docNow = useDocStore.getState().doc;
   const gridNow = E.buildGrid(docNow.meter);
   const beatHere = caret === null ? -1 : E.beatOfPulse(gridNow, Math.min(caret, gridNow.TS - 1));
@@ -266,14 +288,7 @@ function CaretBar() {
             <b>{range.b - range.a}</b> pulses{' '}
             <span className="dim">· from {describePulse(range.a)}</span>
           </span>
-          <button
-            type="button"
-            className="selbar-done"
-            aria-label="Done, clear the selection"
-            onClick={escape}
-          >
-            Done
-          </button>
+          <PieceState />
         </div>
         <div className="selbar-actions">
           <button type="button" aria-label="Select one pulse less" onClick={() => extendRange(-1)}>
@@ -328,6 +343,7 @@ function CaretBar() {
               Paste
             </button>
           )}
+          <Done label="Done, clear the selection" onClick={escape} />
         </div>
       </div>
     );
@@ -338,14 +354,7 @@ function CaretBar() {
         <span className="selname" data-testid="caretname">
           Caret <span className="dim">· {describePulse(caret!)}</span>
         </span>
-        <button
-          type="button"
-          className="selbar-done"
-          aria-label="Done, remove the caret"
-          onClick={escape}
-        >
-          Done
-        </button>
+        <PieceState />
       </div>
       <div className="selbar-actions">
         {!keypad && (
@@ -364,22 +373,11 @@ function CaretBar() {
             </button>
           </>
         )}
-        {isBeatLine && (
-          <button
-            type="button"
-            title="Metric modulation from here (T)"
-            onClick={() => openModulation(caret!)}
-          >
-            {sectionHere ? 'Modulation…' : 'Modulate…'}
+        {clip.length > 0 && (
+          <button type="button" title="Paste here (⌘V)" onClick={() => paste()}>
+            Paste {E.formatGroups(clip)}
           </button>
         )}
-        <button
-          type="button"
-          title="Subdivision of the beat at the caret"
-          onClick={openSubdivision}
-        >
-          Subdivision…
-        </button>
         {caret === 0 && (
           <button
             type="button"
@@ -400,6 +398,20 @@ function CaretBar() {
         )}
         <button
           type="button"
+          aria-label="Select from the caret, one pulse more"
+          onClick={() => extendRange(1)}
+        >
+          Select ⇥
+        </button>
+        <button
+          type="button"
+          title="Start a new row here (Enter)"
+          onClick={() => toggleLineBreak(caret!)}
+        >
+          {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
+        </button>
+        <button
+          type="button"
           title="Mark the start of a phrase here (P)"
           onClick={() => togglePhraseMark(caret!)}
         >
@@ -412,6 +424,23 @@ function CaretBar() {
             onClick={() => useUiStore.getState().set({ markDialog: { k: caret! } })}
           >
             Name…
+          </button>
+        )}
+        <button
+          type="button"
+          title="Subdivision of the beat at the caret"
+          onClick={openSubdivision}
+        >
+          Subdivision…
+        </button>
+        <span className="selbar-sep" aria-hidden="true" />
+        {isBeatLine && (
+          <button
+            type="button"
+            title="Metric modulation from here (T)"
+            onClick={() => openModulation(caret!)}
+          >
+            {sectionHere ? 'Modulation…' : 'Modulate…'}
           </button>
         )}
         {caret! < gridNow.TS && (
@@ -455,28 +484,11 @@ function CaretBar() {
             </button>
           </div>
         )}
-        <button
-          type="button"
-          title="Start a new row here (Enter)"
-          onClick={() => toggleLineBreak(caret!)}
-        >
-          {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
-        </button>
-        <button
-          type="button"
-          aria-label="Select from the caret, one pulse more"
-          onClick={() => extendRange(1)}
-        >
-          Select ⇥
-        </button>
-        {clip.length > 0 && (
-          <button type="button" title="Paste here (⌘V)" onClick={() => paste()}>
-            Paste {E.formatGroups(clip)}
-          </button>
-        )}
+        <span className="selbar-sep" aria-hidden="true" />
         <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
           Select all
         </button>
+        <Done label="Done, remove the caret" onClick={escape} />
       </div>
       <span className="hint">
         {keypad
