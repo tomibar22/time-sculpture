@@ -2,6 +2,7 @@ import {
   barMap,
   commonSubdivision,
   fromMain,
+  patternLabel,
   sectionAt,
   toMain,
   isSpace,
@@ -557,29 +558,52 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   }
   /* ---------------- metric modulation: section markers and the main tempo's ghost grid */
   const mainBar = doc.meter.beatsPerCycle;
-  bm.sections.forEach((sec, si) => {
-    if (si === 0) return;
-    const p = xOf(g, sec.at);
-    const top = rowTop(g, p.r);
-    const tempo = s.mainTempo ? ` · ♩=${Math.round((s.mainTempo / sec.scale) * 10) / 10}` : '';
-    const label = `${sec.from}:1 = ${sec.to}:1${tempo}`;
-    c.font = `700 11px ${MONO}`;
-    const w = c.measureText(label).width + 12;
-    const fx = p.x + 12; // after the bar's "1"
-    c.fillStyle = P.warn;
-    rr(c, fx, top + 2, w, 15, 4);
-    c.fill();
-    c.fillStyle = P.card;
-    c.textAlign = 'left';
-    c.textBaseline = 'middle';
-    c.fillText(label, fx + 6, top + 10);
-  });
-  if (bm.sections.length > 1) {
+  // named in the lane above the row, so the beat numbers under them stay readable: a modulation
+  // as an amber pill with its equation, a change of metre as the new bars ("5+5+4")
+  if (g.lane && (bm.sections.length > 1 || doc.meter.bars)) {
+    bm.sections.forEach((sec, si) => {
+      const p = xOf(g, sec.at);
+      const y = rowTop(g, p.r) - g.lane;
+      const modulation = sec.from !== sec.to;
+      const bars = patternLabel(sec.pattern);
+      const tempo =
+        modulation && s.mainTempo ? ` · ♩=${Math.round((s.mainTempo / sec.scale) * 10) / 10}` : '';
+      const label = modulation ? `${sec.from}:1 = ${sec.to}:1${tempo}` : bars;
+      c.font = `700 11px ${MONO}`;
+      const w = c.measureText(label).width + 12;
+      const fx = Math.min(p.x, g.w - w - 2);
+      if (modulation) {
+        c.fillStyle = P.warn;
+        rr(c, fx, y + 1, w, 15, 4);
+        c.fill();
+        c.fillStyle = P.card;
+      } else {
+        c.fillStyle = P.card;
+        rr(c, fx, y + 1, w, 15, 4);
+        c.fill();
+        c.strokeStyle = P.fg;
+        c.lineWidth = 1.2;
+        rr(c, fx + 0.6, y + 1.6, w - 1.2, 13.8, 4);
+        c.stroke();
+        c.fillStyle = P.fg;
+      }
+      c.textAlign = 'left';
+      c.textBaseline = 'middle';
+      c.fillText(label, fx + 6, y + 9);
+      // a modulation that also changes the bars says so after its equation
+      const prev = bm.sections[si - 1];
+      if (modulation && prev && bars !== patternLabel(prev.pattern)) {
+        c.fillStyle = P.muted;
+        c.fillText(bars, fx + w + 6, y + 9);
+      }
+    });
+  }
+  if (bm.sections.some((x) => x.scale !== 1)) {
     // inside a modulated section, show where the main tempo's beats fall: bar lines as a dashed
     // red line through the tiles, other beats as small ticks under the band
     for (let r = 0; r < g.R; r++) {
       const row = g.rows[r]!;
-      if (sectionAt(doc.meter, row.b0) === 0) continue;
+      if (bm.sections[sectionAt(doc.meter, row.b0)]!.scale === 1) continue;
       const m0 = toMain(doc.meter, row.b0);
       const m1 = toMain(doc.meter, row.b0 + row.nb);
       const ty = tileY(g, r);
@@ -603,6 +627,25 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         c.globalAlpha = 1;
       }
     }
+  }
+
+  /* ---------------- where Play starts, when it is not the top */
+  if (s.playStart != null && s.playStart > EPS_D && s.playStart < g.grid.NB - EPS_D) {
+    const p = xOf(g, s.playStart);
+    const top = rowTop(g, p.r);
+    const ty = tileY(g, p.r);
+    c.fillStyle = P.accent;
+    c.globalAlpha = 0.85;
+    c.fillRect(p.x - 1, top + 19, 2, ty + L.tileH + 4 - top - 19);
+    c.globalAlpha = 1;
+    c.beginPath();
+    // beside the beat's number, not on it
+    c.fillRect(p.x - 1, top + 15, 2, 4);
+    c.moveTo(p.x + 7, top + 4);
+    c.lineTo(p.x + 16, top + 10);
+    c.lineTo(p.x + 7, top + 16);
+    c.closePath();
+    c.fill();
   }
 
   /* ---------------- phrase marks: a line and a flag (with the mark's name, if it has one) */

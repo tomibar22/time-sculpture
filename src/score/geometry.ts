@@ -64,7 +64,11 @@ export const LANE_H = 18;
 
 /** Does the piece need the lane above its rows? */
 export const needsLane = (doc: Doc) =>
-  !!doc.meter.voltas?.length || (doc.meter.repeatEnds ?? []).some((e) => e.times > 2);
+  !!doc.meter.voltas?.length ||
+  (doc.meter.repeatEnds ?? []).some((e) => e.times > 2) ||
+  // modulations and changes of metre are named there, clear of the beat numbers
+  !!doc.meter.sections?.length ||
+  !!doc.meter.bars?.length;
 
 /** Rows wrap every `perRow` bars and at the document's manual line breaks (see rows.ts). */
 export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo {

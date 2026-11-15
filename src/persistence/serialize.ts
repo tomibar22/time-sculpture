@@ -9,6 +9,7 @@ import {
   toMain,
   withBreaks,
   withMarks,
+  withRowSizes,
 } from '../engine';
 import type { Doc, Item, Meter } from '../engine';
 import { hasForm, playOrder, refitForm } from '../engine';
@@ -66,7 +67,16 @@ export interface SavedPiece {
    * Metric modulations (optional): from local beat `atBeat`, a pulse of `from`:1 before equals a
    * pulse of `to`:1 after, and bars have `beatsPerBar` beats.
    */
-  modulations?: { atBeat: number; from: number; to: number; beatsPerBar: number }[];
+  modulations?: {
+    atBeat: number;
+    from: number;
+    to: number;
+    beatsPerBar: number;
+    /** A pattern of bar sizes that goes round ("5 5 4"); beatsPerBar is its first. */
+    bars?: number[];
+  }[];
+  /** The main section's bars when they follow a pattern (else every bar has beatsPerCycle beats). */
+  barPattern?: number[];
   /**
    * Repeats (optional): start signs `|:` and end signs `:|` (times in beats; `times` = how often
    * the passage is played in all), and endings (brackets over [fromBeat, toBeat) played on the
@@ -83,7 +93,13 @@ export interface SavedPiece {
   /** The phrase as written to the end; it ends exactly on the next beat 1. */
   ending: FileGroup[];
   /** Bars per row, and manual line breaks (times in beats where a new row starts). */
-  layout: { cyclesPerRow: number; breaks: number[]; fitRows?: boolean };
+  layout: {
+    cyclesPerRow: number;
+    breaks: number[];
+    /** Rows with a size of their own: from `fromBeat`, `bars` bars a row (0 = the zoom again). */
+    rowSizes?: { fromBeat: number; bars: number }[];
+    fitRows?: boolean;
+  };
   sounds?: FileSound[];
   /**
    * Derived for other programs (ignored when reading): the order the piece is heard in, as
@@ -125,6 +141,7 @@ export function toSaved(
           }),
         }
       : {}),
+    ...(doc.meter.bars ? { barPattern: [...doc.meter.bars] } : {}),
     ...(doc.meter.sections?.length
       ? {
           modulations: doc.meter.sections.map((m) => ({
@@ -132,6 +149,7 @@ export function toSaved(
             from: m.from,
             to: m.to,
             beatsPerBar: m.beatsPerBar,
+            ...(m.bars ? { bars: [...m.bars] } : {}),
           })),
         }
       : {}),
@@ -153,6 +171,9 @@ export function toSaved(
     layout: {
       cyclesPerRow: settings.perRow ?? 1,
       breaks: [...(doc.meter.breaks ?? [])],
+      ...(doc.meter.rowSizes?.length
+        ? { rowSizes: doc.meter.rowSizes.map((r) => ({ fromBeat: r.at, bars: r.per })) }
+        : {}),
       ...(settings.fitRows ? { fitRows: true } : {}),
     },
   };
@@ -224,8 +245,12 @@ export function fromSaved(raw: unknown): Parsed {
             from: Number(m.from),
             to: Number(m.to),
             beatsPerBar: Number(m.beatsPerBar),
+            ...(Array.isArray(m.bars) && m.bars.length ? { bars: m.bars.map(Number) } : {}),
           })),
         }
+      : {}),
+    ...(Array.isArray(p.barPattern) && p.barPattern.length
+      ? { bars: p.barPattern.map(Number) }
       : {}),
     ...readRepeats(p.repeats),
   };
@@ -242,9 +267,16 @@ export function fromSaved(raw: unknown): Parsed {
     rows?: unknown;
     breaks?: unknown;
     fitRows?: unknown;
+    rowSizes?: unknown;
   };
+  const rowSizes = (Array.isArray(layout.rowSizes) ? (layout.rowSizes as unknown[]) : [])
+    .map((r) => {
+      const x = r as Record<string, unknown> | null;
+      return { at: Number(x?.fromBeat), per: Number(x?.bars) };
+    })
+    .filter((r) => Number.isFinite(r.at) && Number.isInteger(r.per) && r.per >= 0);
   return finish(
-    meter,
+    rowSizes.length ? withRowSizes(meter, rowSizes) : meter,
     items,
     next,
     String(p.title ?? 'Untitled'),

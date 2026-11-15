@@ -3,6 +3,7 @@ import * as E from '../engine';
 import { togglePlayback } from '../audio/player';
 import {
   duplicateSelection,
+  duplicateRange,
   mergeSelection,
   moveSelection,
   redo,
@@ -278,7 +279,10 @@ export function useKeyboard() {
       if (k === 'b') return openSubdivision();
       if (k === 's') splitSelection();
       else if (k === 'm') mergeSelection();
-      else if (k === 'd') duplicateSelection();
+      else if (k === 'd') {
+        if (useUiStore.getState().range) duplicateRange();
+        else duplicateSelection();
+      }
     };
 
     const onCopy = (e: ClipboardEvent) => {

@@ -44,6 +44,12 @@ const HOLD_S = 1.6;
 let regionOnce = false;
 const REGION_HOLD_S = 0.25;
 
+/** Where Play starts (beats): the start the user set, or the top. Not on the stage. */
+const startFrom = () => {
+  const ui = useUiStore.getState();
+  return ui.stage ? 0 : (ui.playStart ?? 0);
+};
+
 const activeDoc = () => useUiStore.getState().preview ?? useDocStore.getState().doc;
 
 let orderFor: Meter | null = null;
@@ -102,6 +108,16 @@ function schedule(): void {
         endAt = next;
         endT = s.b;
         return;
+      }
+      if (seg + 1 >= plan.length && !ui.loop) {
+        // round again: from where Play starts (the top, unless a start was set)
+        const from = Math.min(startFrom(), doc.meter.subdivision.length - EPS);
+        seg = Math.max(
+          0,
+          plan.findIndex((p) => from >= p.a - EPS && from < p.b - EPS),
+        );
+        T = Math.max(from, plan[seg]!.a);
+        continue;
       }
       seg = (seg + 1) % plan.length;
       T = plan[seg]!.a;
@@ -215,7 +231,7 @@ if (typeof document !== 'undefined') {
 
 /**
  * Play / stop. With tiles or a pulse range selected (in the editor), only that stretch plays,
- * once; otherwise the whole piece from the top. (⇧Space loops the selection.)
+ * once; otherwise the piece from where Play starts (the top, or the start that was set). (⇧Space loops the selection.)
  */
 export function togglePlayback(): void {
   if (timer) return stopPlayback();
@@ -229,5 +245,7 @@ export function togglePlayback(): void {
     // while choosing a fill, the stretch loops so every fill tried is heard over and over
     return ui.fillPanel ? startPlayback(a, { a, b }) : startPlayback(a, { a, b }, { once: true });
   }
-  startPlayback(0);
+  const NB = doc.meter.subdivision.length;
+  const from = startFrom();
+  startPlayback(from < NB - EPS ? from : 0);
 }

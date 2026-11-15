@@ -130,7 +130,11 @@ describe('insertBars / removeBars', () => {
           let d = docFrom(makeMeter(4, 6, 3), ['|']);
           let room = buildGrid(d.meter).TS;
           const items: (number | '|')[] = [];
-          for (const s of sizes) if (s <= room) (items.push(s), (room -= s));
+          for (const s of sizes)
+            if (s <= room) {
+              items.push(s);
+              room -= s;
+            }
           d = docFrom(d.meter, [...items, '|']);
           if (pattern) d = setBars(d, 8, [3, 2]).doc;
           d = toggleMark(d, 9).doc;
@@ -168,7 +172,10 @@ describe('slideRuns', () => {
     expect(seq(r.doc)).toBe('(2) 3 (2) 3 _22');
     const starts: Record<string, number> = {};
     let s = 0;
-    for (const x of r.doc.items) ((starts[x.id] = s), (s += x.n));
+    for (const x of r.doc.items) {
+      starts[x.id] = s;
+      s += x.n;
+    }
     expect(starts.g1).toBe(2);
     expect(starts.g3).toBe(7);
   });

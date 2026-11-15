@@ -2853,3 +2853,92 @@ button.lib-fold {
   flex: 0 0 auto;
   min-width: 44px;
 }
+
+/* ---------------------------------------------------------------- bars, metre, rows, start */
+/* where Play starts: the transport's idle line is a button */
+button.now.start-btn {
+  background: none;
+  border: 0;
+  padding: 6px 8px;
+  margin-left: -8px;
+  border-radius: var(--r-control, 12px);
+  text-align: left;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 44px;
+  font-weight: 400;
+}
+button.now.start-btn b {
+  font-size: inherit;
+  color: var(--fg);
+}
+button.now.start-btn.set,
+button.now.start-btn.set b {
+  color: var(--accent);
+}
+@media (hover: hover) {
+  button.now.start-btn:hover {
+    background: var(--soft);
+  }
+}
+.piece-dialog .dialog-sub {
+  margin: 14px 0 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.piece-dialog .dialog-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+.piece-dialog select {
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--fg);
+  font: inherit;
+}
+.piece-dialog .lib-actions {
+  align-items: center;
+}
+.metre-bars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  margin: 10px 0;
+}
+.metre-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.metre-drop {
+  min-width: 36px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+.metre-fit {
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.metre-fit b {
+  color: var(--fg);
+}
+@media (max-width: 560px) {
+  /* phones: the short form ("top", "bar 3") stays in the transport */
+  button.now.idle.start-btn {
+    display: inline-block;
+    margin-left: 0;
+    padding: 6px 4px;
+  }
+}

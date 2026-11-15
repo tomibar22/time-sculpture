@@ -1,5 +1,5 @@
-import { MAX_BEATS, MAX_CYCLES, MIN_BEATS, MIN_CYCLES } from '../engine';
-import { addBarAtEnd, addBarAtStart, announce, setMeter } from '../state/actions';
+import { MAX_BEATS, MAX_CYCLES, MIN_BEATS, MIN_CYCLES, meterSummary } from '../engine';
+import { announce, setMeter } from '../state/actions';
 import { ui as sfx } from '../audio/voices';
 import { useDocStore, useUiStore } from '../state/store';
 import type { MoveMode } from '../state/store';
@@ -23,12 +23,8 @@ export function Toolbar() {
   const moveMode = useUiStore((s) => s.moveMode);
   const open = useUiStore((s) => s.setupOpen);
   const set = useUiStore((s) => s.set);
-  const shape = meter.sections?.length
-    ? `${meter.cycles} bars · ${meter.sections.length + 1} tempi`
-    : `${meter.beatsPerCycle} beats × ${meter.cycles} bar${meter.cycles === 1 ? '' : 's'}`;
-  const short = meter.sections?.length
-    ? `${meter.cycles} bars`
-    : `${meter.beatsPerCycle}×${meter.cycles}`;
+  const shape = meterSummary(meter);
+  const short = meterSummary(meter, true);
 
   return (
     <div className="toolbar-block">
@@ -83,18 +79,20 @@ export function Toolbar() {
           <button
             type="button"
             className="ghost rows-btn"
-            title="Add an empty bar before the beginning, for an opening"
-            onClick={addBarAtStart}
+            title="Add bars anywhere, or remove some"
+            aria-haspopup="dialog"
+            onClick={() => set({ barsDialog: true })}
           >
-            + Bar at the start
+            Add or remove bars…
           </button>
           <button
             type="button"
             className="ghost rows-btn"
-            title="Add an empty bar after the end, to go on writing"
-            onClick={addBarAtEnd}
+            title="The bars of the piece: one size, or a pattern like 5 5 4"
+            aria-haspopup="dialog"
+            onClick={() => set({ meterDialog: { at: 0 } })}
           >
-            + Bar at the end
+            Metre…
           </button>
           <RowsControl />
         </div>

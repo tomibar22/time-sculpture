@@ -191,3 +191,17 @@ export function barBeat(meter: Meter, beat: number): { bar: number; beat: number
   const b = Math.max(0, Math.min(map.NB - 1, beat));
   return { bar: (map.barOf[b] ?? 0) + 1, beat: (map.beatInBar[b] ?? 0) + 1 };
 }
+
+/** The piece's shape in a few words: "7 beats × 6 bars", "9 bars · 5+5+4", "5 bars · 2 tempi". */
+export function meterSummary(meter: Meter, short = false): string {
+  if (!isFree(meter))
+    return short
+      ? `${meter.beatsPerCycle}×${meter.cycles}`
+      : `${meter.beatsPerCycle} beats × ${meter.cycles} bar${meter.cycles === 1 ? '' : 's'}`;
+  const map = barMap(meter);
+  const bars = `${meter.cycles} bar${meter.cycles === 1 ? '' : 's'}`;
+  const tempi = new Set(map.sections.map((x) => Math.round(x.scale * 1e6))).size;
+  if (tempi > 1) return short ? bars : `${bars} · ${tempi} tempi`;
+  const labels = [...new Set(map.sections.map((x) => patternLabel(x.pattern)))];
+  return `${bars} · ${labels.slice(0, 2).join(', ')}${labels.length > 2 ? '…' : ''}`;
+}

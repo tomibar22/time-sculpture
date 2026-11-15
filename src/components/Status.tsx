@@ -14,15 +14,13 @@ export function Status() {
   return (
     <div className="status" data-testid="status">
       {R === 0 ? <span className="ok">Complete · lands on 1</span> : null}
-      {doc.meter.sections?.length ? <Landing /> : null}
+      {E.isFree(doc.meter) ? <Landing /> : null}
       <span className="seq sr-only" data-testid="sequence">
         {start.join(' ') || '·'} │ {ending.join(' ') || '·'}
       </span>
       <span className="meta">
-        {doc.meter.sections?.length
-          ? `${doc.meter.cycles} bars · ${doc.meter.sections.length + 1} tempi`
-          : `${doc.meter.beatsPerCycle}×${doc.meter.cycles}`}{' '}
-        · {mix.map((d) => `${d}:1`).join(' ')} · {TS} pulses
+        {E.meterSummary(doc.meter, !E.isFree(doc.meter))} · {mix.map((d) => `${d}:1`).join(' ')} ·{' '}
+        {TS} pulses
       </span>
     </div>
   );
@@ -32,7 +30,22 @@ export function Status() {
 function Landing() {
   const meter = useDocStore((s) => s.doc.meter);
   const l = E.landing(meter);
-  if (l.lands) return <span className="ok landing">Ends on 1 of the main tempo</span>;
+  const oneTempo = !E.hasTempoChange(meter);
+  if (l.lands)
+    return oneTempo ? null : <span className="ok landing">Ends on 1 of the main tempo</span>;
+  if (oneTempo)
+    return (
+      <span className="landing" data-testid="landing">
+        <span className="warn">
+          The last bar has {l.late} beat{l.late === 1 ? '' : 's'}: it is not whole
+        </span>
+        {l.fixes.map((n) => (
+          <button key={n} type="button" className="link-btn" onClick={() => adjustEnd(n)}>
+            {n > 0 ? `Add ${n}` : `Cut ${-n}`} beat{Math.abs(n) === 1 ? '' : 's'} at the end
+          </button>
+        ))}
+      </span>
+    );
   const bar = meter.beatsPerCycle;
   const early = bar - l.late;
   return (
@@ -63,7 +76,7 @@ export function PieceState() {
   const doc = useDocStore((s) => s.doc);
   const R = E.freePulses(doc);
   if (R === 0) {
-    const lands = !doc.meter.sections?.length || E.landing(doc.meter).lands;
+    const lands = !E.isFree(doc.meter) || E.landing(doc.meter).lands;
     return (
       <span className="piece-state" data-testid="piece-state">
         <span className="ok">{lands ? 'On the 1' : 'Full'}</span>

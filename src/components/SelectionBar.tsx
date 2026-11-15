@@ -18,6 +18,8 @@ import {
   addBarAtStart,
   addBarAtEnd,
   selectAll,
+  duplicateRange,
+  setPlayStart,
 } from '../state/actions';
 import {
   caretHome,
@@ -109,8 +111,12 @@ export function SelectionBar() {
         )}
         <button
           type="button"
-          title="A copy right after (D)"
-          disabled={!sel.length || total > free}
+          title={
+            total > free
+              ? 'A copy right after (D). Bars are added at the end to make room.'
+              : 'A copy right after (D)'
+          }
+          disabled={!sel.length}
           onClick={duplicateSelection}
         >
           Duplicate
@@ -298,6 +304,13 @@ function CaretBar() {
             ⇥
           </button>
           <LoopButton />
+          <button
+            type="button"
+            title="The same again right after (D); bars are added at the end if there is no room"
+            onClick={duplicateRange}
+          >
+            Duplicate
+          </button>
           <button type="button" onClick={() => openFill('browse')}>
             Browse fills
           </button>
@@ -393,6 +406,7 @@ function CaretBar() {
             Bar after
           </button>
         )}
+        <PlayFromButton caret={caret!} />
         <button
           type="button"
           aria-label="Select from the caret, one pulse more"
@@ -431,6 +445,38 @@ function CaretBar() {
           Subdivision…
         </button>
         <span className="selbar-sep" aria-hidden="true" />
+        <button
+          type="button"
+          title="How many bars this row holds: this row only, or from here on"
+          aria-haspopup="dialog"
+          onClick={() =>
+            useUiStore.getState().set({
+              rowDialog: { t: gridNow.times[Math.min(caret!, gridNow.TS - 1)]! },
+            })
+          }
+        >
+          Row…
+        </button>
+        <button
+          type="button"
+          title="Add bars here, or remove some"
+          aria-haspopup="dialog"
+          onClick={() => useUiStore.getState().set({ barsDialog: true })}
+        >
+          Bars…
+        </button>
+        {(isBeatLine || caret === 0) && (
+          <button
+            type="button"
+            title="Change the metre from here: other bars, the same tempo and subdivision"
+            aria-haspopup="dialog"
+            onClick={() =>
+              useUiStore.getState().set({ meterDialog: { at: caret === 0 ? 0 : beatHere } })
+            }
+          >
+            Metre…
+          </button>
+        )}
         {isBeatLine && (
           <button
             type="button"
@@ -527,6 +573,25 @@ function LoopButton() {
       onClick={playFromCaret}
     >
       {playing ? '■ Stop' : '↻ Loop'}
+    </button>
+  );
+}
+
+/** Play starts at the caret from now on (or from the top again). */
+function PlayFromButton({ caret }: { caret: number }) {
+  const doc = useDocStore((s) => s.doc);
+  const playStart = useUiStore((s) => s.playStart);
+  const grid = E.buildGrid(doc.meter);
+  const here = playStart !== null && Math.abs((grid.times[caret] ?? -1) - playStart) < E.EPS;
+  if (!here && (caret <= 0 || caret >= grid.TS)) return null;
+  return (
+    <button
+      type="button"
+      aria-pressed={here}
+      title="Play starts here from now on (tap again: from the top)"
+      onClick={() => setPlayStart(here ? null : caret)}
+    >
+      ▶ Start here
     </button>
   );
 }

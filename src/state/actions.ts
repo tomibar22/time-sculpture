@@ -110,6 +110,8 @@ useDocStore.subscribe((s, prev) => {
   pruneSelection();
   const TS = E.buildGrid(s.doc.meter).TS;
   const u = uiState();
+  if (u.playStart !== null && u.playStart >= s.doc.meter.subdivision.length - E.EPS)
+    setUi({ playStart: null });
   if (u.range && u.range.b > TS) {
     const a = Math.min(u.range.a, TS);
     setUi(
@@ -287,19 +289,70 @@ export function toggleSelectionKind(): void {
   announce(toRest ? 'Silenced' : 'Sounding');
 }
 
+/** Bars to add at the end so that `need` more pulses fit (0 when they fit already). */
+function barsFor(d: Doc, need: number): number {
+  const short = need - E.freePulses(d);
+  if (short <= 0) return 0;
+  const map = E.barMap(d.meter);
+  const last = map.barStarts[map.barStarts.length - 1] ?? 0;
+  const perBar = d.meter.subdivision.slice(last).reduce((x, y) => x + y, 0) || 1;
+  return Math.ceil(short / perBar);
+}
+
+/**
+ * A copy right after the selection. When the piece has no room for it, the bars it needs are
+ * added at the end first (one step to undo), so duplicating never asks for bars to be made.
+ */
 export function duplicateSelection(): void {
   const before = doc();
   const sel = selectedIds();
-  const r = E.duplicate(before, sel);
-  if (r.report.reason === 'no-room') {
-    sfx.nope();
-    const need = sel.reduce((a, id) => a + (E.findItem(before, id)?.n ?? 0), 0);
-    return void toast(`Duplicating needs ${need} pulses; only ${E.freePulses(before)} are open`);
+  if (!sel.length) return;
+  const need = sel.reduce((a, id) => a + (E.findItem(before, id)?.n ?? 0), 0);
+  const bars = barsFor(before, need);
+  let base = before;
+  if (bars) {
+    const grown = E.appendBars(before, bars);
+    if (!grown.report.ok) {
+      sfx.nope();
+      return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
+    }
+    base = grown.doc;
   }
-  run(r, {
-    label: `dup ${desc(before, sel)}`,
-    select: [...r.report.created],
-    sound: () => sfx.add(3),
+  const r = E.duplicate(base, sel);
+  if (
+    run(r, {
+      label: `dup ${desc(before, sel)}`,
+      select: [...r.report.created],
+      sound: () => sfx.add(3),
+    }) &&
+    bars
+  )
+    toast(`Duplicated. ${plural(bars, 'bar')} added at the end to make room.`, { undo: true });
+}
+
+/** The same for a selected range: its groups again, right after it. */
+export function duplicateRange(): void {
+  const before = doc();
+  const range = uiState().range;
+  if (!range) return;
+  const groups = E.sliceRange(before, range.a, range.b);
+  const need = range.b - range.a;
+  const bars = barsFor(before, need);
+  let base = before;
+  if (bars) {
+    const grown = E.appendBars(before, bars);
+    if (!grown.report.ok) {
+      sfx.nope();
+      return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
+    }
+    base = grown.doc;
+  }
+  const r = E.insertAtPulse(base, range.b, groups);
+  if (!run(r, { label: `dup ${E.formatGroups(groups)}`, select: 'none', sound: () => sfx.add(3) }))
+    return;
+  setUi({ range: { a: range.b, b: range.b + need }, rangeAnchor: range.b, caret: range.b + need });
+  toast(bars ? `Duplicated. ${plural(bars, 'bar')} added at the end to make room.` : 'Duplicated', {
+    undo: true,
   });
 }
 
@@ -358,14 +411,20 @@ export function moveSelection(dir: -1 | 1): void {
     );
     return;
   }
+  // groups that are not neighbours move together, by the step of the one in front
   const idx = E.selectedIndices(d0.items, sel);
-  if (!E.isContiguous(idx)) {
-    sfx.nope();
-    return void toast('Moving on the grid needs neighbouring groups');
-  }
-  const d = E.stepDelta(d0, sel, dir, mode);
+  const lead = dir > 0 ? idx[idx.length - 1]! : idx[0]!;
+  let run0 = [lead];
+  while (idx.includes(run0[0]! - 1)) run0 = [run0[0]! - 1, ...run0];
+  while (idx.includes(run0[run0.length - 1]! + 1)) run0.push(run0[run0.length - 1]! + 1);
+  const d = E.stepDelta(
+    d0,
+    run0.map((i) => d0.items[i]!.id),
+    dir,
+    mode,
+  );
   if (!d) return sfx.nope();
-  const r = E.slide(d0, sel, d);
+  const r = E.slideRuns(d0, sel, d);
   if (run(r, { label: `slide ${d > 0 ? '+' : ''}${d}`, select: 'keep' })) reportSlide(r.report, d);
 }
 
@@ -629,3 +688,88 @@ export function openModulation(k: number): void {
   const index = (d.meter.sections ?? []).findIndex((s) => s.at === b);
   setUi({ modDialog: index >= 0 ? { index } : { at: b } });
 }
+
+/* ------------------------------------------------------------------ bars, metre, rows, start */
+
+/** Add `n` empty bars before bar `atBar` (0-based; the bar count = after the last). */
+export function addBars(atBar: number, n: number): boolean {
+  const before = doc();
+  const r = E.insertBars(before, atBar, n);
+  if (!r.report.ok) {
+    sfx.nope();
+    toast('The piece cannot have that many bars');
+    return false;
+  }
+  if (!run(r, { label: `+${plural(n, 'bar')}`, select: 'none' })) return false;
+  const map = E.barMap(before.meter);
+  const at = map.barStarts[atBar] ?? map.NB;
+  setUi({ caret: E.buildGrid(before.meter).pre[at] ?? 0, range: null, rangeAnchor: null });
+  toast(`${plural(n, 'bar')} added`, { undo: true });
+  return true;
+}
+
+/** Remove `count` bars from bar `fromBar` (0-based), with what is in them. */
+export function cutBars(fromBar: number, count: number): boolean {
+  const r = E.removeBars(doc(), fromBar, count);
+  if (!r.report.ok) {
+    sfx.nope();
+    toast(r.report.reason === 'too-small' ? 'A piece keeps at least one bar' : 'No such bars');
+    return false;
+  }
+  if (!run(r, { label: `−${plural(count, 'bar')}`, select: 'none', sound: sfx.remove }))
+    return false;
+  const gone = r.report.removed.length;
+  toast(`${plural(count, 'bar')} removed${gone ? `, with ${plural(gone, 'group')}` : ''}`, {
+    undo: true,
+  });
+  return true;
+}
+
+/** The bars from beat `at` on (0 = the whole piece) follow this pattern; the tempo stays. */
+export function changeMetre(at: number, pattern: readonly number[]): boolean {
+  const r = E.setBars(doc(), at, pattern);
+  if (r.report.reason === 'no-change') return true;
+  if (!r.report.ok) {
+    sfx.nope();
+    toast('That would make more bars than a piece can have');
+    return false;
+  }
+  if (!run(r, { label: `bars of ${E.patternLabel(pattern)}`, select: 'keep' })) return false;
+  announce(`Bars of ${pattern.join(', ')} from here`);
+  return true;
+}
+
+/** How many bars the row that starts at beat-time `a` holds: this row only (up to `b`), or on. */
+export function setRowBars(a: number, per: number, b: number | null): boolean {
+  const r = E.setRowSize(doc(), a, per, b);
+  if (r.report.reason === 'no-change') return true;
+  if (!run(r, { label: per ? `row of ${per}` : 'row by the zoom', select: 'keep' })) return false;
+  announce(per ? `${plural(per, 'bar')} in this row` : 'This row follows the zoom');
+  return true;
+}
+
+export function clearRowBars(): void {
+  if (run(E.clearRowSizes(doc()), { label: 'rows by the zoom', select: 'keep', quiet: true }))
+    toast('Every row follows the zoom again', { undo: true });
+}
+
+/** Play starts at pulse k (null or 0 = from the top). */
+export function setPlayStart(k: number | null): void {
+  const grid = E.buildGrid(doc().meter);
+  const t = k === null || k <= 0 || k >= grid.TS ? null : grid.times[k]!;
+  setUi({ playStart: t });
+  announce(t === null ? 'Play starts from the top' : `Play starts at ${barLabel(t)}`);
+}
+
+/** Play starts at the first beat of bar `bar` (0-based). */
+export function setPlayStartBar(bar: number): void {
+  const map = E.barMap(doc().meter);
+  const t = map.barStarts[bar];
+  setUi({ playStart: !t ? null : t });
+  announce(!t ? 'Play starts from the top' : `Play starts at bar ${bar + 1}`);
+}
+
+const barLabel = (t: number) => {
+  const bb = E.barBeat(doc().meter, Math.floor(t + E.EPS));
+  return `bar ${bb.bar}, beat ${bb.beat}`;
+};

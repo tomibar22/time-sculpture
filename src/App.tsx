@@ -6,6 +6,8 @@ import { Logo, PieceTitle } from './components/PieceTitle';
 import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
 import { MarkDialog } from './components/MarkDialog';
+import { BarsDialog, MeterDialog, RowDialog, StartDialog } from './components/PieceDialogs';
+import { useTouchUndo } from './components/useTouchUndo';
 import { TempoDialog } from './components/TempoDialog';
 import { ZoomHud } from './components/ZoomControl';
 import { Options } from './components/Options';
@@ -22,6 +24,7 @@ import { useUiStore } from './state/store';
 
 export function App() {
   useKeyboard();
+  useTouchUndo();
   useApplyTheme();
   // phones and tablets dock the selection bar above the number pad, by the thumb (see Dock)
   const docked = useMedia(DOCKED);
@@ -68,6 +71,10 @@ export function App() {
       <VoltaDialog />
       <MarkDialog />
       <TempoDialog />
+      <MeterDialog />
+      <BarsDialog />
+      <RowDialog />
+      <StartDialog />
       <ZoomHud />
     </>
   );

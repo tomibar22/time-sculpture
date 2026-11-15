@@ -19,12 +19,35 @@ function Readout() {
     const bb = barBeat(meter, bt);
     return `${bb.bar}|${bb.beat}|${meter.subdivision[Math.min(bt, meter.subdivision.length - 1)]}`;
   });
-  if (!label)
+  const playStart = useUiStore((s) => s.playStart);
+  const set = useUiStore((s) => s.set);
+  if (!label) {
+    // idle: where Play starts; a tap chooses the bar (or the caret, or the top)
+    const from = playStart === null ? null : barBeat(meter, Math.floor(playStart + 1e-9));
     return (
-      <div className="now idle">
-        <b>{meter.beatsPerCycle}</b> beats · {meter.cycles} bar{meter.cycles > 1 ? 's' : ''}
-      </div>
+      <button
+        type="button"
+        className={`now idle start-btn ${from ? 'set' : ''}`}
+        title="Where Play starts: choose a bar, the caret, or the top"
+        aria-haspopup="dialog"
+        data-testid="play-from"
+        onClick={() => set({ startDialog: true })}
+      >
+        <span className="sr-only">Play </span>
+        {from ? (
+          <>
+            <span className="now-long">from </span>bar <b>{from.bar}</b>
+            {from.beat > 1 ? <span className="now-long"> · beat {from.beat}</span> : null}
+          </>
+        ) : (
+          <>
+            <span className="now-long">from the </span>
+            <b>top</b>
+          </>
+        )}
+      </button>
     );
+  }
   const [cyc, beat, d] = label.split('|');
   return (
     <div className="now" aria-hidden="true">
