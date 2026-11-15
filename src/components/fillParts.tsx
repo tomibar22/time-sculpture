@@ -130,24 +130,17 @@ export function Heart({ on, onClick, label }: { on: boolean; onClick: () => void
 export function UseBar({
   trying,
   beats,
-  what,
   onUse,
   onCancel,
 }: {
-  /** The fill on trial, or null: the bar keeps its place (nothing jumps under a second tap). */
+  /** The fill on trial, or null (no bar). */
   trying: { sizes: number[]; rests?: number[] } | null;
   beats?: StripLine[];
-  /** "fill" or "variation", for the hint. */
-  what: string;
   onUse: () => void;
   onCancel: () => void;
 }) {
-  if (!trying)
-    return (
-      <p className="fill-usebar idle">
-        Tap a {what} to try it. <b>Use</b> writes it.
-      </p>
-    );
+  // nothing on trial: no bar at all (the panel says nothing a tap does not show)
+  if (!trying) return null;
   return (
     <div className="fill-usebar" role="group" aria-label="Trying">
       <span className="fill-trying" role="status">

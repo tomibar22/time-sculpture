@@ -211,7 +211,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 - **Try, then Use** (one rule for the list, the map, the steps between two fills, and Vary;
   user request: the map and the list felt different): a tap only *tries* (`trying` state:
   `ui.preview` shows it in the score and the loop plays it; nothing is written); the `UseBar`
-  at the foot of the panel (sticky, always there so nothing jumps under a second tap) has
+  at the foot of the panel (sticky; it appears only while something is on trial, with no idle hint text: user request) has
   **Use**, and a second tap on the same row also writes. Hover previews and settles back on
   the fill on trial. Direct writes: Surprise, "Use A", "As it was".
 - **Listen** (`toggleListen`, a named button in the panel head): loops the region, so whatever

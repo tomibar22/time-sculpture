@@ -275,7 +275,6 @@ export function VaryPanel() {
           }
         }
         beats={beats}
-        what="variation"
         onUse={() => trying && write(trying)}
         onCancel={() => {
           setTrying(null);

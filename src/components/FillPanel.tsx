@@ -479,7 +479,6 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
       <UseBar
         trying={trying}
         beats={beats}
-        what="fill"
         onUse={() => trying && use(trying)}
         onCancel={() => {
           setTrying(null);
