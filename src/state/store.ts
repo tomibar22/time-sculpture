@@ -211,6 +211,16 @@ export interface UiState {
   modDialog: { at: number } | { index: number } | null;
   /** The endings dialog: a new ending over pulses [ka, kb), or editing one (index into voltas). */
   voltaDialog: { ka: number; kb: number } | { index: number } | null;
+  /** The metre dialog: the bars from this beat on (0 = the whole piece). */
+  meterDialog: { at: number } | null;
+  /** The bars dialog: add or remove bars anywhere. */
+  barsDialog: boolean;
+  /** The row dialog: how many bars the row at this time holds. */
+  rowDialog: { t: number } | null;
+  /** The dialog that says where Play starts. */
+  startDialog: boolean;
+  /** Where Play starts (beats, on a pulse); null = from the top. Not part of the piece. */
+  playStart: number | null;
   /** The phrase-mark name dialog, for the mark at pulse k (added if there is none yet). */
   markDialog: { k: number } | null;
   /** Playhead in beats while playing. */
@@ -286,6 +296,11 @@ export const useUiStore = create<UiState>((set) => ({
   modDialog: null,
   voltaDialog: null,
   markDialog: null,
+  meterDialog: null,
+  barsDialog: false,
+  rowDialog: null,
+  startDialog: false,
+  playStart: null,
   keypad: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   setupOpen: false,
   playhead: null,

@@ -87,7 +87,8 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
   const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + under + L.gapR;
   return {
     w: width,
-    h: L.top + rows.length * stride - L.gapR + 8,
+    // room under the last row for the knobs of a caret or a range
+    h: L.top + rows.length * stride - L.gapR + 16,
     B,
     R: rows.length,
     rows,
@@ -353,4 +354,67 @@ export function totalAt(g: Geo, doc: Doc, x: number, y: number): number {
   return totals.findIndex(
     (v, i) => g.totalLevels[i] === lv && h.t >= v.a - 0.05 && h.t <= v.b + 0.05,
   );
+}
+
+/** How far under the band the knob of a caret or range handle hangs (its centre), and its radius. */
+export const KNOB_DROP = 8;
+export const KNOB_R = 5.5;
+
+/**
+ * Where the handle of pulse k stands: its x, its row and the centre of its knob (under the band).
+ * The end of a range that falls on a row boundary belongs to the row above (`attachLeft`).
+ */
+export function handlePos(
+  g: Geo,
+  k: number,
+  attachLeft: boolean,
+): { x: number; y: number; r: number } {
+  const t = g.grid.times[clamp(k, 0, g.grid.TS)]!;
+  const startsRow = rowStartingAt(g, t);
+  const p =
+    attachLeft && startsRow > 0
+      ? { x: rowEndX(g, startsRow - 1), r: startsRow - 1 }
+      : t >= g.grid.NB
+        ? { x: rowEndX(g, g.R - 1), r: g.R - 1 }
+        : xOf(g, t);
+  return { ...p, y: bandY(g, p.r) + L.bandH + KNOB_DROP };
+}
+
+export type HandleHit = 'a' | 'b' | 'caret';
+
+/**
+ * The handle under the pointer: an end of the selected range, or the caret's knob. The grab zone
+ * is the knob and the stem down to it from the tiles' lower edge, generous for a finger.
+ */
+export function hitHandle(
+  g: Geo,
+  range: { a: number; b: number } | null,
+  caret: number | null,
+  x: number,
+  y: number,
+  touch = false,
+): HandleHit | null {
+  const rx = touch ? 22 : 9;
+  const down = touch ? 20 : 9;
+  const dist = (k: number, attachLeft: boolean) => {
+    const p = handlePos(g, k, attachLeft);
+    const top = bandY(g, p.r) - (touch ? 6 : 0);
+    if (y < top || y > p.y + down) return Infinity;
+    const d = Math.abs(x - p.x);
+    return d <= rx ? d : Infinity;
+  };
+  if (range) {
+    const da = dist(range.a, false);
+    const db = dist(range.b, true);
+    if (da === Infinity && db === Infinity) return null;
+    // two knobs close together: the pointer's side decides
+    if (da !== Infinity && db !== Infinity) {
+      const pa = handlePos(g, range.a, false);
+      const pb = handlePos(g, range.b, true);
+      if (pa.r === pb.r) return x < (pa.x + pb.x) / 2 ? 'a' : 'b';
+    }
+    return da <= db ? 'a' : 'b';
+  }
+  if (caret !== null && dist(caret, caret >= g.grid.TS) !== Infinity) return 'caret';
+  return null;
 }

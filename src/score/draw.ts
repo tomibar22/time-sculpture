@@ -13,6 +13,8 @@ import { inkFor, sizeColor } from './colors';
 import type { Palette } from './colors';
 import {
   boundaries,
+  handlePos,
+  KNOB_R,
   L,
   bandY,
   rowEndX,
@@ -36,6 +38,15 @@ export interface DrawState {
   activeBoundary: string | null;
   hoverBoundary: string | null;
   showHandles: boolean;
+  /**
+   * Touch: only the lines next to these groups show their handle (a line is reshaped after its
+   * group was selected). Null = every line.
+   */
+  armed?: ReadonlySet<ItemId> | null;
+  /** Hide the knobs of the caret and the range (print, pictures). */
+  noKnobs?: boolean;
+  /** Where Play starts (beats), when it is not the top. */
+  playStart?: number | null;
   /** Text caret (a pulse), drawn when nothing is selected. */
   cursor: number | null;
   /** Selected pulse range. */
@@ -77,6 +88,24 @@ function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: num
   c.beginPath();
   if (c.roundRect) c.roundRect(x, y, Math.max(0, w), h, rad);
   else c.rect(x, y, Math.max(0, w), h);
+}
+
+/** The handle of a caret or of a range's end: a stem through the band and a knob to drag. */
+function knob(
+  c: CanvasRenderingContext2D,
+  g: Geo,
+  p: { x: number; y: number; r: number },
+  P: Palette,
+) {
+  const top = tileY(g, p.r) + L.tileH + 6;
+  c.fillStyle = P.sel;
+  c.fillRect(p.x - 1, top, 2, p.y - top);
+  c.beginPath();
+  c.arc(p.x, p.y, KNOB_R, 0, Math.PI * 2);
+  c.fill();
+  c.lineWidth = 1.5;
+  c.strokeStyle = P.card;
+  c.stroke();
 }
 
 const MONO = '"IBM Plex Mono", ui-monospace, monospace';
@@ -452,6 +481,11 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     for (const b of boundaries(doc.items)) {
       if (b.slot <= 0 || b.slot >= g.grid.TS) continue;
       if (b.slot === gs0 || b.slot === ge0) continue;
+      const on0 = s.activeBoundary === b.key || s.hoverBoundary === b.key;
+      if (s.armed && !on0) {
+        const near = [doc.items[b.i], b.kind === 'line' ? doc.items[b.i + 1] : undefined];
+        if (!near.some((x) => x && s.armed!.has(x.id))) continue;
+      }
       const p = xOf(g, g.grid.times[b.slot]!);
       const ty = tileY(g, p.r);
       const on = s.activeBoundary === b.key || s.hoverBoundary === b.key;
@@ -506,6 +540,10 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       if (seg.first) c.fillRect(x0 - 1, ty - 6, 2, L.tileH + 12);
       if (seg.last) c.fillRect(x1 - 1, ty - 6, 2, L.tileH + 12);
     }
+    if (!s.noKnobs) {
+      knob(c, g, handlePos(g, s.range.a, false), P);
+      knob(c, g, handlePos(g, s.range.b, true), P);
+    }
   } else if (s.cursor !== null && s.selection.size === 0) {
     const k = s.cursor;
     const p = pulseAt(k, k >= TSp);
@@ -515,6 +553,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     // small caps top and bottom, like a text caret
     c.fillRect(p.x - 4.5, ty - 7, 9, 2.5);
     c.fillRect(p.x - 4.5, ty + L.tileH + 4.5, 9, 2.5);
+    if (!s.noKnobs) knob(c, g, handlePos(g, k, k >= TSp), P);
   }
   /* ---------------- metric modulation: section markers and the main tempo's ghost grid */
   const mainBar = doc.meter.beatsPerCycle;

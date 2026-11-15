@@ -18,6 +18,7 @@ import {
   hit,
   edgeSlot,
   hitBoundary,
+  hitHandle,
   hitTrimGrip,
   itemAt,
   L,
@@ -43,7 +44,17 @@ const DRAG_THRESHOLD = 8;
 
 type Gesture =
   | { kind: 'lane'; beats: Set<number> }
-  | { kind: 'boundary'; b: Boundary; base: Doc; result: OpResult | null }
+  | {
+      kind: 'boundary';
+      b: Boundary;
+      base: Doc;
+      result: OpResult | null;
+      /** A finger reshapes only next to a selected group; otherwise its drag selects a range. */
+      armed: boolean;
+      x0: number;
+      y0: number;
+      touch: boolean;
+    }
   | {
       kind: 'trim';
       base: Doc;
@@ -52,6 +63,9 @@ type Gesture =
       edge: number;
       result: OpResult | null;
       delta: number;
+      x0: number;
+      y0: number;
+      touch: boolean;
     }
   | {
       kind: 'press';
@@ -61,6 +75,9 @@ type Gesture =
       mods: { shift: boolean; toggle: boolean };
       long: boolean;
       timer: number;
+      touch: boolean;
+      /** The group was already selected when the finger came down: its drag moves the selection. */
+      wasSelected: boolean;
     }
   | {
       kind: 'slide';
@@ -74,7 +91,17 @@ type Gesture =
   | { kind: 'place'; base: Doc; ids: ItemId[]; result: OpResult | null }
   | { kind: 'empty'; slot: number | null }
   /** Press and drag to select a pulse range, like selecting text (a tap places the caret). */
-  | { kind: 'sweep'; anchor: number; x0: number; y0: number; moved: boolean; tap: () => void };
+  | {
+      kind: 'sweep';
+      anchor: number;
+      x0: number;
+      y0: number;
+      moved: boolean;
+      tap: () => void;
+      touch: boolean;
+    }
+  /** Selecting several: a finger dragged over groups adds them to the selection. */
+  | { kind: 'paint'; base: ItemId[]; anchor: number };
 
 const ui = () => useUiStore.getState();
 const setUi = (p: Parameters<ReturnType<typeof useUiStore.getState>['set']>[0]) => ui().set(p);
@@ -121,6 +148,14 @@ export function Score() {
   const gestureEvents = useRef(false);
   /** A finger lifted: false while a pinch is still winding down (no tap or drag then). */
   const twoFingers = useRef(false);
+  /** A drag that owns the touch: the page does not scroll under it. */
+  const locked = useRef(false);
+  const lastPt = useRef<{ x: number; y: number } | null>(null);
+  const scrollRaf = useRef(0);
+  /** The last pointer was a finger: lines show their handles only next to a selected group. */
+  const byTouch = useRef(
+    typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
+  );
   const lift = (id: number) => {
     pointers.current.delete(id);
     if (!twoFingers.current) return true;
@@ -178,6 +213,8 @@ export function Score() {
         activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
         hoverBoundary: hover.current,
         showHandles: !stage && gs?.kind !== 'slide' && gs?.kind !== 'place',
+        armed: byTouch.current ? new Set(s.selection) : null,
+        playStart: stage ? null : s.playStart,
         mainTempo: s.tempo,
         cursor: stage ? null : s.caret,
         range: stage ? null : s.range,
@@ -272,12 +309,18 @@ export function Score() {
       e.preventDefault();
       pinch.current = null;
     };
+    // a drag that is ours (a selection, a move, a trim) must not scroll the page under the finger
+    const onTouchMove = (e: TouchEvent) => {
+      if (locked.current && e.cancelable) e.preventDefault();
+    };
+    cv.addEventListener('touchmove', onTouchMove, { passive: false });
     cv.addEventListener('wheel', onWheel, { passive: false });
     cv.addEventListener('gesturestart', onGestureStart);
     cv.addEventListener('gesturechange', onGestureChange);
     cv.addEventListener('gestureend', onGestureEnd);
     window.addEventListener('resize', request);
     return () => {
+      cv.removeEventListener('touchmove', onTouchMove);
       cv.removeEventListener('wheel', onWheel);
       cv.removeEventListener('gesturestart', onGestureStart);
       cv.removeEventListener('gesturechange', onGestureChange);
@@ -383,9 +426,66 @@ export function Score() {
     });
   }, []);
 
-  const point = (e: React.PointerEvent) => {
+  const point = (cx: number, cy: number) => {
     const r = canvasRef.current!.getBoundingClientRect();
-    return [e.clientX - r.left, e.clientY - r.top] as const;
+    return [cx - r.left, cy - r.top] as const;
+  };
+
+  /*
+   * A drag that is ours: the page must not scroll under it (a native touchmove listener checks
+   * `locked`), and near the top of the screen or the dock the score scrolls by itself, so a
+   * selection or a move can go on past the rows in view.
+   */
+  const lock = () => {
+    if (locked.current) return;
+    locked.current = true;
+    if (!scrollRaf.current) scrollRaf.current = requestAnimationFrame(autoScroll);
+  };
+  const autoScroll = () => {
+    scrollRaf.current = 0;
+    const p = lastPt.current;
+    if (!locked.current || !gesture.current || !p) return;
+    const dock = document.querySelector<HTMLElement>('.dock');
+    const limit = window.innerHeight - (dock?.offsetHeight ?? 0);
+    const zone = 44;
+    let dy = 0;
+    if (p.y < zone) dy = -Math.ceil((zone - p.y) / 3);
+    else if (p.y > limit - zone) dy = Math.ceil((p.y - (limit - zone)) / 3);
+    dy = E.clamp(dy, -16, 16);
+    if (dy) {
+      const before = window.scrollY;
+      window.scrollBy({ top: dy, behavior: 'instant' });
+      if (window.scrollY !== before) dragTo(p.x, p.y);
+    }
+    scrollRaf.current = requestAnimationFrame(autoScroll);
+  };
+  /**
+   * Is this drag ours yet? A finger's drag is claimed once it has clearly moved sideways; a
+   * swipe that starts up or down belongs to the page (it scrolls). A mouse just needs to move.
+   */
+  const claim = (
+    x0: number,
+    y0: number,
+    x: number,
+    y: number,
+    touch: boolean,
+    threshold = DRAG_THRESHOLD,
+  ): 'wait' | 'ours' | 'scroll' => {
+    if (locked.current) return 'ours';
+    const dx = x - x0;
+    const dy = y - y0;
+    if (Math.hypot(dx, dy) <= threshold) return 'wait';
+    if (touch && Math.abs(dy) > Math.abs(dx)) return 'scroll';
+    lock();
+    return 'ours';
+  };
+  /** Let go of a gesture without doing anything (the page scrolls instead). */
+  const drop = () => {
+    const gs = gesture.current;
+    if (gs?.kind === 'press') clearTimeout(gs.timer);
+    gesture.current = null;
+    if (ui().preview || ui().lifted.length) setUi({ preview: null, lifted: [] });
+    request();
   };
 
   /* ---------------------------------------------------------------- pointer down */
@@ -418,19 +518,53 @@ export function Score() {
     }
     // nothing edits on the stage (a tap there only brings its controls back)
     if (ui().stage) return;
-    const [x, y] = point(e);
+    const [x, y] = point(e.clientX, e.clientY);
     e.currentTarget.setPointerCapture(e.pointerId);
+    const touch = e.pointerType === 'touch';
+    if (byTouch.current !== touch) {
+      byTouch.current = touch;
+      request();
+    }
+    lastPt.current = { x: e.clientX, y: e.clientY };
     const doc = useDocStore.getState().doc;
     const h = hit(g, x, y);
-    // a click on a modulation marker (in the number row) opens it for editing
+    // the knob of the caret, or of an end of the range: drag it to select on from there, across
+    // rows too (the selection is kept: its other end stays where it is)
+    const st0 = ui();
+    if (!st0.selection.length) {
+      const hh = hitHandle(g, st0.range, st0.range ? null : st0.caret, x, y, touch);
+      if (hh) {
+        const anchor = hh === 'a' ? st0.range!.b : hh === 'b' ? st0.range!.a : st0.caret!;
+        gesture.current = {
+          kind: 'sweep',
+          anchor,
+          x0: x,
+          y0: y,
+          moved: false,
+          tap: () => {},
+          touch,
+        };
+        lock();
+        return;
+      }
+    }
+    // a click on a modulation or metre marker (in the lane above its row) opens it for editing
     const sections = doc.meter.sections ?? [];
     for (let i = 0; i < sections.length; i++) {
       const p = xOf(g, sections[i]!.at);
       const top = rowTop(g, p.r);
-      if (p.r === h.r && y >= top && y <= top + L.numH && x >= p.x + 8 && x <= p.x + 190) {
-        setUi({ modDialog: { index: i } });
+      if (p.r === h.r && y >= top - g.lane - 4 && y < top && x >= p.x - 4 && x <= p.x + 150) {
+        setUi(
+          sections[i]!.from === sections[i]!.to
+            ? { meterDialog: { at: sections[i]!.at } }
+            : { modDialog: { index: i } },
+        );
         return;
       }
+    }
+    if (g.lane && doc.meter.bars && h.r === 0 && y < rowTop(g, 0) && x <= L.margin + 110) {
+      setUi({ meterDialog: { at: 0 } });
+      return;
     }
     // a click on a phrase mark's flag (in the number row) names it
     const marks = doc.meter.marks ?? [];
@@ -467,7 +601,7 @@ export function Score() {
     // there puts the caret on the nearest pulse)
     if (h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH && !e.shiftKey) {
       const k = slotAt(g, x, y);
-      gesture.current = sweep(k, x, y, () => {
+      gesture.current = sweep(k, x, y, touch, () => {
         sfx.snap();
         setCaret(k);
       });
@@ -480,12 +614,21 @@ export function Score() {
       if (e.shiftKey && (st.caret !== null || st.range)) {
         const anchor = st.rangeAnchor ?? st.caret ?? 0;
         setRange(anchor, E.clamp(slotAt(g, x, y), 0, g.grid.TS));
-        gesture.current = { kind: 'sweep', anchor, x0: x, y0: y, moved: true, tap: () => {} };
+        gesture.current = {
+          kind: 'sweep',
+          anchor,
+          x0: x,
+          y0: y,
+          moved: true,
+          tap: () => {},
+          touch,
+        };
+        lock();
         return;
       }
       if (e.altKey) {
         const k = slotAt(g, x, y);
-        gesture.current = sweep(k, x, y, () => {
+        gesture.current = sweep(k, x, y, touch, () => {
           sfx.snap();
           setCaret(k);
         });
@@ -505,7 +648,6 @@ export function Score() {
     }
     // anything else lets go of the beats picked in the band
     if (ui().beatSel) closeSubdivision();
-    const touch = e.pointerType === 'touch';
     // a single selected group shows trim grips on its edges; they win over the line handles
     const sel = E.selectedIndices(doc.items, ui().selection);
     if (sel.length === 1) {
@@ -521,6 +663,9 @@ export function Score() {
           edge: side === 'end' ? s0 + doc.items[si]!.n : s0,
           result: null,
           delta: 0,
+          x0: x,
+          y0: y,
+          touch,
         };
         sfx.lift();
         request();
@@ -529,14 +674,28 @@ export function Score() {
     }
     const b = hitBoundary(g, doc.items, x, y, touch);
     if (b) {
-      gesture.current = { kind: 'boundary', b, base: doc, result: null };
+      // a finger reshapes a line only next to a group that is selected (select, then edit);
+      // otherwise a drag from a line selects a range that starts exactly on it
+      const selected = new Set(ui().selection);
+      const near = [doc.items[b.i], b.kind === 'line' ? doc.items[b.i + 1] : undefined];
+      const armed = !touch || near.some((it) => it && selected.has(it.id));
+      gesture.current = {
+        kind: 'boundary',
+        b,
+        base: doc,
+        result: null,
+        armed,
+        x0: x,
+        y0: y,
+        touch,
+      };
       request();
       return;
     }
     // the very start and end of the piece (and the end of a short row) take the caret
     const edge = edgeSlot(g, x, y, touch);
     if (edge !== null) {
-      gesture.current = sweep(edge, x, y, () => {
+      gesture.current = sweep(edge, x, y, touch, () => {
         sfx.snap();
         setCaret(edge);
       });
@@ -551,7 +710,7 @@ export function Score() {
     if (E.isSpace(item) || item.kind === 'rest') {
       // a tap in the open space or a silence puts the caret on that pulse; a drag selects a range
       const k = slotAt(g, x, y);
-      gesture.current = sweep(k, x, y, () => {
+      gesture.current = sweep(k, x, y, touch, () => {
         if (ui().multi) return;
         sfx.snap();
         setCaret(k);
@@ -563,25 +722,58 @@ export function Score() {
       const gs = gesture.current;
       if (gs?.kind !== 'press' || gs.id !== item.id) return;
       gs.long = true;
-      const sel = ui().selection;
+      const cur = ui().selection;
+      if (touch) {
+        // a finger held on a group picks it up: drag on to move it (with whatever is selected),
+        // or let go to select several
+        if (!cur.includes(item.id))
+          setUi({
+            selection: ui().multi ? [...cur, item.id] : [item.id],
+            anchor: item.id,
+            caret: null,
+            range: null,
+            rangeAnchor: null,
+          });
+        setUi({ lifted: ui().selection });
+        lock();
+        sfx.lift();
+        return;
+      }
       setUi({
         multi: true,
-        selection: sel.includes(item.id) ? sel : [...sel, item.id],
+        selection: cur.includes(item.id) ? cur : [...cur, item.id],
         anchor: item.id,
       });
       sfx.lift();
       announce('Selecting several. Tap more groups.');
     }, LONG_PRESS_MS);
-    gesture.current = { kind: 'press', id: item.id, x0: x, y0: y, mods, long: false, timer };
+    gesture.current = {
+      kind: 'press',
+      id: item.id,
+      x0: x,
+      y0: y,
+      mods,
+      long: false,
+      timer,
+      touch,
+      wasSelected: ui().selection.includes(item.id),
+    };
   };
 
-  const sweep = (anchor: number, x0: number, y0: number, tap: () => void): Gesture => ({
+  const sweep = (
+    anchor: number,
+    x0: number,
+    y0: number,
+    touch: boolean,
+    tap: () => void,
+  ): Gesture => ({
     kind: 'sweep',
     anchor: E.clamp(anchor, 0, geo.current?.grid.TS ?? anchor),
     x0,
     y0,
     moved: false,
     tap,
+    touch,
   });
 
   /* ---------------------------------------------------------------- pointer move */
@@ -602,21 +794,26 @@ export function Score() {
     }
     const g = geo.current;
     if (!g) return;
-    const [x, y] = point(e);
-    const gs = gesture.current;
+    if (gesture.current) {
+      lastPt.current = { x: e.clientX, y: e.clientY };
+      return dragTo(e.clientX, e.clientY);
+    }
+    if (ui().stage) return;
+    const [x, y] = point(e.clientX, e.clientY);
     const cv = e.currentTarget;
-
-    if (!gs) {
-      if (ui().stage) return;
-      const doc = useDocStore.getState().doc;
-      const h = hit(g, x, y);
-      const sel = E.selectedIndices(doc.items, ui().selection);
-      const grip =
-        h.zone === 'tiles' && sel.length === 1 ? hitTrimGrip(g, doc.items, sel[0]!, x, y) : null;
-      const b = h.zone === 'tiles' && !grip ? hitBoundary(g, doc.items, x, y) : null;
-      const i = itemAt(g, doc.items, x, y);
-      const ruler = h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH;
-      cv.style.cursor = ruler
+    const doc = useDocStore.getState().doc;
+    const h = hit(g, x, y);
+    const st = ui();
+    const sel = E.selectedIndices(doc.items, st.selection);
+    const knob = !sel.length && hitHandle(g, st.range, st.range ? null : st.caret, x, y);
+    const grip =
+      h.zone === 'tiles' && sel.length === 1 ? hitTrimGrip(g, doc.items, sel[0]!, x, y) : null;
+    const b = h.zone === 'tiles' && !grip ? hitBoundary(g, doc.items, x, y) : null;
+    const i = itemAt(g, doc.items, x, y);
+    const ruler = h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH;
+    cv.style.cursor = knob
+      ? 'ew-resize'
+      : ruler
         ? 'text'
         : h.zone === 'lane'
           ? 'cell'
@@ -631,23 +828,55 @@ export function Score() {
                 : i >= 0
                   ? 'text'
                   : 'default';
-      const key = b?.key ?? null;
-      if (key !== hover.current) {
-        hover.current = key;
-        request();
-      }
-      return;
+    const key = b?.key ?? null;
+    if (key !== hover.current) {
+      hover.current = key;
+      request();
     }
+  };
+
+  /** The gesture in progress follows the pointer (also called while the score scrolls itself). */
+  const dragTo = (cx: number, cy: number): void => {
+    const g = geo.current;
+    const gs = gesture.current;
+    const cv = canvasRef.current;
+    if (!g || !gs || !cv) return;
+    const [x, y] = point(cx, cy);
 
     if (gs.kind === 'sweep') {
-      if (!gs.moved && Math.hypot(x - gs.x0, y - gs.y0) <= DRAG_THRESHOLD) return;
-      gs.moved = true;
+      if (!gs.moved) {
+        const c = claim(gs.x0, gs.y0, x, y, gs.touch);
+        if (c === 'scroll') return drop();
+        if (c === 'wait') return;
+        gs.moved = true;
+      }
+      lock();
       const k = E.clamp(slotAt(g, x, y), 0, g.grid.TS);
       const st = ui();
       const cur = st.range ? (st.caret ?? -1) : -1;
       if (k === cur || (k === gs.anchor && !st.range && st.caret === k)) return;
       sfx.snap();
       setRange(gs.anchor, k);
+      return;
+    }
+
+    if (gs.kind === 'paint') {
+      // selecting several: every group the finger passes over joins the selection
+      const doc = useDocStore.getState().doc;
+      const kNow = E.floorPulse(g.grid, hit(g, x, y).t);
+      const lo = Math.min(gs.anchor, kNow);
+      const hi = Math.max(gs.anchor, kNow) + 1;
+      const add: ItemId[] = [];
+      let s = 0;
+      for (const it of doc.items) {
+        if (it.kind === 'sound' && s < hi && s + it.n > lo) add.push(it.id);
+        s += it.n;
+      }
+      const next = [...gs.base, ...add.filter((id) => !gs.base.includes(id))];
+      if (next.join() !== ui().selection.join()) {
+        setUi({ selection: next, anchor: next[next.length - 1] ?? null });
+        sfx.snap();
+      }
       return;
     }
 
@@ -665,6 +894,24 @@ export function Score() {
 
     if (gs.kind === 'boundary') {
       const { base, b } = gs;
+      if (gs.touch) {
+        const c = claim(gs.x0, gs.y0, x, y, true);
+        if (c === 'scroll') return drop();
+        if (c === 'wait') return;
+        if (!gs.armed) {
+          // not next to a selected group: the drag selects, from this line on
+          gesture.current = {
+            kind: 'sweep',
+            anchor: b.slot,
+            x0: gs.x0,
+            y0: gs.y0,
+            moved: true,
+            tap: () => {},
+            touch: true,
+          };
+          return dragTo(cx, cy);
+        }
+      } else lock();
       const k = slotAt(g, x, y);
       const s0 = E.startOf(base.items, b.i);
       const item = base.items[b.i]!;
@@ -689,11 +936,27 @@ export function Score() {
     }
 
     if (gs.kind === 'press') {
-      if (Math.hypot(x - gs.x0, y - gs.y0) <= DRAG_THRESHOLD) return;
+      const c = gs.long && gs.touch ? 'ours' : claim(gs.x0, gs.y0, x, y, gs.touch);
+      if (c === 'wait') return;
       clearTimeout(gs.timer);
-      // long-press then drag: select a pulse range from where the press began
-      if (gs.long) {
-        const k0 = slotAt(g, gs.x0, gs.y0);
+      if (c === 'scroll') return drop();
+      const base = useDocStore.getState().doc;
+      const st = ui();
+      const k0 = slotAt(g, gs.x0, gs.y0);
+      const kf = E.floorPulse(g.grid, hit(g, gs.x0, gs.y0).t);
+      const inRange = !!st.range && !st.selection.length && kf >= st.range.a && kf < st.range.b;
+      // a mouse held still and then dragged selects a range from where the press began; so
+      // does a finger dragged over a group that is not selected (select first, then move:
+      // nothing is moved or resized by a drag that only meant to select)
+      if ((!gs.touch && gs.long) || (gs.touch && !gs.long && !gs.wasSelected && !inRange)) {
+        if (gs.touch && st.multi) {
+          gesture.current = {
+            kind: 'paint',
+            base: st.selection,
+            anchor: E.floorPulse(g.grid, hit(g, gs.x0, gs.y0).t),
+          };
+          return dragTo(cx, cy);
+        }
         gesture.current = {
           kind: 'sweep',
           anchor: k0,
@@ -701,12 +964,22 @@ export function Score() {
           y0: gs.y0,
           moved: true,
           tap: () => {},
+          touch: gs.touch,
         };
-        return onPointerMove(e);
+        return dragTo(cx, cy);
       }
-      const base = useDocStore.getState().doc;
-      let sel = ui().selection;
-      if (!sel.includes(gs.id)) {
+      let sel = st.selection;
+      if (inRange) {
+        // a drag from inside the selected range moves the groups that begin in it
+        const inside: ItemId[] = [];
+        let s = 0;
+        for (const it of base.items) {
+          if (it.kind === 'sound' && s >= st.range!.a && s < st.range!.b) inside.push(it.id);
+          s += it.n;
+        }
+        sel = inside.includes(gs.id) ? inside : [gs.id];
+        setUi({ selection: sel, anchor: gs.id, caret: null, range: null, rangeAnchor: null });
+      } else if (!sel.includes(gs.id)) {
         sel = [gs.id];
         setUi({ selection: sel, anchor: gs.id });
       }
@@ -715,7 +988,8 @@ export function Score() {
       const mode = ui().moveMode;
       sfx.lift();
       cv.style.cursor = 'grabbing';
-      if (mode !== 'place' && E.isContiguous(idx)) {
+      if (mode !== 'place') {
+        // every selected group moves, neighbours or not, by the same number of pulses
         const s0 = E.startOf(base.items, idx[0]!);
         gesture.current = {
           kind: 'slide',
@@ -726,17 +1000,17 @@ export function Score() {
           delta: 0,
           result: null,
         };
-      } else {
-        if (mode !== 'place')
-          toast('Moving on the grid needs neighbouring groups, so this drag reorders instead.');
-        gesture.current = { kind: 'place', base, ids, result: null };
-      }
+      } else gesture.current = { kind: 'place', base, ids, result: null };
+      lock();
       setUi({ lifted: ids, preview: base });
-      return onPointerMove(e);
+      return dragTo(cx, cy);
     }
 
     if (gs.kind === 'trim') {
       const { base, id, side, edge } = gs;
+      const c = claim(gs.x0, gs.y0, x, y, gs.touch, gs.touch ? DRAG_THRESHOLD : 0);
+      if (c === 'scroll') return drop();
+      if (c === 'wait') return;
       const gridB = E.buildGrid(base.meter);
       const t = hit(g, x, y).t;
       // Beat mode moves the edge from beat line to beat line
@@ -764,10 +1038,11 @@ export function Score() {
         ui().moveMode === 'beat'
           ? gridB.pre[E.clamp(Math.round(t), 0, gridB.NB)]!
           : E.nearestPulse(gridB, E.clamp(t, 0, gridB.NB));
-      const d = E.clampSlide(base, ids, target - s0);
+      const d = E.clampRuns(base, ids, target - s0);
       if (d === gs.delta) return;
       gs.delta = d;
-      gs.result = d ? E.slide(base, ids, d) : null;
+      gs.result = d ? E.slideRuns(base, ids, d) : null;
+      if (gs.result && !gs.result.report.ok) gs.result = null;
       setUi({ preview: gs.result?.doc ?? base });
       sfx.snap();
       announce(`${d > 0 ? '+' : ''}${plural(d)}`);
@@ -795,11 +1070,17 @@ export function Score() {
   const end = (cancelled: boolean) => {
     const gs = gesture.current;
     gesture.current = null;
+    locked.current = false;
+    lastPt.current = null;
     if (!gs) return;
     const clearDrag = () => setUi({ preview: null, lifted: [] });
 
     if (gs.kind === 'sweep') {
       if (!cancelled && !gs.moved) gs.tap();
+      return;
+    }
+    if (gs.kind === 'paint') {
+      if (!cancelled) announce(`${ui().selection.length} selected`);
       return;
     }
     if (gs.kind === 'lane') {
@@ -873,7 +1154,16 @@ export function Score() {
     }
     if (gs.kind === 'press') {
       clearTimeout(gs.timer);
-      if (cancelled || gs.long) return;
+      if (ui().lifted.length) setUi({ lifted: [] });
+      if (cancelled) return;
+      if (gs.long) {
+        // a finger held on a group and let go without moving: select several from here
+        if (gs.touch && !ui().multi) {
+          setUi({ multi: true });
+          announce('Selecting several. Tap more groups.');
+        }
+        return;
+      }
       const now = performance.now();
       const { multi } = ui();
       if (
@@ -907,7 +1197,7 @@ export function Score() {
         className="score"
         data-testid="score"
         tabIndex={0}
-        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag in the open space or along the beat numbers (or alt-drag anywhere, or long-press and drag) to select a range of pulses, drag the grips of a selected group to trim it, paint the dotted band under a row to change subdivision. Use the group list after this for keyboard and screen reader access."
+        aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag in the open space or along the beat numbers (or alt-drag anywhere, or long-press and drag) to select a range of pulses, drag the knob under the caret or under an end of the selection to select on, drag the grips of a selected group to trim it, pick beats in the band under a row to change their subdivision. Use the group list after this for keyboard and screen reader access."
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={(e) => {
