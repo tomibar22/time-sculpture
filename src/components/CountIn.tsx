@@ -3,6 +3,7 @@ import { stopPlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { MIX_DEFAULT, useUiStore } from '../state/store';
 import type { MixChannel, TilesMode } from '../state/store';
+import { ClickPatternSection } from './ClickPattern';
 import { MetronomeIcon } from './Icons';
 
 const COUNT = [
@@ -46,10 +47,12 @@ export function PracticeButton() {
       document.removeEventListener('keydown', esc, true);
     };
   }, [open, set]);
-  const on = countIn > 0 || tiles !== 'on';
+  const pattern = useUiStore((s) => s.clickPat.on);
+  const on = countIn > 0 || tiles !== 'on' || pattern;
   const said = [
     countIn ? `count-in ${countIn === 1 ? '1 bar' : '2 bars'}` : '',
     tiles === 'off' ? 'tiles silent' : tiles === 'turns' ? 'tiles in turn' : '',
+    pattern ? 'click pattern' : '',
   ]
     .filter(Boolean)
     .join(', ');
@@ -139,6 +142,7 @@ export function PracticeButton() {
                 : `${times(turns.on)} round with the tiles, then ${times(turns.off).toLowerCase()} with the click alone.`}
             </p>
           )}
+          <ClickPatternSection />
           <Mixer />
         </div>
       )}

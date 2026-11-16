@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import type { Doc, FillAxis, FillSort, ShapeFamily, GroupKind, GroupSpec, ItemId } from '../engine';
+import { CLICK_PATTERN, cleanClickPattern } from '../engine';
+import type {
+  ClickPattern,
+  Doc,
+  FillAxis,
+  FillSort,
+  ShapeFamily,
+  GroupKind,
+  GroupSpec,
+  ItemId,
+} from '../engine';
 
 import { DEFAULT_TEMPO, defaultDoc } from './defaults';
 
@@ -61,6 +71,8 @@ export interface DevicePrefs {
   countSub: boolean;
   /** How loud each voice is, 0–100 (see MIX_DEFAULT). */
   mix: Mix;
+  /** The click as a rhythm of its own: which beats, pulses and bars have it (engine/click.ts). */
+  clickPat: ClickPattern;
 }
 
 /** The mixer: the drum (tiles), the 1 of every bar, the other beats, the subdivision ticks. */
@@ -101,6 +113,7 @@ function loadPrefs(): Partial<DevicePrefs> {
       }
       out.mix = m;
     }
+    if (p.clickPat) out.clickPat = cleanClickPattern(p.clickPat);
     if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
       out.moveMode = p.moveMode;
     if (Array.isArray(p.fillSizes)) {
@@ -267,6 +280,7 @@ export interface UiState {
   turns: { on: number; off: number };
   countSub: boolean;
   mix: Mix;
+  clickPat: ClickPattern;
   /** While playing: this time round the tiles are silent (the score goes grey). */
   hushed: boolean;
   /** The practice popover beside Play (count-in, tiles heard or silent). */
@@ -376,6 +390,7 @@ export const useUiStore = create<UiState>((set) => ({
   turns: { on: 1, off: 1 },
   countSub: false,
   mix: { ...MIX_DEFAULT },
+  clickPat: CLICK_PATTERN,
   hushed: false,
   practiceOpen: false,
   subPanel: false,
@@ -428,7 +443,8 @@ useUiStore.subscribe((s, p) => {
     s.tiles !== p.tiles ||
     s.turns !== p.turns ||
     s.countSub !== p.countSub ||
-    s.mix !== p.mix
+    s.mix !== p.mix ||
+    s.clickPat !== p.clickPat
   )
     savePrefs({
       theme: s.theme,
@@ -442,5 +458,6 @@ useUiStore.subscribe((s, p) => {
       turns: s.turns,
       countSub: s.countSub,
       mix: s.mix,
+      clickPat: s.clickPat,
     });
 });

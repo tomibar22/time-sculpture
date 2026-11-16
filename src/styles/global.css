@@ -3791,3 +3791,115 @@ canvas.score.hushed {
     display: inline;
   }
 }
+
+/* ---------------------------------------------------------------- practice: the click pattern */
+.clickpat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.clickpat .practice-row button.switch {
+  min-height: 36px;
+  padding: 0;
+}
+.pat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.pat-lbl {
+  flex: 0 0 6.4em;
+  font-size: 0.8rem;
+  line-height: 34px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pat-cells {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pat-cell {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 0;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--faint);
+  font: 600 0.82rem var(--f-mono);
+}
+button.pat-cell[aria-pressed='true'] {
+  background: var(--accent);
+  box-shadow: none;
+  color: var(--accent-ink);
+}
+button.pat-cell.one[aria-pressed='true'] {
+  background: var(--land);
+  color: #fff;
+}
+button.pat-cell.bar[aria-pressed='true'] {
+  background: var(--fg);
+  color: var(--card);
+}
+/* a pulse inside a beat: a dot, full when it sounds */
+.pat-cell.dot::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+button.pat-cell.dot[aria-pressed='true'] {
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+}
+button.pat-cell.dot[aria-pressed='true']::before {
+  background: currentColor;
+}
+/* the beat itself, at the head of its pulses: not a button, it is set in the row above */
+.pat-cell.beat {
+  box-shadow: none;
+  background: var(--soft);
+}
+.pat-cell.beat::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--faint);
+}
+.pat-cycle {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+.pat-cycle button {
+  width: 34px;
+  min-width: 0;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  font-size: 1rem;
+}
+.pat-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+.pat-note button.link-btn {
+  min-height: 28px;
+  font-size: 0.8rem;
+}

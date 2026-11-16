@@ -42,6 +42,15 @@ export function playClick(
   }
 }
 
+/**
+ * A pulse inside a beat that was picked by hand (the click pattern): a clear click, a little
+ * lighter than a beat's, on the Subdivision fader (which reaches less far up here: these are
+ * already loud).
+ */
+export function playPicked(t: number): void {
+  woodblock(t, 1120, 0.07 * Math.sqrt(vol('sub')));
+}
+
 /** A dry, woody click: a sine that drops a little, with a breath of its octave on top. */
 function woodblock(t: number, f: number, gain: number): void {
   if (gain <= 0) return;

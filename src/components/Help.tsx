@@ -107,6 +107,14 @@ export function Help() {
               subdivision are (a fader at nothing turns that voice off).
             </p>
             <p>
+              <b>Click pattern</b> makes the click a rhythm of its own. <b>Beats</b>: tap the beats
+              of the bar that click. <b>In a beat of 3</b> (a row for every ratio in the piece): tap
+              the pulses inside a beat that click, the second triplet, the last sixteenth; picked
+              pulses sound as a clear click. <b>Bars</b>: + makes a cycle of bars, and the click
+              sounds only in the ones you leave on. Switched off, the click is the plain one again
+              and the pattern is kept.
+            </p>
+            <p>
               Play starts at the caret when there is one (Esc removes it; then Play starts at the
               top, or where you set it). Space always plays and stops, whatever was clicked last.
             </p>

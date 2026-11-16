@@ -204,3 +204,44 @@ test('practice: the tempo is typed, the count-in can tick the subdivision, and a
   await expect(page.getByTestId('count-overlay')).toBeVisible();
   await page.getByTestId('count-overlay').click();
 });
+
+test('practice: a click pattern picks the beats, the pulses inside a beat and the bars', async ({
+  page,
+}) => {
+  const btn = page.getByTestId('practice');
+  const pop = page.getByRole('dialog', { name: 'Practice' });
+  await btn.click();
+  // off by default: nothing to set, the click is the plain one
+  await expect(pop.getByRole('button', { name: 'Beat 1' })).toHaveCount(0);
+  await pop.getByTestId('click-pattern').click();
+  await expect(pop.getByTestId('click-said')).toHaveText('Every beat.');
+  // beats 2 and 4 only; the last sixteenth alone; one bar in three
+  await pop.getByRole('button', { name: 'Beat 1' }).click();
+  await pop.getByRole('button', { name: 'Beat 3' }).click();
+  await pop.getByRole('button', { name: 'The 2nd of 4' }).click();
+  await pop.getByRole('button', { name: 'The 3rd of 4' }).click();
+  await pop.getByRole('button', { name: 'One bar more in the cycle' }).click();
+  await pop.getByRole('button', { name: 'One bar more in the cycle' }).click();
+  await expect(pop.getByTestId('click-said')).toHaveText(
+    'Beats 2 and 4 · the 4th of 4 · bar 1 of every 3.',
+  );
+  // the last bar that clicks cannot be turned off
+  await pop.getByRole('button', { name: 'Bar 1 of 3' }).click();
+  await expect(pop.getByRole('button', { name: 'Bar 1 of 3' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(btn).toContainText('click pattern');
+  // it plays, and it is remembered on this device
+  await page.getByTestId('score').focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+  await page.keyboard.press('Space');
+  await page.reload();
+  await ready(page);
+  await btn.click();
+  await expect(pop.getByTestId('click-said')).toContainText('the 4th of 4');
+  await pop.getByRole('button', { name: 'Every beat again' }).click();
+  await expect(pop.getByTestId('click-said')).toHaveText('Every beat.');
+});
