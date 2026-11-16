@@ -13,6 +13,7 @@ import {
 } from './library';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 import type { SavedPiece } from './serialize';
+import { startSync } from './sync';
 
 /** Glue between the stores and the IndexedDB library: open, autosave, share. */
 
@@ -45,17 +46,24 @@ function adopt(id: string, raw: unknown, rename?: (name: string) => string): str
     caret: null,
     range: null,
   });
+  // opening is not editing: saving it again unchanged must keep its date (otherwise an old copy
+  // opened on one device would look newer than the edits made since on another)
+  lastSaved = id + JSON.stringify(currentSaved());
   return name;
 }
 
 /** What was last written for the open piece, so a save with nothing new keeps its date. */
 let lastSaved = '';
 
+/** Is there an edit not yet written? (The autosave waits 400 ms.) */
+let pending = false;
+
 export async function saveNow(): Promise<void> {
   const id = ui().currentId;
   if (!id) return;
   const piece = currentSaved();
   const json = id + JSON.stringify(piece);
+  pending = false;
   await savePiece(id, piece, { touch: json !== lastSaved });
   lastSaved = json;
 }
@@ -63,7 +71,18 @@ export async function saveNow(): Promise<void> {
 let saveTimer: number | undefined;
 function scheduleSave(): void {
   clearTimeout(saveTimer);
+  pending = true;
   saveTimer = window.setTimeout(() => void saveNow(), 400);
+}
+
+/**
+ * A newer version of the open piece came from another device: show it (the undo history starts
+ * again). Not while an edit here is still waiting to be saved: that one is newer.
+ */
+export function reloadOpen(id: string, piece: SavedPiece): boolean {
+  if (pending || id !== ui().currentId) return false;
+  adopt(id, piece);
+  return true;
 }
 
 /** Load the share link, or the last piece, or create the first one. Then autosave on change. */
@@ -116,6 +135,7 @@ export async function initSession(): Promise<void> {
   });
   // ask the browser to keep the library (otherwise it may be evicted when storage runs low)
   void navigator.storage?.persist?.().catch(() => undefined);
+  startSync();
   // lets tests (and anything else) know the composition is loaded and edits are safe
   document.documentElement.dataset.ready = '1';
 }
@@ -161,14 +181,14 @@ export function renamePiece(name: string): void {
   if (n) ui().set({ currentName: n });
 }
 
-export async function removePiece(id: string): Promise<void> {
+export async function removePiece(id: string, opts: { remote?: boolean } = {}): Promise<void> {
   const wasOpen = id === ui().currentId;
   // forget it first: opening the next piece saves "the current one", which would bring it back
   if (wasOpen) {
     clearTimeout(saveTimer);
     ui().set({ currentId: null });
   }
-  await deletePiece(id);
+  await deletePiece(id, opts);
   if (wasOpen) {
     const rest = await listPieces();
     if (rest[0]) await openPiece(rest[0].id);

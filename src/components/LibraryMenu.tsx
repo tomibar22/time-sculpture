@@ -22,6 +22,8 @@ import { clearAll, toast } from '../state/actions';
 import { sameGridDoc, surpriseDoc } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { SyncSection } from './SyncSection';
+import { SYNCED } from '../persistence/sync';
 import { MenuIcon, ChevronIcon, DiceIcon, ShareIcon } from './Icons';
 
 const when = (t: number) =>
@@ -68,6 +70,12 @@ export function LibraryMenu() {
   useEffect(() => setName(currentName), [currentName]);
 
   const refresh = async () => setEntries(await listPieces());
+  // pieces that came in from another device show up while the library is open
+  useEffect(() => {
+    const on = () => void listPieces().then(setEntries);
+    window.addEventListener(SYNCED, on);
+    return () => window.removeEventListener(SYNCED, on);
+  }, []);
   const open = async () => {
     await saveNow();
     await refresh();
@@ -251,6 +259,8 @@ export function LibraryMenu() {
               MuseScore), MIDI in any DAW. JSON is the composition itself.
             </p>
           </section>
+
+          <SyncSection />
 
           <section className="lib-sec" aria-labelledby="lib-all">
             <div className="lib-list-head">

@@ -124,3 +124,9 @@ export const ShareIcon = () => (
     <path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
   </svg>
 );
+export const SyncIcon = () => (
+  <svg {...base}>
+    <path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v3h3" />
+    <path d="M4 13a8 8 0 0 0 14.6 4.5M20 20v-3h-3" />
+  </svg>
+);

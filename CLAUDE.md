@@ -57,7 +57,8 @@ src/components/    header, toolbar, selection bar, status, keypad (number pad) +
                    library, rows, options, help, toasts
 src/export/        printed score sheet (sheet.ts, also the PNG picture), a tiny PDF writer
                    (pdfWriter.ts), MusicXML (musicxml.ts) and MIDI (midi.ts) writers
-src/persistence/   IndexedDB library, JSON import/export, share links
+src/persistence/   IndexedDB library, JSON import/export, share links, sync (sync.ts)
+api/sync.ts        Vercel Function: the shared library in Neon Postgres
 src/styles/        tokens.css, global.css
 e2e/               Playwright specs (iPhone 14 + desktop)
 ```
@@ -410,6 +411,19 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
 - New piece: Blank, Same grid (`sameGridDoc`), Duplicate, Surprise me (`surpriseDoc`: a meter and
   a shaped fill that lands).
 
+- **Sync between devices** (`api/sync.ts` Vercel Function + Neon Postgres via `DATABASE_URL`,
+  client `src/persistence/sync.ts`, UI `SyncSection` in the Library): one code, the project's
+  `SYNC_KEY` env var, typed once per device (localStorage `time-sculpture/sync`; an iPhone
+  home-screen app has its own storage, so the code is typed inside the app). Table `pieces`
+  (id, name, updated, deleted, piece jsonb, rev from a sequence), made on first use. Every local
+  save that changes a piece's date and every delete goes to an outbox (`time-sculpture/sync-out`,
+  via `setChangeListener` in library.ts; saves/deletes with `remote: true` are not reported);
+  a round = saveNow → push outbox → pull rows with rev > last rev − 50. The newer `updated` wins,
+  on the server and locally; deletes are tombstones. The open piece reloads when a newer one
+  arrives (`reloadOpen`, not while an edit waits). Rounds run on open, on visibility change (both
+  ways: leaving pushes with `keepalive`), online, 1.5 s after a save, every 60 s on screen.
+  `adopt` sets `lastSaved`, so opening a piece never bumps its date. e2e `sync.spec.ts` uses a
+  fake server with the same rules. `/api/` is excluded from the SPA rewrite and the SW fallback.
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
   `current`. Autosave 400 ms after any change, and on `pagehide`.
 - File format **v2** (`src/persistence/serialize.ts`, documented in `docs/file-format.md`):

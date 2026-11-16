@@ -2982,3 +2982,20 @@ button.now.start-btn.set b {
   min-height: 32px;
   font-size: 0.82rem;
 }
+
+/* library: sync between devices (folded like Save and share) */
+.lib-sync-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lib-sync-body[hidden] {
+  display: none;
+}
+.lib-sync-body .lib-rename {
+  gap: 8px;
+}
+#sync-code {
+  font-family: var(--f-mono);
+  letter-spacing: 0.04em;
+}

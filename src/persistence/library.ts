@@ -51,6 +51,16 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
   return p;
 }
 
+/**
+ * Told about every change made on this device (a save that changed the piece's date, a delete),
+ * so it can be sent to the other devices. Changes that came from them are not reported.
+ */
+type ChangeListener = (c: { id: string; updated: number; deleted: boolean }) => void;
+let onChange: ChangeListener | undefined;
+export const setChangeListener = (fn: ChangeListener | undefined) => {
+  onChange = fn;
+};
+
 export const newId = () => `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 export const listPieces = (): Promise<LibraryEntry[]> => serial(listNow);
@@ -78,13 +88,18 @@ export const loadPiece = (id: string): Promise<SavedPiece | undefined> =>
 export const savePiece = (
   id: string,
   piece: SavedPiece,
-  opts: { touch?: boolean; current?: boolean; updated?: number } = {},
+  opts: SaveOpts = {},
 ): Promise<void> => serial(() => saveNow(id, piece, opts));
-async function saveNow(
-  id: string,
-  piece: SavedPiece,
-  opts: { touch?: boolean; current?: boolean; updated?: number },
-): Promise<void> {
+
+interface SaveOpts {
+  touch?: boolean;
+  current?: boolean;
+  updated?: number;
+  /** It came from another device: do not send it back. */
+  remote?: boolean;
+}
+
+async function saveNow(id: string, piece: SavedPiece, opts: SaveOpts): Promise<void> {
   await set(`piece:${id}`, piece, store);
   const all = (await get<LibraryEntry[]>(INDEX, store)) ?? [];
   const old = all.find((e) => e.id === id);
@@ -93,14 +108,20 @@ async function saveNow(
   idx.push({ id, name: piece.title, updated, ...stripOf(piece) });
   await set(INDEX, idx, store);
   if (opts.current !== false) await set(CURRENT, id, store);
+  if (!opts.remote && (!old || old.updated !== updated)) onChange?.({ id, updated, deleted: false });
 }
 
-export const deletePiece = (id: string): Promise<void> =>
+export const deletePiece = (id: string, opts: { remote?: boolean } = {}): Promise<void> =>
   serial(async () => {
     await del(`piece:${id}`, store);
     const idx = ((await get<LibraryEntry[]>(INDEX, store)) ?? []).filter((e) => e.id !== id);
     await set(INDEX, idx, store);
+    if (!opts.remote) onChange?.({ id, updated: Date.now(), deleted: true });
   });
+
+/** The list as stored (no pictures made, no sorting): for the sync. */
+export const libraryIndex = (): Promise<LibraryEntry[]> =>
+  serial(async () => (await get<LibraryEntry[]>(INDEX, store)) ?? []);
 
 export const currentPieceId = (): Promise<string | undefined> =>
   serial(() => get<string>(CURRENT, store));
