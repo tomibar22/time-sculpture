@@ -778,3 +778,26 @@ overrides.
   stays selected while the panel is open.
 - Entries: "Land…" beside "Fill it…" in the state line (open space), "Land…" in the range bar,
   "Land a pattern…" in the range menu and "Land a pattern here…" in the empty-place menu.
+
+### Land, deeper; the metronome menu (user requests)
+
+- `patternLandings(R, pattern, {on1})` returns `PatternLanding {kind, sizes, lead, times, gap?,
+gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k), `tihai`
+  (three times, **the gap is a tile of its own**: "2 3" gap 1 = 2 3 1 2 3 1 2 3; `gaps` = its
+  indices, drawn lighter, `.strip-gap`), `gapped` (2, 4–8 times with a gap, soonest first),
+  `shape` (Wearing away, Building up, Broad then as written, As written then twice as fast,
+  Running through = enters mid-pattern so the stretch is full). Same written sizes are listed once.
+- **Last tile on the 1** (`ui.landOn1`, a switch): every way loses its last tile, which begins
+  exactly where the region ends (`on1` = its size; shown as "then [n] on the 1"). It is never
+  written, also when the region ends inside the piece. **Begins** (`ui.landFrom` any / beat /
+  one) keeps the ways that start on a beat or a 1 (computed in LandPanel, `places`).
+- **Practice popover** (CountIn.tsx) now also holds: the **tempo, typed** (`TempoRow`: a text
+  field with numeric keyboard between − and +; Enter / blur commits, clamped 30–240; ≥ 16 px so
+  iOS does not zoom); **Count the subdivision too** (`ui.countSub`, shown when the count-in is
+  on: the count-in ticks the subdivisions of the bar it counts, `COUNT_TICK` louder than playing
+  ticks; editor only); the **Mix** (`ui.mix {drum, one, beat, sub}` 0–100, `MIX_DEFAULT`
+  70/70/70/35, gain `mixGain` = (v / default)², applied in voices.ts: `one` = the landing and
+  every bar's downbeat, `beat` = other beats, `sub` = ticks, `drum` = `playGroup`). The Beats
+  and Subdivision faders are the same switches as Options' `click` / `ticks`: at 0 the voice is
+  off (the stored level is kept), moving it turns it on. All device prefs. The popover scrolls if
+  the screen is short.

@@ -1,27 +1,50 @@
 import type { ClickKind } from '../engine';
+import { mixGain, useUiStore } from '../state/store';
+import type { MixChannel } from '../state/store';
 import { audioNow, ensureAudio, noise, tone } from './context';
 
-/** Musical voices used by the player. */
-export function playClick(t: number, kind: ClickKind, ticks: boolean, beats = true): void {
+/** The mixer: how loud a voice is now (1 = as it was made). */
+const vol = (ch: MixChannel) => mixGain(useUiStore.getState().mix, ch);
+
+/**
+ * Musical voices used by the player. The mixer has four faders: the 1 (the landing and every
+ * bar's downbeat), the other beats, the subdivision ticks, and the drum (the tiles). `level`
+ * lifts a voice for one stroke (the count-in's ticks are meant to be heard).
+ */
+export function playClick(
+  t: number,
+  kind: ClickKind,
+  ticks: boolean,
+  beats = true,
+  level = 1,
+): void {
   switch (kind) {
-    case 'landing':
-      // the 1: a soft low drum, always heard (it is what the phrase lands on)
-      tone(t, 'sine', 150, 0.5, 0.45, 52);
-      if (beats) woodblock(t, 1900, 0.11);
+    case 'landing': {
+      // the 1: a soft low drum, heard whatever the click option says (it is what the phrase
+      // lands on)
+      const g = vol('one');
+      if (g <= 0) break;
+      tone(t, 'sine', 150, 0.5 * g, 0.45, 52);
+      if (beats) woodblock(t, 1900, 0.11 * g);
       break;
+    }
     case 'downbeat':
-      if (beats) woodblock(t, 1900, 0.11);
+      if (beats) woodblock(t, 1900, 0.11 * vol('one') * level);
       break;
     case 'beat':
-      if (beats) woodblock(t, 1350, 0.07);
+      if (beats) woodblock(t, 1350, 0.07 * vol('beat') * level);
       break;
     case 'tick':
-      if (ticks) tone(t, 'sine', 2600, 0.014, 0.02);
+      if (ticks) {
+        const g = 0.014 * vol('sub') * level;
+        if (g > 0) tone(t, 'sine', 2600, g, 0.02);
+      }
   }
 }
 
 /** A dry, woody click: a sine that drops a little, with a breath of its octave on top. */
 function woodblock(t: number, f: number, gain: number): void {
+  if (gain <= 0) return;
   tone(t, 'sine', f, gain, 0.035, f * 0.82);
   tone(t, 'triangle', f * 2.02, gain * 0.25, 0.012);
 }
@@ -35,6 +58,8 @@ function woodblock(t: number, f: number, gain: number): void {
  * groups ring a little longer.
  */
 export function playGroup(t: number, n: number, seconds = 0.3, level = 1): void {
+  level *= vol('drum');
+  if (level <= 0) return;
   // 0 for a group of 1 … 1 for 16 and longer; the small sizes (the common ones) are spread widest
   const x = Math.log(Math.min(16, Math.max(1, n))) / Math.log(16);
   const f = 290 * Math.pow(78 / 290, x);

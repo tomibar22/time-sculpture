@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import * as E from '../engine';
 import { describePulse } from '../state/editing';
 import { closeFill, fillRegion, previewLanding, writeLanding } from '../state/fill';
@@ -8,30 +8,78 @@ import { Strip, UseBar, useRegionBeats } from './fillParts';
 import { CloseIcon } from './Icons';
 
 const SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
+/** Where a way may begin: the name, and what phones show of it. */
+const FROM: ['any' | 'beat' | 'one', string, string][] = [
+  ['any', 'Anywhere', 'Any'],
+  ['beat', 'On a beat', 'Beat'],
+  ['one', 'On a 1', 'On 1'],
+];
+const HEADS: Record<E.LandingKind, [string, string]> = {
+  repeat: ['Repeated', 'so many times'],
+  tihai: ['Tihai', 'three times, a gap between'],
+  gapped: ['With a gap', 'any number of times'],
+  shape: ['Shaped', 'the pattern, transformed'],
+};
 
 /**
  * Land a pattern (third tab of the fill panel): build a pattern of tiles, and see every way it
- * ends exactly on the end of the region: how many times it is said and where it must begin (also
- * as a tihai, three times with a gap). A tap tries one in the score, Use writes it; what is
- * before its first tile stays as it is.
+ * ends exactly on the end of the region: how many times it is said and where it must begin; as a
+ * tihai (three times, a gap tile between) or any number of times with a gap; and shaped (worn
+ * away, built up, broad then as written, running through). "Last tile on the 1" lets the last
+ * tile begin where the region ends, as a tihai's last stroke does (it is not written); "Begins"
+ * keeps the ways that start on a beat or on a 1. A tap tries one in the score, Use writes it;
+ * what is before its first tile stays as it is.
  */
 export function LandPanel() {
   const pattern = useUiStore((s) => s.landPattern);
   const clip = useUiStore((s) => s.clipboard);
   const set = useUiStore((s) => s.set);
-  useDocStore((s) => s.version);
   const region = fillRegion();
   const beats = useRegionBeats();
   const [trying, setTrying] = useState<E.PatternLanding | null>(null);
+  const on1 = useUiStore((s) => s.landOn1);
+  const from = useUiStore((s) => s.landFrom);
+  const version = useDocStore((s) => s.version);
   const R = region ? region.b - region.a : 0;
   const a = region?.a ?? 0;
   const p = pattern.reduce((x, n) => x + n, 0);
-  const rows = useMemo(() => E.patternLandings(R, pattern), [R, pattern]);
+  const all = useMemo(() => E.patternLandings(R, pattern, { on1 }), [R, pattern, on1]);
+  /** Where each way begins, and whether that is a strong place. */
+  const places = useMemo(() => {
+    const d = useDocStore.getState().doc;
+    const grid = E.buildGrid(d.meter);
+    return new Map(
+      all.map((l) => {
+        const k = a + l.lead;
+        const b = E.beatOfPulse(grid, Math.min(k, grid.TS - 1));
+        const onBeat = grid.pre[b] === k;
+        const on = onBeat && E.barBeat(d.meter, b).beat === 1;
+        return [
+          l.key,
+          {
+            text: describePulse(k),
+            beat: onBeat,
+            one: on,
+            mark: on ? 'on 1' : onBeat ? 'on the beat' : '',
+          },
+        ];
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, a, version]);
+  const rows = useMemo(
+    () =>
+      all.filter((l) => {
+        const w = places.get(l.key);
+        return from === 'any' || (from === 'beat' ? w?.beat : w?.one);
+      }),
+    [all, places, from],
+  );
   // another pattern or region: nothing is on trial any more
   useEffect(() => {
     setTrying(null);
     previewLanding(null);
-  }, [R, a, pattern]);
+  }, [R, a, pattern, on1]);
   if (!region) return <p className="lib-note">Select a stretch, or leave open space, first.</p>;
 
   const put = (next: number[]) => set({ landPattern: next });
@@ -45,16 +93,21 @@ export function LandPanel() {
     setTrying(null);
     writeLanding(l);
   };
-  /** Where it begins, and whether that is a strong place. */
-  const where = (l: E.PatternLanding) => {
-    const k = a + l.lead;
-    const d = useDocStore.getState().doc;
-    const grid = E.buildGrid(d.meter);
-    const b = E.beatOfPulse(grid, Math.min(k, grid.TS - 1));
-    const onBeat = grid.pre[b] === k;
-    const on1 = onBeat && E.barBeat(d.meter, b).beat === 1;
-    return { text: describePulse(k), mark: on1 ? 'on 1' : onBeat ? 'on the beat' : '' };
-  };
+  const lastTile = pattern[pattern.length - 1];
+  const shown = (l: E.PatternLanding) => ({
+    sizes: l.lead ? [l.lead, ...l.sizes] : l.sizes,
+    rests: l.lead ? [0] : undefined,
+    gaps: l.gaps?.map((i) => i + (l.lead ? 1 : 0)),
+  });
+  const title = (l: E.PatternLanding) =>
+    l.kind === 'tihai'
+      ? `Tihai · gap ${l.gap}`
+      : l.kind === 'gapped'
+        ? `×${l.times} · gap ${l.gap}`
+        : l.kind === 'shape'
+          ? l.name
+          : `×${l.times}`;
+  let heading: E.LandingKind | null = null;
 
   return (
     <div className="land">
@@ -120,14 +173,56 @@ export function LandPanel() {
           </button>
         ))}
       </div>
+      <div className="land-opts">
+        <button
+          type="button"
+          className="switch"
+          role="switch"
+          aria-checked={on1}
+          data-testid="land-on1"
+          title="Like a tihai: the pattern's last tile begins exactly where the stretch ends, on the 1. It is not written."
+          onClick={() => set({ landOn1: !on1 })}
+        >
+          <span className="switch-track" aria-hidden="true">
+            <span className="switch-knob" />
+          </span>
+          Last tile on the 1
+        </button>
+        <div className="land-from">
+          <span id="land-from">Begins</span>
+          <div className="segs text" role="group" aria-labelledby="land-from">
+            {FROM.map(([id, label, short]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={from === id}
+                title={`Begins: ${label.toLowerCase()}`}
+                onClick={() => set({ landFrom: id })}
+              >
+                <span className="land-wide">{label}</span>
+                <span className="land-narrow" aria-hidden="true">
+                  {short}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
       <p className="lib-note land-hint" role="status">
         {!pattern.length
           ? `Build a pattern: every way it ends exactly on the end of these ${R} pulses is shown, with where it must begin.`
-          : rows.length
-            ? `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
-                R % p ? `, with ${R % p} left before it` : ', exactly'
-              }.`
-            : `The pattern (${p}) is longer than the stretch (${R}).`}
+          : !all.length
+            ? on1 && pattern.length === 1 && p <= R
+              ? 'One tile alone, on the 1: nothing is left to write. Add a tile.'
+              : `The pattern (${p}) is longer than the stretch (${R}).`
+            : on1
+              ? `Ends on the 1 after these ${R} pulses: the last tile (${lastTile}) begins there, so it is not written.`
+              : `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
+                  R % p ? `, with ${R % p} left before it` : ', exactly'
+                }.`}
+        {all.length > 0 && !rows.length
+          ? ` None of the ${all.length} ways begins ${from === 'beat' ? 'on a beat' : 'on a 1'}.`
+          : ''}
       </p>
       <ul
         className="fill-list land-list"
@@ -135,47 +230,58 @@ export function LandPanel() {
         onMouseLeave={() => previewLanding(trying)}
       >
         {rows.map((l) => {
-          const w = where(l);
+          const w = places.get(l.key)!;
+          const head = l.kind !== heading ? (heading = l.kind) : null;
           return (
-            <li key={l.key}>
-              <div className="fill-row">
-                <button
-                  type="button"
-                  className="fill-main"
-                  aria-pressed={trying?.key === l.key}
-                  title={trying?.key === l.key ? 'Tap again to use it' : undefined}
-                  onMouseEnter={() => previewLanding(l)}
-                  onClick={() => tryIt(l)}
-                >
-                  <Strip
-                    sizes={l.lead ? [l.lead, ...l.sizes] : l.sizes}
-                    rests={l.lead ? [0] : undefined}
-                    beats={beats}
-                  />
-                  <span className="fill-cap">
-                    <span className="land-times">
-                      {l.gap ? `Tihai · gap ${l.gap}` : `×${l.times}`}
+            <Fragment key={l.key}>
+              {head && (
+                <li className="fill-group">
+                  <span className="fill-group-name">{HEADS[head][0]}</span>
+                  <span className="land-group-note">{HEADS[head][1]}</span>
+                </li>
+              )}
+              <li>
+                <div className="fill-row">
+                  <button
+                    type="button"
+                    className="fill-main"
+                    aria-pressed={trying?.key === l.key}
+                    title={trying?.key === l.key ? 'Tap again to use it' : undefined}
+                    onMouseEnter={() => previewLanding(l)}
+                    onClick={() => tryIt(l)}
+                  >
+                    <Strip {...shown(l)} beats={beats} />
+                    <span className="fill-cap">
+                      <span className="land-times">{title(l)}</span>
+                      <span className="fill-meta">
+                        {l.kind === 'shape' && l.note ? `${l.note} · ` : ''}
+                        {l.lead ? `from ${w.text}` : 'fills it exactly'}
+                        {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}
+                        {l.on1 ? (
+                          <span className="land-on1">
+                            {' · then '}
+                            <i
+                              style={{
+                                background: sizeColor(l.on1),
+                                color: inkFor(sizeColor(l.on1)),
+                              }}
+                            >
+                              {l.on1}
+                            </i>
+                            {' on the 1'}
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
-                    <span className="fill-meta">
-                      {l.lead ? `from ${w.text}` : 'fills it exactly'}
-                      {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </li>
+                  </button>
+                </div>
+              </li>
+            </Fragment>
           );
         })}
       </ul>
       <UseBar
-        trying={
-          trying
-            ? {
-                sizes: trying.lead ? [trying.lead, ...trying.sizes] : trying.sizes,
-                rests: trying.lead ? [0] : undefined,
-              }
-            : null
-        }
+        trying={trying ? shown(trying) : null}
         beats={beats}
         onUse={() => trying && write(trying)}
         onCancel={() => {

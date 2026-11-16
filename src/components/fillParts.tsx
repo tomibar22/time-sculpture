@@ -22,11 +22,14 @@ export function Strip({
   rests,
   beats,
   locked,
+  gaps,
 }: {
   sizes: number[];
   rests?: number[];
   beats?: StripLine[];
   locked?: number[];
+  /** Tiles that are the gaps between the times a pattern is said (Land): drawn lighter. */
+  gaps?: number[];
 }) {
   const R = sizes.reduce((a, b) => a + b, 0) || 1;
   let at = 0;
@@ -40,7 +43,9 @@ export function Strip({
         ) : (
           <span
             key={i}
-            className={locked?.includes(i) ? 'strip-locked' : undefined}
+            className={
+              locked?.includes(i) ? 'strip-locked' : gaps?.includes(i) ? 'strip-gap' : undefined
+            }
             style={{ ...pos, background: sizeColor(n), color: inkFor(sizeColor(n)) }}
           >
             {n}
@@ -140,7 +145,7 @@ export function UseBar({
   /** The list already shows the variations of this very fill. */
   varying?: boolean;
   /** The fill on trial, or null (no bar). */
-  trying: { sizes: number[]; rests?: number[] } | null;
+  trying: { sizes: number[]; rests?: number[]; gaps?: number[] } | null;
   beats?: StripLine[];
   onUse: () => void;
   onCancel: () => void;
@@ -153,7 +158,7 @@ export function UseBar({
         Trying
         <span className="sr-only"> {trying.sizes.join(' ')}</span>
       </span>
-      <Strip sizes={trying.sizes} rests={trying.rests} beats={beats} />
+      <Strip sizes={trying.sizes} rests={trying.rests} gaps={trying.gaps} beats={beats} />
       {onVary && (
         <button
           type="button"

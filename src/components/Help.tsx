@@ -100,9 +100,11 @@ export function Help() {
             <p>
               <b>Practice</b>: the metronome beside Play. <b>Count-in</b> (1 or 2 bars) counts the
               bar in, large in the middle of a softened screen, then plays; a tap on the count
-              stops. <b>Tiles</b>: Silent leaves only the click, so the rhythm is yours to play; In
-              turn plays so many times round with the tiles and so many with the click alone (the
-              score goes grey while they are silent).
+              stops; it can tick the subdivision too. <b>Tiles</b>: Silent leaves only the click, so
+              the rhythm is yours to play; In turn plays so many times round with the tiles and so
+              many with the click alone (the score goes grey while they are silent). The tempo can
+              be typed there, and the <b>Mix</b> sets how loud the drum, the 1, the beats and the
+              subdivision are (a fader at nothing turns that voice off).
             </p>
             <p>
               Play starts at the caret when there is one (Esc removes it; then Play starts at the
@@ -269,9 +271,15 @@ export function Help() {
               How many fives fit before the 1, and where must they begin? Select a stretch (or use
               the open space), choose <b>Land…</b>, and tap sizes to build a pattern: one tile, or a
               whole phrase. Every way it ends exactly on the end of the stretch is listed: said 4
-              times, 3 times… with the place where it must begin, and as a tihai (three times with a
-              gap). Tap one to see and hear it in the score, Use to write it. What is before its
-              first tile stays as it is.
+              times, 3 times… with the place where it must begin; as a tihai (three times, the gap a
+              tile of its own between them) or any number of times with a gap; and shaped: worn
+              away, built up, broad then as written, running through. Tap one to see and hear it in
+              the score, Use to write it. What is before its first tile stays as it is.
+            </p>
+            <p>
+              <b>Last tile on the 1</b>: as in a tihai, the pattern’s last tile begins exactly where
+              the stretch ends, so it is not written (the 1 is that stroke). <b>Begins</b> keeps
+              only the ways that start on a beat, or on a 1.
             </p>
           </details>
           <details className="help-topic">

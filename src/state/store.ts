@@ -57,7 +57,24 @@ export interface DevicePrefs {
   tiles: TilesMode;
   /** In turn: this many times round with the tiles, then this many with the click alone. */
   turns: { on: number; off: number };
+  /** The count-in also ticks the subdivision of the bar it counts. */
+  countSub: boolean;
+  /** How loud each voice is, 0–100 (see MIX_DEFAULT). */
+  mix: Mix;
 }
+
+/** The mixer: the drum (tiles), the 1 of every bar, the other beats, the subdivision ticks. */
+export interface Mix {
+  drum: number;
+  one: number;
+  beat: number;
+  sub: number;
+}
+export type MixChannel = keyof Mix;
+/** Where each fader stands when untouched (the gain there is the voice's own level). */
+export const MIX_DEFAULT: Mix = { drum: 70, one: 70, beat: 70, sub: 35 };
+/** A fader's gain: 1 at its default, 0 at the bottom, a few times louder at the top. */
+export const mixGain = (mix: Mix, ch: MixChannel) => (mix[ch] / MIX_DEFAULT[ch]) ** 2;
 
 export type TilesMode = 'on' | 'off' | 'turns';
 const PREFS_KEY = 'time-sculpture/prefs';
@@ -75,6 +92,15 @@ function loadPrefs(): Partial<DevicePrefs> {
     const n = (v: unknown) => (Number.isInteger(v) ? Math.max(1, Math.min(8, v as number)) : 1);
     if (p.turns && typeof p.turns === 'object')
       out.turns = { on: n(p.turns.on), off: n(p.turns.off) };
+    if (typeof p.countSub === 'boolean') out.countSub = p.countSub;
+    if (p.mix && typeof p.mix === 'object') {
+      const m = { ...MIX_DEFAULT };
+      for (const k of Object.keys(m) as MixChannel[]) {
+        const v = (p.mix as Partial<Mix>)[k];
+        if (typeof v === 'number' && v >= 0 && v <= 100) m[k] = Math.round(v);
+      }
+      out.mix = m;
+    }
     if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
       out.moveMode = p.moveMode;
     if (Array.isArray(p.fillSizes)) {
@@ -220,6 +246,10 @@ export interface UiState {
   fillPanel: 'browse' | 'vary' | 'land' | null;
   /** Land a pattern: the tiles of the pattern being tried (kept while the app is open). */
   landPattern: number[];
+  /** Land: the last tile falls on the 1 after the stretch (not written), like a tihai's. */
+  landOn1: boolean;
+  /** Land: only the ways that begin anywhere / on a beat / on a 1. */
+  landFrom: 'any' | 'beat' | 'one';
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
   fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo';
@@ -235,6 +265,8 @@ export interface UiState {
   /** Practice: the tiles heard, silent, or in turn (device preferences; see DevicePrefs). */
   tiles: TilesMode;
   turns: { on: number; off: number };
+  countSub: boolean;
+  mix: Mix;
   /** While playing: this time round the tiles are silent (the score goes grey). */
   hushed: boolean;
   /** The practice popover beside Play (count-in, tiles heard or silent). */
@@ -331,6 +363,8 @@ export const useUiStore = create<UiState>((set) => ({
   fillSizes: [2, 3, 4, 5, 7],
   fillPanel: null,
   landPattern: [],
+  landOn1: false,
+  landFrom: 'any',
   fillSort: 'onbeat',
   fillShape: 'shapes',
   fillTiles: null,
@@ -340,6 +374,8 @@ export const useUiStore = create<UiState>((set) => ({
   countIn: 0,
   tiles: 'on',
   turns: { on: 1, off: 1 },
+  countSub: false,
+  mix: { ...MIX_DEFAULT },
   hushed: false,
   practiceOpen: false,
   subPanel: false,
@@ -390,7 +426,9 @@ useUiStore.subscribe((s, p) => {
     s.motifs !== p.motifs ||
     s.countIn !== p.countIn ||
     s.tiles !== p.tiles ||
-    s.turns !== p.turns
+    s.turns !== p.turns ||
+    s.countSub !== p.countSub ||
+    s.mix !== p.mix
   )
     savePrefs({
       theme: s.theme,
@@ -402,5 +440,7 @@ useUiStore.subscribe((s, p) => {
       countIn: s.countIn,
       tiles: s.tiles,
       turns: s.turns,
+      countSub: s.countSub,
+      mix: s.mix,
     });
 });

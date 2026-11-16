@@ -162,3 +162,45 @@ test('Space is Play even with a button in focus, and Play starts at the caret', 
   await expect(page.locator('.now')).toContainText('bar 2', { timeout: 1500 });
   await page.keyboard.press('Space');
 });
+
+test('practice: the tempo is typed, the count-in can tick the subdivision, and a mixer', async ({
+  page,
+}) => {
+  const btn = page.getByTestId('practice');
+  const pop = page.getByRole('dialog', { name: 'Practice' });
+  await btn.click();
+  // typed tempo: Enter sets it, out-of-range values are brought in
+  const bpm = pop.getByTestId('practice-tempo');
+  await bpm.fill('96');
+  await bpm.press('Enter');
+  await expect(bpm).toHaveValue('96');
+  await bpm.fill('999');
+  await bpm.press('Enter');
+  await expect(bpm).toHaveValue('240');
+  await pop.getByRole('button', { name: '1 slower' }).click();
+  await expect(bpm).toHaveValue('239');
+  // the subdivision switch belongs to the count-in
+  await expect(pop.getByTestId('count-sub')).toHaveCount(0);
+  await pop.getByRole('button', { name: '1 bar' }).click();
+  await pop.getByTestId('count-sub').click();
+  await expect(pop.getByTestId('count-sub')).toHaveAttribute('aria-checked', 'true');
+  // the mixer: a fader at nothing turns its voice off; Reset brings everything back
+  await pop.getByTestId('mix-drum').fill('40');
+  await pop.getByTestId('mix-beat').fill('0');
+  await expect(pop.locator('.mixer-row.off')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await page.reload();
+  await ready(page);
+  await btn.click();
+  await expect(pop.getByTestId('mix-drum')).toHaveValue('40');
+  await expect(pop.getByTestId('mix-beat')).toHaveValue('0');
+  await expect(pop.getByTestId('count-sub')).toHaveAttribute('aria-checked', 'true');
+  await pop.getByRole('button', { name: 'Reset' }).click();
+  await expect(pop.getByTestId('mix-drum')).toHaveValue('70');
+  await expect(pop.getByTestId('mix-beat')).toHaveValue('70');
+  // it plays with all of it on
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(page.getByTestId('count-overlay')).toBeVisible();
+  await page.getByTestId('count-overlay').click();
+});

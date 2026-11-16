@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { stopPlayback } from '../audio/player';
-import { useUiStore } from '../state/store';
-import type { TilesMode } from '../state/store';
+import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
+import { MIX_DEFAULT, useUiStore } from '../state/store';
+import type { MixChannel, TilesMode } from '../state/store';
 import { MetronomeIcon } from './Icons';
 
 const COUNT = [
@@ -25,6 +26,7 @@ export function PracticeButton() {
   const countIn = useUiStore((s) => s.countIn);
   const tiles = useUiStore((s) => s.tiles);
   const turns = useUiStore((s) => s.turns);
+  const countSub = useUiStore((s) => s.countSub);
   const open = useUiStore((s) => s.practiceOpen);
   const set = useUiStore((s) => s.set);
   const wrap = useRef<HTMLSpanElement>(null);
@@ -75,6 +77,7 @@ export function PracticeButton() {
       </button>
       {open && (
         <div className="practice-pop" role="dialog" aria-label="Practice">
+          <TempoRow />
           <div className="practice-row">
             <span id="pr-count">Count-in</span>
             <div className="segs text" role="group" aria-labelledby="pr-count">
@@ -90,6 +93,24 @@ export function PracticeButton() {
               ))}
             </div>
           </div>
+          {countIn > 0 && (
+            <div className="practice-row sub">
+              <span id="pr-sub">Count the subdivision too</span>
+              <button
+                type="button"
+                className="switch"
+                role="switch"
+                aria-checked={countSub}
+                aria-labelledby="pr-sub"
+                data-testid="count-sub"
+                onClick={() => set({ countSub: !countSub })}
+              >
+                <span className="switch-track" aria-hidden="true">
+                  <span className="switch-knob" />
+                </span>
+              </button>
+            </div>
+          )}
           <div className="practice-row">
             <span id="pr-tiles">Tiles</span>
             <div className="segs text" role="group" aria-labelledby="pr-tiles">
@@ -111,16 +132,141 @@ export function PracticeButton() {
               <Turns label="Silent" value={turns.off} onStep={(d) => turn('off', d)} />
             </div>
           )}
-          <p className="practice-note">
-            {tiles === 'on'
-              ? 'The tiles sound every time round.'
-              : tiles === 'off'
+          {tiles !== 'on' && (
+            <p className="practice-note">
+              {tiles === 'off'
                 ? 'Only the click sounds: the tiles are yours to play.'
                 : `${times(turns.on)} round with the tiles, then ${times(turns.off).toLowerCase()} with the click alone.`}
-          </p>
+            </p>
+          )}
+          <Mixer />
         </div>
       )}
     </span>
+  );
+}
+
+const clampTempo = (v: number) => Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(v)));
+
+/** The tempo, typed: a number field between − and +. Enter or leaving the field sets it. */
+function TempoRow() {
+  const tempo = useUiStore((s) => s.tempo);
+  const set = useUiStore((s) => s.set);
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const v = parseInt(draft, 10);
+    if (Number.isFinite(v)) set({ tempo: clampTempo(v) });
+    setDraft(null);
+  };
+  const step = (d: number) => {
+    setDraft(null);
+    set({ tempo: clampTempo(useUiStore.getState().tempo + d) });
+  };
+  return (
+    <div className="practice-row">
+      <label htmlFor="pr-tempo">Tempo</label>
+      <div className="practice-tempo">
+        <button type="button" aria-label="1 slower" onClick={() => step(-1)}>
+          −
+        </button>
+        <span className="practice-bpm">
+          <span aria-hidden="true">♩</span>
+          <input
+            id="pr-tempo"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            maxLength={3}
+            title={`Beats per minute, ${MIN_TEMPO} to ${MAX_TEMPO}`}
+            data-testid="practice-tempo"
+            value={draft ?? String(tempo)}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commit();
+                (e.target as HTMLInputElement).select();
+              } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                step(e.key === 'ArrowUp' ? 1 : -1);
+              }
+            }}
+          />
+        </span>
+        <button type="button" aria-label="1 faster" onClick={() => step(1)}>
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const CHANNELS: [MixChannel, string, string][] = [
+  ['drum', 'Drum', 'The tiles'],
+  ['one', 'The 1', 'The first beat of every bar'],
+  ['beat', 'Beats', 'The other beats'],
+  ['sub', 'Subdivision', 'The ticks inside a beat'],
+];
+
+/**
+ * The mixer: one fader for each voice. Beats and Subdivision are also the two "hear" options:
+ * a fader pulled to nothing turns its voice off, and moving it turns the voice on again.
+ */
+function Mixer() {
+  const mix = useUiStore((s) => s.mix);
+  const click = useUiStore((s) => s.click);
+  const ticks = useUiStore((s) => s.ticks);
+  const set = useUiStore((s) => s.set);
+  const shown = (ch: MixChannel) =>
+    (ch === 'beat' && !click) || (ch === 'sub' && !ticks) ? 0 : mix[ch];
+  const move = (ch: MixChannel, v: number) => {
+    const next = v > 0 || (ch !== 'beat' && ch !== 'sub') ? { ...mix, [ch]: v } : mix;
+    set({
+      mix: next,
+      ...(ch === 'beat' ? { click: v > 0 } : {}),
+      ...(ch === 'sub' ? { ticks: v > 0 } : {}),
+    });
+  };
+  const changed = !click || !ticks || CHANNELS.some(([ch]) => mix[ch] !== MIX_DEFAULT[ch]);
+  return (
+    <div className="mixer" role="group" aria-labelledby="pr-mix">
+      <div className="mixer-head">
+        <span id="pr-mix">Mix</span>
+        {changed && (
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => set({ mix: { ...MIX_DEFAULT }, click: true, ticks: true })}
+          >
+            Reset
+          </button>
+        )}
+      </div>
+      {CHANNELS.map(([ch, label, what]) => {
+        const v = shown(ch);
+        return (
+          <label key={ch} className={`mixer-row${v === 0 ? ' off' : ''}`} title={what}>
+            <span className="mixer-lbl">{label}</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={v}
+              data-testid={`mix-${ch}`}
+              aria-valuetext={v === 0 ? 'off' : `${v}`}
+              style={{ ['--v' as string]: `${v}%` }}
+              onChange={(e) => move(ch, +e.target.value)}
+            />
+            <output className="mono">{v === 0 ? 'off' : v}</output>
+          </label>
+        );
+      })}
+    </div>
   );
 }
 

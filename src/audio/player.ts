@@ -47,7 +47,9 @@ let countBar = 0;
 let countBars = 1;
 let countBeat = 1;
 /** Count-in clicks still to schedule (lazily, so a stop silences the rest). */
-let countClicks: { t: number; kind: 'beat' | 'downbeat' }[] = [];
+let countClicks: { t: number; kind: 'beat' | 'downbeat' | 'tick' }[] = [];
+/** The count-in's ticks are a part of the count, so a little above the soft playing ticks. */
+const COUNT_TICK = 2.5;
 /** Playing once (stage): the time it lands on 1, after which nothing more is scheduled. */
 let endAt: number | null = null;
 let endT = 0;
@@ -75,13 +77,16 @@ const playOrderOf = (m: Meter) => {
   return order;
 };
 
-/** Beats in the bar that holds time t (main beats only matter for the count's pace). */
-function barLength(meter: Meter, t: number): number {
+/**
+ * The bar that holds time t: how many beats it has (main beats only matter for the count's
+ * pace) and the beat where it starts.
+ */
+function barAt(meter: Meter, t: number): { beats: number; start: number } {
   const map = barMap(meter);
   const bar = map.barOf[Math.min(Math.floor(t + EPS), map.barOf.length - 1)] ?? 0;
   const a = map.barStarts[bar] ?? 0;
   const b = map.barStarts[bar + 1] ?? map.NB;
-  return Math.max(1, Math.round(b - a)) || meter.beatsPerCycle;
+  return { beats: Math.max(1, Math.round(b - a)) || meter.beatsPerCycle, start: Math.round(a) };
 }
 
 /** Practice loop (written time, beats): only this stretch plays, round and round. */
@@ -108,7 +113,7 @@ function schedule(): void {
   const once = (ui.stage && !ui.stagePrefs.loop) || regionOnce;
   while (countClicks.length && countClicks[0]!.t < now + LOOKAHEAD_S) {
     const c = countClicks.shift()!;
-    if (sound !== 'off') playClick(c.t, c.kind, false);
+    if (sound !== 'off') playClick(c.t, c.kind, true, true, c.kind === 'tick' ? COUNT_TICK : 1);
   }
   for (let guard = 0; next < now + LOOKAHEAD_S && guard < 10_000; guard++) {
     const doc = activeDoc();
@@ -230,14 +235,19 @@ export function startPlayback(
   const ui = useUiStore.getState();
   const bars = ui.stage ? ui.stagePrefs.countIn : opts.noCount ? 0 : ui.countIn;
   if (bars) {
-    countBar = barLength(meter, T);
+    const bar = barAt(meter, T);
+    countBar = bar.beats;
     countBars = bars;
     countBeat = 60 / ui.tempo;
     countFrom = next;
-    countClicks = Array.from({ length: bars * countBar }, (_, i) => ({
-      t: countFrom + i * countBeat,
-      kind: i % countBar ? 'beat' : 'downbeat',
-    }));
+    countClicks = [];
+    for (let i = 0; i < bars * countBar; i++) {
+      const t = countFrom + i * countBeat;
+      countClicks.push({ t, kind: i % countBar ? 'beat' : 'downbeat' });
+      // subdivided (editor): the ticks of that beat of the bar being counted
+      const d = !ui.stage && ui.countSub ? (meter.subdivision[bar.start + (i % countBar)] ?? 1) : 1;
+      for (let j = 1; j < d; j++) countClicks.push({ t: t + (j / d) * countBeat, kind: 'tick' });
+    }
     next += bars * countBar * countBeat;
     startAt = next;
   }

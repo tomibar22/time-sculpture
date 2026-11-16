@@ -142,6 +142,39 @@ test('land a pattern: how many times it goes in, and from where, to end on the e
   await page.getByTestId('land-3').click();
   await page.getByTestId('land-2').click();
   await expect(page.getByTestId('land-pattern')).toHaveText('32');
-  await expect(list.locator('.fill-main')).toHaveCount(1);
   await expect(list.locator('.fill-main').first()).toContainText('×1');
+  await expect(list).toContainText('Running through');
+  // only the ways that begin on a beat
+  const all = await list.locator('.fill-main').count();
+  await page.getByRole('button', { name: 'On a beat' }).click();
+  await expect(list.locator('.fill-main')).not.toHaveCount(all);
+  await expect(list.locator('.fill-main').filter({ hasNotText: /on the beat|on 1/ })).toHaveCount(
+    0,
+  );
+  await page.getByRole('button', { name: 'Anywhere' }).click();
+  await expect(list.locator('.fill-main')).toHaveCount(all);
+});
+
+test('land: a tihai shows its gap as a tile; the last tile can fall on the 1', async ({ page }) => {
+  await page.getByRole('button', { name: 'Land…' }).first().click();
+  await page.getByTestId('land-2').click();
+  await page.getByTestId('land-1').click();
+  const list = page.getByRole('list', { name: 'Ways it lands' });
+  // 9 pulses, 2 1 with the last tile on the 1: 2 1 2 1 2 [1] takes 8, one pulse stays before it
+  await page.getByTestId('land-on1').click();
+  await expect(page.locator('.land')).toContainText('the last tile (1) begins there');
+  const first = list.locator('.fill-main').first();
+  await expect(first).toContainText('×3');
+  await expect(first).toContainText('then 1 on the 1');
+  await first.click();
+  await first.click();
+  await expect(page.getByTestId('sequence')).toContainText('2 1 2 1 2 3');
+  await page.keyboard.press('z');
+  // without it, in a pattern of 1: the tihai's gaps are tiles of their own (1 2 1 2 1)
+  await page.getByTestId('land-on1').click();
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.getByTestId('land-1').click();
+  const tihai = list.locator('.fill-main', { hasText: 'Tihai · gap 2' });
+  await expect(tihai.locator('.strip-gap')).toHaveCount(2);
+  await expect(tihai.locator('.strip-gap').first()).toHaveText('2');
 });
