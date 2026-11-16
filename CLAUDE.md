@@ -802,21 +802,26 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   off (the stored level is kept), moving it turns it on. All device prefs. The popover scrolls if
   the screen is short.
 
-### Click pattern (user request: the metronome as a free rhythmic layer)
+### Click pattern (user requests: the metronome as a free rhythmic layer, a sequencer)
 
 - `ui.clickPat` (`ClickPattern` in engine/click.ts, device pref, **off by default** = the plain
-  click): `{on, off[], sub{d: js}, every, bars[]}`. It is written against the shape of the music,
-  never pulse numbers, so it survives subdivision changes, metre changes and modulations:
-  `off` = beats silent by their place in the bar (`barMap.beatInBar`); `sub[d]` = which pulses
-  inside a beat of ratio d sound (absent or all = the usual soft ticks; chosen by hand =
-  `'picked'`, a clear click `playPicked` on the Subdivision fader; a ratio never chosen sounds as
-  always); `every` / `bars` = a cycle of 1–8 bars, counted **as heard since Play** (`barsHeard` in
-  player.ts: the bar playing began in is 0), so it works on short loops.
+  click): `{on, bars: ClickBar[]}`, a cycle of 1–8 bars, each `{base, beats[], sub{}}`. It is
+  written against the shape of the music, never pulse numbers, so it survives subdivision
+  changes, metre changes and modulations: `base` = what sounds where nothing was set (true =
+  everything, false = nothing: "Clear the bar"); `beats` = beats (by place in the bar,
+  `barMap.beatInBar`) that are the other way round; `sub[subKey(beat, d)]` = the pulses inside
+  **that beat at ratio d** that sound (all = the usual soft ticks; some = `'picked'`, a clear
+  click `playPicked` on the Subdivision fader; a beat / ratio never set follows `base`). Bars are
+  counted **as heard since Play** (`barsHeard` in player.ts: the bar playing began in is 0), so a
+  cycle works on short loops. `cleanClickPattern` also loads the first shape (`every`, `off`).
 - `clickHeard(p, {beatInBar, j, d, bar})` → `'usual' | 'picked' | null`, asked for every pulse in
   `schedule`. It masks everything, the landing included. Not on the stage; the count-in is never
   masked. `ui.click` / `ui.ticks` (Options, the mixer's Beats / Subdivision faders) stay the
-  masters: tapping a beat cell turns `click` on, a pulse cell `ticks`.
+  masters: tapping a beat cell turns `click` on, a dot `ticks`.
 - UI: `ClickPatternSection` (ClickPattern.tsx) in the practice popover between Tiles and Mix: a
-  switch; when on, rows of cells: Beats (longest bar of the piece), "In a beat of N" per ratio in
-  the piece (first cell = the beat, not a button), Bars (+ − for the cycle; one bar always stays
-  on), the pattern in words (`click-said`) and "Every beat again".
+  switch; when on: the cycle (− +, new bars silent, numbered tabs choose the bar shown, a silent
+  one is faint), the bar as a grid (`barShape`: per beat of the longest bar the ratios found
+  there; a numbered cell = the beat, dots = its inner pulses; small quiet dots = usual ticks,
+  ringed = picked), "A tap on a dot sets: That beat | Every beat" (`toggleClickPulse` with the
+  beats of the same ratio), the bar in words (`click-said`), and Clear the bar / Every click /
+  Like bar 1.

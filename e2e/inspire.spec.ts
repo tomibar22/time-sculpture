@@ -205,32 +205,42 @@ test('practice: the tempo is typed, the count-in can tick the subdivision, and a
   await page.getByTestId('count-overlay').click();
 });
 
-test('practice: a click pattern picks the beats, the pulses inside a beat and the bars', async ({
+test('practice: a click pattern is a small sequencer of the bar, and of a cycle of bars', async ({
   page,
 }) => {
   const btn = page.getByTestId('practice');
   const pop = page.getByRole('dialog', { name: 'Practice' });
+  const said = pop.getByTestId('click-said');
   await btn.click();
   // off by default: nothing to set, the click is the plain one
-  await expect(pop.getByRole('button', { name: 'Beat 1' })).toHaveCount(0);
+  await expect(pop.getByRole('button', { name: 'Beat 1', exact: true })).toHaveCount(0);
   await pop.getByTestId('click-pattern').click();
-  await expect(pop.getByTestId('click-said')).toHaveText('Every beat.');
-  // beats 2 and 4 only; the last sixteenth alone; one bar in three
-  await pop.getByRole('button', { name: 'Beat 1' }).click();
-  await pop.getByRole('button', { name: 'Beat 3' }).click();
-  await pop.getByRole('button', { name: 'The 2nd of 4' }).click();
-  await pop.getByRole('button', { name: 'The 3rd of 4' }).click();
+  await expect(said).toHaveText('Every beat.');
+  // beats 2 and 4 only
+  await pop.getByRole('button', { name: 'Beat 1', exact: true }).click();
+  await pop.getByRole('button', { name: 'Beat 3', exact: true }).click();
+  await expect(said).toHaveText('Beats 2 and 4.');
+  // one pulse in the whole bar: the second sixteenth of beat 3
+  await pop.getByRole('button', { name: 'Clear the bar' }).click();
+  await expect(said).toHaveText('silent.');
+  await pop.getByRole('button', { name: 'Beat 3, the 2nd of 4' }).click();
+  await expect(said).toHaveText('No beat · the 2nd of 4 in beat 3.');
+  await expect(pop.locator('.pat-cell.dot[aria-pressed="true"]')).toHaveCount(1);
+  // the same pulse in every beat with one tap
+  await pop.getByRole('button', { name: 'Every beat', exact: true }).click();
+  await pop.getByRole('button', { name: 'Beat 1, the 4th of 4' }).click();
+  await expect(pop.locator('.pat-cell.dot[aria-pressed="true"]')).toHaveCount(5);
+  // a cycle of bars: the new bars are silent, each has a pattern of its own
+  await pop.getByRole('button', { name: 'Every click' }).click();
   await pop.getByRole('button', { name: 'One bar more in the cycle' }).click();
   await pop.getByRole('button', { name: 'One bar more in the cycle' }).click();
-  await expect(pop.getByTestId('click-said')).toHaveText(
-    'Beats 2 and 4 · the 4th of 4 · bar 1 of every 3.',
-  );
-  // the last bar that clicks cannot be turned off
+  await expect(pop).toContainText('A cycle of 3 bars');
+  await expect(said).toHaveText('Bar 3: silent.');
+  await pop.getByRole('button', { name: 'Beat 1', exact: true }).click();
+  await expect(said).toHaveText('Bar 3: beat 1.');
+  await expect(pop.getByRole('button', { name: 'Bar 2 of 3, silent' })).toBeVisible();
   await pop.getByRole('button', { name: 'Bar 1 of 3' }).click();
-  await expect(pop.getByRole('button', { name: 'Bar 1 of 3' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(said).toHaveText('Bar 1: every beat.');
   await page.keyboard.press('Escape');
   await expect(btn).toContainText('click pattern');
   // it plays, and it is remembered on this device
@@ -241,7 +251,8 @@ test('practice: a click pattern picks the beats, the pulses inside a beat and th
   await page.reload();
   await ready(page);
   await btn.click();
-  await expect(pop.getByTestId('click-said')).toContainText('the 4th of 4');
-  await pop.getByRole('button', { name: 'Every beat again' }).click();
-  await expect(pop.getByTestId('click-said')).toHaveText('Every beat.');
+  await pop.getByRole('button', { name: 'Bar 3 of 3' }).click();
+  await expect(said).toHaveText('Bar 3: beat 1.');
+  await pop.getByRole('button', { name: 'Like bar 1' }).click();
+  await expect(said).toHaveText('Bar 3: every beat.');
 });

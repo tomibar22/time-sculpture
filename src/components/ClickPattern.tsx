@@ -1,48 +1,52 @@
+import { useState } from 'react';
 import * as E from '../engine';
 import { useDocStore, useUiStore } from '../state/store';
 
 /** "2nd", "3rd": the place of a pulse in its beat, counted from the beat itself. */
 const nth = (n: number) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+const list = (a: (number | string)[]) =>
+  a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`;
+
+/** The bar as the piece has it: for every beat of the longest bar, the ratios found there. */
+function barShape(meter: E.Meter): number[][] {
+  const map = E.barMap(meter);
+  const shape: Set<number>[] = [];
+  meter.subdivision.forEach((d, i) => {
+    const b = map.beatInBar[i] ?? 0;
+    (shape[b] ??= new Set()).add(d);
+  });
+  return Array.from(shape, (s) => [...(s ?? [1])].sort((a, b) => a - b));
+}
 
 /**
- * The click as a rhythm of its own (in the practice popover): a switch, and under it three rows
- * of cells to tap. Beats: which beats of the bar click. In a beat of N (one row for every ratio
- * the piece has): which pulses inside a beat click; the first cell is the beat itself, set in the
- * row above. Bars: a cycle of bars, and which of them have the click. Off, the click is the plain
- * one and the pattern is kept.
+ * The click as a rhythm of its own (in the practice popover): a switch, and under it a small
+ * sequencer. The bar is drawn as it is in the piece: every beat a numbered cell (the beat's own
+ * click) followed by a dot for each pulse inside it; tap any of them. "A tap sets" chooses
+ * whether a dot is set in that beat alone or in every beat. Bars: + makes a cycle of bars, each
+ * with a pattern of its own (new ones are silent); the numbered tabs choose the bar shown.
+ * Switched off, the click is the plain one and the pattern is kept.
  */
 export function ClickPatternSection() {
   const pat = useUiStore((s) => s.clickPat);
   const set = useUiStore((s) => s.set);
   const meter = useDocStore((s) => s.doc.meter);
-  const put = (next: Partial<E.ClickPattern>, more: { click?: boolean; ticks?: boolean } = {}) =>
-    set({ clickPat: { ...pat, ...next }, ...more });
+  const [shown, setShown] = useState(0);
+  const [every, setEvery] = useState(false);
+  const k = Math.min(shown, pat.bars.length - 1);
+  const bar = pat.bars[k]!;
+  const shape = barShape(meter);
+  const mixed = shape.some((ds) => ds.length > 1);
+  const inside = shape.some((ds) => ds.some((d) => d > 1));
 
-  // the longest bar of the piece, and the ratios it has (a beat of 1 has nothing inside)
-  const map = E.barMap(meter);
-  let beats = 1;
-  for (let i = 0; i < map.barStarts.length; i++)
-    beats = Math.max(beats, (map.barStarts[i + 1] ?? map.NB) - map.barStarts[i]!);
-  beats = Math.round(beats);
-  const ratios = [...new Set(meter.subdivision)].filter((d) => d >= 2).sort((a, b) => a - b);
-
-  const toggleBeat = (b: number) =>
-    put(
-      { off: pat.off.includes(b) ? pat.off.filter((x) => x !== b) : [...pat.off, b].sort() },
-      { click: true },
-    );
-  const inner = (d: number) => pat.sub[d] ?? Array.from({ length: d - 1 }, (_, i) => i + 1);
-  const togglePulse = (d: number, j: number) => {
-    const now = inner(d);
-    const next = now.includes(j) ? now.filter((x) => x !== j) : [...now, j].sort();
-    put({ sub: { ...pat.sub, [d]: next } }, { ticks: true });
+  const putBar = (next: E.ClickBar, more: { click?: boolean; ticks?: boolean } = {}) =>
+    set({ clickPat: { ...pat, bars: pat.bars.map((b, i) => (i === k ? next : b)) }, ...more });
+  const cycle = (n: number) => {
+    const next = E.withClickBars(pat, n);
+    set({ clickPat: next });
+    // a bar just added is the one to set
+    setShown(n > pat.bars.length ? next.bars.length - 1 : Math.min(k, next.bars.length - 1));
   };
-  const toggleBar = (b: number) => {
-    const next = pat.bars.includes(b) ? pat.bars.filter((x) => x !== b) : [...pat.bars, b].sort();
-    if (next.length) put({ bars: next });
-  };
-  const changed =
-    pat.off.length > 0 || pat.every > 1 || ratios.some((d) => inner(d).length < d - 1);
+  const sameRatio = (d: number) => shape.flatMap((ds, b) => (ds.includes(d) ? [b] : []));
 
   return (
     <div className="clickpat" role="group" aria-labelledby="pr-pat">
@@ -55,7 +59,7 @@ export function ClickPatternSection() {
           aria-checked={pat.on}
           aria-labelledby="pr-pat"
           data-testid="click-pattern"
-          onClick={() => put({ on: !pat.on })}
+          onClick={() => set({ clickPat: { ...pat, on: !pat.on } })}
         >
           <span className="switch-track" aria-hidden="true">
             <span className="switch-knob" />
@@ -64,127 +68,169 @@ export function ClickPatternSection() {
       </div>
       {pat.on && (
         <>
-          <div className="pat-row">
-            <span className="pat-lbl" id="pat-beats">
-              Beats
-            </span>
-            <div className="pat-cells" role="group" aria-labelledby="pat-beats">
-              {Array.from({ length: beats }, (_, b) => (
-                <button
-                  key={b}
-                  type="button"
-                  className={`pat-cell${b === 0 ? ' one' : ''}`}
-                  aria-pressed={!pat.off.includes(b)}
-                  aria-label={`Beat ${b + 1}`}
-                  onClick={() => toggleBeat(b)}
-                >
-                  {b + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-          {ratios.map((d) => (
-            <div className="pat-row" key={d}>
-              <span className="pat-lbl" id={`pat-in-${d}`}>
-                In a beat of {d}
-              </span>
-              <div className="pat-cells" role="group" aria-labelledby={`pat-in-${d}`}>
-                <span className="pat-cell beat" title="The beat itself: set in the row above">
-                  <span className="sr-only">The beat itself</span>
-                </span>
-                {Array.from({ length: d - 1 }, (_, i) => i + 1).map((j) => (
-                  <button
-                    key={j}
-                    type="button"
-                    className="pat-cell dot"
-                    aria-pressed={inner(d).includes(j)}
-                    aria-label={`The ${nth(j + 1)} of ${d}`}
-                    title={`The ${nth(j + 1)} pulse of a beat of ${d}`}
-                    onClick={() => togglePulse(d, j)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="pat-row">
+          <div className="pat-head">
             <span className="pat-lbl" id="pat-bars">
-              Bars
+              {pat.bars.length === 1 ? 'Every bar the same' : `A cycle of ${pat.bars.length} bars`}
             </span>
-            <div className="pat-cells" role="group" aria-labelledby="pat-bars">
-              {Array.from({ length: pat.every }, (_, b) => (
-                <button
-                  key={b}
-                  type="button"
-                  className="pat-cell bar"
-                  aria-pressed={pat.bars.includes(b)}
-                  aria-label={`Bar ${b + 1} of ${pat.every}`}
-                  onClick={() => toggleBar(b)}
-                >
-                  {b + 1}
-                </button>
-              ))}
-            </div>
             <div className="pat-cycle" role="group" aria-label="Bars in the cycle">
               <button
                 type="button"
                 aria-label="One bar less in the cycle"
-                disabled={pat.every <= 1}
-                onClick={() => put(E.withClickBars(pat, pat.every - 1))}
+                disabled={pat.bars.length <= 1}
+                onClick={() => cycle(pat.bars.length - 1)}
               >
                 −
               </button>
               <button
                 type="button"
                 aria-label="One bar more in the cycle"
-                disabled={pat.every >= E.MAX_CLICK_BARS}
-                onClick={() => put(E.withClickBars(pat, pat.every + 1))}
+                disabled={pat.bars.length >= E.MAX_CLICK_BARS}
+                onClick={() => cycle(pat.bars.length + 1)}
               >
                 +
               </button>
             </div>
           </div>
+          {pat.bars.length > 1 && (
+            <div className="pat-tabs" role="group" aria-labelledby="pat-bars">
+              {pat.bars.map((b, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`pat-tab${silent(b, shape) ? ' silent' : ''}`}
+                  aria-pressed={i === k}
+                  aria-label={`Bar ${i + 1} of ${pat.bars.length}${silent(b, shape) ? ', silent' : ''}`}
+                  onClick={() => setShown(i)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
+          <div
+            className="pat-grid"
+            role="group"
+            aria-label={pat.bars.length > 1 ? `Bar ${k + 1} of the cycle` : 'The bar'}
+          >
+            {shape.map((ds, b) =>
+              ds.map((d, i) => {
+                const on = E.innerOn(bar, b, d);
+                const picked = on.length < d - 1;
+                return (
+                  <div className="pat-beat" key={`${b}:${d}`}>
+                    {i === 0 ? (
+                      <button
+                        type="button"
+                        className={`pat-cell${b === 0 ? ' one' : ''}`}
+                        aria-pressed={E.beatOn(bar, b)}
+                        aria-label={`Beat ${b + 1}`}
+                        onClick={() => putBar(E.toggleClickBeat(bar, b), { click: true })}
+                      >
+                        {b + 1}
+                      </button>
+                    ) : (
+                      <span className="pat-cell also" aria-hidden="true" />
+                    )}
+                    {Array.from({ length: d - 1 }, (_, x) => x + 1).map((j) => (
+                      <button
+                        key={j}
+                        type="button"
+                        className={`pat-cell dot${picked ? ' picked' : ''}`}
+                        aria-pressed={on.includes(j)}
+                        aria-label={`Beat ${b + 1}, the ${nth(j + 1)} of ${d}`}
+                        title={`The ${nth(j + 1)} pulse of beat ${b + 1}${mixed ? ` (where it is ${d})` : ''}`}
+                        onClick={() =>
+                          putBar(E.toggleClickPulse(bar, b, d, j, every ? sameRatio(d) : [b]), {
+                            ticks: true,
+                          })
+                        }
+                      />
+                    ))}
+                    {mixed && d > 1 && (
+                      <span className="pat-of" aria-hidden="true">
+                        {d}
+                      </span>
+                    )}
+                  </div>
+                );
+              }),
+            )}
+          </div>
+          {inside && (
+            <div className="practice-row pat-scope">
+              <span id="pat-scope">A tap on a dot sets</span>
+              <div className="segs text" role="group" aria-labelledby="pat-scope">
+                <button type="button" aria-pressed={!every} onClick={() => setEvery(false)}>
+                  That beat
+                </button>
+                <button type="button" aria-pressed={every} onClick={() => setEvery(true)}>
+                  Every beat
+                </button>
+              </div>
+            </div>
+          )}
           <p className="practice-note pat-note">
-            <span data-testid="click-said">{said(pat, beats, ratios)}</span>
-            {changed && (
+            <span data-testid="click-said">{said(bar, shape, pat.bars.length > 1 ? k : -1)}</span>
+          </p>
+          <div className="pat-acts">
+            <button type="button" className="link-btn" onClick={() => putBar(E.clickBar(false))}>
+              Clear the bar
+            </button>
+            <button type="button" className="link-btn" onClick={() => putBar(E.clickBar(true))}>
+              Every click
+            </button>
+            {k > 0 && (
               <button
                 type="button"
                 className="link-btn"
-                onClick={() => put({ off: [], sub: {}, every: 1, bars: [0] })}
+                onClick={() => putBar({ ...pat.bars[0]!, sub: { ...pat.bars[0]!.sub } })}
               >
-                Every beat again
+                Like bar 1
               </button>
             )}
-          </p>
+          </div>
         </>
       )}
     </div>
   );
 }
 
-/** The pattern in words, so what was tapped can be checked at a glance. */
-function said(p: E.ClickPattern, beats: number, ratios: number[]): string {
-  const list = (a: (number | string)[]) =>
-    a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`;
-  const on = Array.from({ length: beats }, (_, b) => b).filter((b) => !p.off.includes(b));
+/** Nothing clicks in this bar, as the piece is now. */
+const silent = (bar: E.ClickBar, shape: number[][]) =>
+  shape.every((ds, b) => !E.beatOn(bar, b) && ds.every((d) => E.innerOn(bar, b, d).length === 0));
+
+/** A bar's pattern in words, so what was tapped can be checked at a glance. */
+function said(bar: E.ClickBar, shape: number[][], k: number): string {
+  const head = k >= 0 ? `Bar ${k + 1}: ` : '';
+  if (silent(bar, shape)) return `${head}silent.`;
+  const beats = shape.map((_, b) => b).filter((b) => E.beatOn(bar, b));
   const parts = [
-    on.length === beats
-      ? 'Every beat'
-      : on.length
-        ? `Beat${on.length > 1 ? 's' : ''} ${list(on.map((b) => b + 1))}`
-        : 'No beat',
+    beats.length === shape.length
+      ? k >= 0
+        ? 'every beat'
+        : 'Every beat'
+      : beats.length
+        ? `${k >= 0 ? 'beat' : 'Beat'}${beats.length > 1 ? 's' : ''} ${list(beats.map((b) => b + 1))}`
+        : k >= 0
+          ? 'no beat'
+          : 'No beat',
   ];
-  for (const d of ratios)
-    if (E.pickedIn(p, d)) {
-      const s = p.sub[d]!;
-      parts.push(
-        s.length ? `the ${list(s.map((j) => nth(j + 1)))} of ${d}` : `nothing inside ${d}`,
-      );
-    }
-  if (p.every > 1)
+  // the pulses inside: beats that share a choice are named together
+  const groups = new Map<string, number[]>();
+  shape.forEach((ds, b) =>
+    ds.forEach((d) => {
+      const on = E.innerOn(bar, b, d);
+      if (d < 2 || on.length >= d - 1) return;
+      // an empty beat needs words only where the ticks would be expected
+      if (!on.length && !bar.base) return;
+      const what = on.length ? `the ${list(on.map((j) => nth(j + 1)))} of ${d}` : `nothing inside`;
+      groups.set(what, [...(groups.get(what) ?? []), b + 1]);
+    }),
+  );
+  const withInner = shape.filter((ds) => ds.some((d) => d > 1)).length;
+  for (const [what, bs] of groups)
     parts.push(
-      p.bars.length === 1
-        ? `bar ${p.bars[0]! + 1} of every ${p.every}`
-        : `bars ${list(p.bars.map((b) => b + 1))} of every ${p.every}`,
+      `${what} in ${bs.length === withInner && bs.length > 1 ? 'every beat' : `beat${bs.length > 1 ? 's' : ''} ${list([...new Set(bs)])}`}`,
     );
-  return `${parts.join(' · ')}.`;
+  return `${head}${parts.join(' · ')}.`;
 }

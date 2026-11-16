@@ -107,11 +107,13 @@ export function Help() {
               subdivision are (a fader at nothing turns that voice off).
             </p>
             <p>
-              <b>Click pattern</b> makes the click a rhythm of its own. <b>Beats</b>: tap the beats
-              of the bar that click. <b>In a beat of 3</b> (a row for every ratio in the piece): tap
-              the pulses inside a beat that click, the second triplet, the last sixteenth; picked
-              pulses sound as a clear click. <b>Bars</b>: + makes a cycle of bars, and the click
-              sounds only in the ones you leave on. Switched off, the click is the plain one again
+              <b>Click pattern</b> makes the click a rhythm of its own. The bar is shown as it is:
+              every beat a numbered cell, then a dot for each pulse inside it. Tap the beats and the
+              pulses that should click: only beats 2 and 4, a different pulse in every beat, or a
+              single sixteenth in the whole bar (<b>Clear the bar</b>, then tap it). A pulse you
+              pick sounds as a clear click. <b>Every beat</b> sets a dot in all the beats at once.
+              <b>+</b> makes a cycle of bars, each with a pattern of its own (new bars are silent),
+              so the 1 can sound once in four bars. Switched off, the click is the plain one again
               and the pattern is kept.
             </p>
             <p>
