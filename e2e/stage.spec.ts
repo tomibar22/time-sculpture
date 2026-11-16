@@ -53,11 +53,12 @@ test('the stage shows the score alone, plays once with no count-in, and edits no
 
 test('a count-in shows the beats before the piece starts', async ({ page }) => {
   await page.keyboard.press('f');
-  await page.locator('.stage-bar input[type=range]').fill('160');
+  // slow enough that every number stays longer than the longest wait between two looks
+  await page.locator('.stage-bar input[type=range]').fill('50');
   await page.getByRole('button', { name: 'Play' }).click();
   await expect(page.locator('.countdown')).toHaveText('1');
   await expect(page.locator('.countdown')).toHaveText('2');
-  await expect(page.locator('.countdown')).toHaveCount(0, { timeout: 5000 });
+  await expect(page.locator('.countdown')).toHaveCount(0, { timeout: 9000 });
   await expect(page.locator('.stage-bars')).toContainText('bar 1');
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
