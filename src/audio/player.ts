@@ -242,8 +242,8 @@ export function togglePlayback(): void {
     const grid = buildGrid(doc.meter);
     const a = grid.times[region.a]!;
     const b = grid.times[Math.min(region.b, grid.TS)]!;
-    // while choosing a fill, the stretch loops so every fill tried is heard over and over
-    return ui.fillPanel ? startPlayback(a, { a, b }) : startPlayback(a, { a, b }, { once: true });
+    // a selected stretch loops (user request): heard over and over until Stop
+    return startPlayback(a, { a, b });
   }
   const NB = doc.meter.subdivision.length;
   const from = startFrom();

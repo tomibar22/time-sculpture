@@ -72,17 +72,19 @@ test('the caret stays inside the piece when it gets shorter', async ({ page }) =
   await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1');
 });
 
-test('with a selection, Play plays only the selection and stops at its end', async ({ page }) => {
+test('with a selection, Play loops the selection until Stop', async ({ page }) => {
   // the last beat of the piece as a range: 4 pulses, under a second at ♩72
   await page.keyboard.press('End');
   for (let i = 0; i < 4; i++) await page.keyboard.press('Shift+ArrowLeft');
   await expect(page.getByTestId('caretname')).toContainText('4 pulses');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
-  // it stops by itself (the whole piece would take more than six seconds)
-  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible({
-    timeout: 3000,
-  });
+  const stop = page.getByRole('button', { name: 'Stop', exact: true });
+  await expect(stop).toBeVisible();
+  // well past one pass (under a second) it is still going round
+  await page.waitForTimeout(2500);
+  await expect(stop).toBeVisible();
+  await stop.click();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   // the selection is still there, ready to play again
   await expect(page.getByTestId('caretname')).toContainText('4 pulses');
 });

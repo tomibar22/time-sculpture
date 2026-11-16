@@ -124,7 +124,7 @@ function Transport() {
           type="button"
           className="bigplay"
           aria-label={playing ? 'Stop' : 'Play'}
-          title="Play / stop (Space). With a selection, only the selection plays."
+          title="Play / stop (Space). With a selection, the selection loops."
           onClick={togglePlayback}
         >
           {playing ? <StopIcon /> : <PlayIcon />}
