@@ -189,7 +189,22 @@ function write(groups: GroupSpec[], label: string): boolean {
     setCaret(span ? span.b : 0, { quiet: true });
     return true;
   }
-  const r = E.insertAtPulse(d, s.caret ?? defaultCaret(), groups);
+  const at = s.caret ?? defaultCaret();
+  let r = E.insertAtPulse(d, at, groups);
+  // writing on at the very end of a full piece: it grows by the bars that takes, as a score
+  // does when you keep writing (one step to undo). Only with the caret put there on purpose.
+  let grown = 0;
+  if (r.report.reason === 'no-room' && s.caret !== null && at === TS()) {
+    for (let n = 1; n <= 8 && !grown; n++) {
+      const longer = E.appendBars(d, n);
+      if (!longer.report.ok) break;
+      const tried = E.insertAtPulse(E.joinRests(longer.doc), at, groups);
+      if (tried.report.ok) {
+        r = tried;
+        grown = n;
+      }
+    }
+  }
   if (r.report.reason === 'no-room') {
     sfx.nope();
     const free = E.freePulses(d);
@@ -204,6 +219,7 @@ function write(groups: GroupSpec[], label: string): boolean {
   }
   if (!run(r, { label, select: 'none', sound })) return false;
   setCaret(r.caret, { quiet: true });
+  if (grown) toast(`${plural(grown, 'bar')} added to go on writing`, { undo: true });
   return true;
 }
 

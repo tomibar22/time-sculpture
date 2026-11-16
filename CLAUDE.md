@@ -615,6 +615,33 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   `BarsDialog`, `RowDialog`, `StartDialog`; opened by `ui.meterDialog / barsDialog / rowDialog /
 startDialog`. Settings: "Add or remove bars…", "Metre…"; caret bar: Row…, Bars…, Metre….
 
+### Second review round (fills, playback, writing on)
+
+- **New shape families** (engine/shapes.ts): `world` "Known rhythms" (`WORLD_RHYTHMS`: tresillo,
+  habanera, cinquillo, son / rumba clave, bossa, gahu, shiko, soukous, bembé, fume-fume, aksak;
+  found at any integer breadth and any number of repeats, so "3 3 2 3 3 2" is now "Tresillo ×2",
+  ranked before `repeat`) and `turn` "Rotating" (a cell whose blocks start one group later, or
+  earlier, each time). Both obey the chosen sizes like every built shape.
+- **From the piece** (`ui.fillShape === 'echo'`, built in FillPanel's `echo` memo, not limited to
+  the chosen sizes): the strokes just before the region (a silence joins the stroke before it)
+  and the opening, fitted with `fitMotif`, as they are and as `variations` of kind `order`.
+- **"All shapes" is grouped** (`groups` in Browse): a `.fill-group` heading per kind, the first
+  `GROUP_SHOWN` (3) fills, and "all N" (sets `ui.fillShape` to that kind). Family views and
+  Anything stay flat lists (paged).
+- Fill list access: ↑ ↓ Home End move between rows (`onListKey`); keyboard focus previews; each
+  row's name starts with its sizes (`sr-only`), since the strip is `aria-hidden`.
+- **Tablets too**: an open fill panel takes the place of the selection bar and the number pad on
+  every docked device (held sideways there was no score left).
+- **Writing on at the end** (`write` in editing.ts): a digit or a paste with the caret put at the
+  very end of a full piece appends the bars it needs (same undo step, toast). Only with an
+  explicit caret at TS, never for a stray digit on a finished piece.
+- **Playback**: the editor follows the playhead (`followEdit` in Score.tsx: scrolls only when
+  the playing row is out of sight, never during a gesture); while playing, a tap on the beat
+  numbers restarts from there. Not playing, a second tap on the same bar's numbers selects the
+  bar (`lastRuler`).
+- MIDI writes a time signature wherever the bar size changes (`barMetas`), so bar patterns
+  export correctly.
+
 ## Design tokens (src/styles/tokens.css)
 
 | token                 | light   | dark    |

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, openSetup, ready, settle } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, openSetup, ready, score, settle } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -83,4 +83,27 @@ test('a row with its own number of bars', async ({ page }) => {
   await page.keyboard.press('z');
   await settle(page);
   expect((await page.getByTestId('score').boundingBox())!.height).toBe(h0);
+});
+
+test('writing on at the very end of a full piece adds a bar', async ({ page }) => {
+  await page.getByTestId('score').focus();
+  await page.keyboard.press('End');
+  await page.keyboard.press('9'); // the 9 open pulses are used up
+  await expect(page.getByTestId('status')).toContainText('Complete');
+  await page.keyboard.press('End');
+  await page.keyboard.press('4');
+  await expect(page.getByTestId('status')).toContainText('4×3');
+  await expect(page.locator('.toast')).toContainText('1 bar added');
+  await page.keyboard.press('z');
+  await expect(page.getByTestId('status')).toContainText('4×2');
+});
+
+test('a second tap on the ruler selects the whole bar', async ({ page }) => {
+  const s = await score(page);
+  // the beat numbers of the second row (bar 2), at its second beat
+  const p = { x: at(s, 5.5).x, y: s.y + 4 + 127 + 10 };
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(p.x, p.y);
+  await expect(page.getByTestId('caretname')).toContainText('16 pulses');
+  await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1');
 });

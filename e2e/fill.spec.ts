@@ -39,8 +39,9 @@ test('browse fills for a selected range, sorted, and pick one', async ({ page })
   await fillFold(page, 'Sizes');
   for (const n of [4, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // 2 and 3 left
   const list = page.getByRole('list', { name: 'Ways to fill' });
-  await expect(list.getByRole('listitem')).toHaveCount(2); // 6 pulses: 2 2 2 or 3 3
-  await expect(list.getByRole('button').first()).toContainText('3 ×2'); // shapes first
+  await expect(list.locator('.fill-main')).toHaveCount(2); // 6 pulses: 2 2 2 or 3 3
+  await expect(list.locator('.fill-group')).toHaveText(['Repeat']); // under the name of their kind
+  await expect(list.locator('.fill-main').first()).toContainText('3 ×2'); // shapes first
   await fillFold(page, 'Shape');
   await page.getByRole('button', { name: 'Anything' }).click();
   await page.locator('#fill-sort').selectOption('most');
@@ -49,4 +50,23 @@ test('browse fills for a selected range, sorted, and pick one', async ({ page })
   await expectSeq(page, DEFAULT_SEQ);
   await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expectSeq(page, '(2) 2 2 2 2 │ 3 (1) 3 2 4');
+});
+
+test('fills by kind: a known rhythm by its name, and what the piece already says', async ({
+  page,
+}) => {
+  // the second bar (pulses 16–32), after the written start
+  await page.getByTestId('score').focus();
+  await page.keyboard.press('End');
+  for (let i = 0; i < 16; i++) await page.keyboard.press('Shift+ArrowLeft');
+  await expect(page.getByTestId('caretname')).toContainText('16 pulses');
+  await page.locator('.selbar-actions').getByRole('button', { name: 'Browse fills' }).click();
+  const list = page.getByRole('list', { name: 'Ways to fill' });
+  // every kind has its name in the list, and the piece's own material comes first
+  await expect(list.locator('.fill-group').first()).toContainText('From the piece');
+  await expect(list.locator('.fill-group', { hasText: 'Known rhythms' })).toBeVisible();
+  await fillFold(page, 'Shape');
+  await page.getByRole('button', { name: /^Known rhythms/ }).click();
+  // the sizes are read out too, not only the name
+  await expect(list.locator('.fill-main', { hasText: 'Tresillo ×2' })).toContainText('3 3 2 3 3 2');
 });

@@ -46,7 +46,17 @@ export function midiFile(doc: Doc, title: string, tempo: number): Uint8Array {
       rank: 0,
       bytes: [0xff, 0x51, 3, (usPerBeat >> 16) & 255, (usPerBeat >> 8) & 255, usPerBeat & 255],
     });
-    evs.push({ tick: at, rank: 0, bytes: [0xff, 0x58, 4, sec.beatsPerBar, 2, 24, 8] });
+  };
+  // a time signature wherever the bars change size (a pattern such as 5 5 4 changes often)
+  let sig = -1;
+  const barMetas = (a: number, b: number, out0: number) => {
+    bm.barStarts.forEach((b0, i) => {
+      if (b0 < a - EPS || b0 >= b - EPS) return;
+      const size = (bm.barStarts[i + 1] ?? bm.NB) - b0;
+      if (size === sig) return;
+      sig = size;
+      evs.push({ tick: tick(out0 + b0 - a), rank: 0, bytes: [0xff, 0x58, 4, size, 2, 24, 8] });
+    });
   };
 
   // the sounding groups in written time
@@ -69,6 +79,7 @@ export function midiFile(doc: Doc, title: string, tempo: number): Uint8Array {
       if (si !== section) sectionMeta(tick(out + at - span.a), si);
       section = si;
     }
+    barMetas(span.a, span.b, out);
     for (const s of sounds) {
       // a group sounds when its onset is played (as in the app)
       if (s.t0 < span.a - EPS || s.t0 >= span.b - EPS) continue;

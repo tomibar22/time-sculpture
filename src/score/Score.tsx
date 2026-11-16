@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import * as E from '../engine';
 import type { Doc, ItemId, OpResult } from '../engine';
+import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import { announce, flash, reportSlide, run, select, splitSelection, toast } from '../state/actions';
 import { setCaret, setRange, closeSubdivision, pickBeats } from '../state/editing';
@@ -141,6 +142,7 @@ export function Score() {
   const width = useRef(0);
   const frame = useRef(0);
   const lastTap = useRef<{ id: ItemId | null; t: number }>({ id: null, t: 0 });
+  const lastRuler = useRef({ bar: -1, t: 0 });
   /** Fingers on the score, and a pinch in progress (its last distance). */
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ d: number } | null>(null);
@@ -415,7 +417,29 @@ export function Score() {
       const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.scrollTo({ top: y, behavior: still ? 'auto' : 'smooth' });
     };
+    // The editor follows too, more quietly: only when the playhead reaches a row that is out of
+    // sight (above the screen or under the dock), and never while a finger is at work.
+    let editRow = -1;
+    const followEdit = (s: ReturnType<typeof ui>) => {
+      const g = geo.current;
+      const cv = canvasRef.current;
+      if (s.stage || s.playhead === null || !g || !cv) return void (editRow = -1);
+      const r = rowOf(g, Math.min(s.playhead, g.grid.NB - 1e-6));
+      if (r === editRow || gesture.current) return;
+      editRow = r;
+      const top = cv.getBoundingClientRect().top + rowTop(g, r) - g.lane;
+      const height = g.stride - L.gapR;
+      const dock = document.querySelector<HTMLElement>('.dock')?.offsetHeight ?? 0;
+      const limit = window.innerHeight - dock;
+      if (top >= 4 && top + height <= limit - 4) return;
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollBy({
+        top: top - Math.max(12, (limit - height) * 0.2),
+        behavior: still ? 'auto' : 'smooth',
+      });
+    };
     return useUiStore.subscribe((s, p) => {
+      if (s.playhead !== p.playhead) followEdit(s);
       if (
         s.playhead !== p.playhead ||
         s.stage !== p.stage ||
@@ -602,6 +626,25 @@ export function Score() {
     if (h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH && !e.shiftKey) {
       const k = slotAt(g, x, y);
       gesture.current = sweep(k, x, y, touch, () => {
+        // while the piece plays, a tap on the ruler jumps there (like a playhead on a timeline)
+        const now = ui();
+        if (now.playing && !now.loop) {
+          stopPlayback();
+          startPlayback(g.grid.times[Math.min(k, g.grid.TS - 1)]!);
+          return;
+        }
+        // a second tap on the same bar selects the whole bar
+        const map = E.barMap(doc.meter);
+        const bar = map.barOf[E.beatOfPulse(g.grid, Math.min(k, g.grid.TS - 1))] ?? 0;
+        const t = performance.now();
+        if (lastRuler.current.bar === bar && t - lastRuler.current.t < DOUBLE_TAP_MS) {
+          lastRuler.current = { bar: -1, t: 0 };
+          const a = map.barStarts[bar] ?? 0;
+          const b = map.barStarts[bar + 1] ?? map.NB;
+          setRange(g.grid.pre[a]!, g.grid.pre[b]!);
+          return;
+        }
+        lastRuler.current = { bar, t };
         sfx.snap();
         setCaret(k);
       });

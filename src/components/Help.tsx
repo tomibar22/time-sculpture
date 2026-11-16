@@ -101,10 +101,11 @@ export function Help() {
               Space plays from the top; with tiles or a range selected, only the selection plays. To
               start somewhere else, tap “from the top” beside Play and choose a bar by its number,
               or place the caret and press ▶ Start here: a green flag marks the place and Play
-              starts (and comes round again) from there until you take it away. The group that
-              sounds lights up as it goes. Select tiles (or a range) and press ⇧Space, or ↻ Loop:
-              that stretch plays round and round, to hear it or practise over it; change it while it
-              loops and you hear the change. Tap the tempo number for exact steps and{' '}
+              starts (and comes round again) from there until you take it away. While it plays, the
+              score keeps the playing row in sight and a tap on the beat numbers jumps there. The
+              group that sounds lights up as it goes. Select tiles (or a range) and press ⇧Space, or
+              ↻ Loop: that stretch plays round and round, to hear it or practise over it; change it
+              while it loops and you hear the change. Tap the tempo number for exact steps and{' '}
               <b>Tap the beat</b>. In Options you can turn off the click on the beats (the 1 always
               sounds) and the subdivision ticks.
             </p>
@@ -173,9 +174,10 @@ export function Help() {
               <b>Bars…</b> (at the caret, or “Add or remove bars…” in the settings) adds any number
               of bars before or after any bar, or removes a run of bars with what is in it; the
               music after them moves along with its marks. Duplicate (D) never needs room made for
-              it: with no space left, the bars it needs are added at the end. <b>Metre…</b> changes
-              the bars without touching the tempo, the subdivision or what is written: one bar size,
-              or a pattern that goes round. 42 beats in bars of 7 become 5 + 5 + 4 three times by
+              it: with no space left, the bars it needs are added at the end, and the same goes for
+              writing on with the caret at the very end of a full piece. <b>Metre…</b> changes the
+              bars without touching the tempo, the subdivision or what is written: one bar size, or
+              a pattern that goes round. 42 beats in bars of 7 become 5 + 5 + 4 three times by
               setting the bars to 5, 5, 4. From the settings it is the whole piece; at the caret on
               a beat line, from there on. The new bars are named above the row; tap the name to
               change them.
@@ -204,9 +206,10 @@ export function Help() {
           <details className="help-topic">
             <summary>Select time</summary>
             <p>
-              ⇧← ⇧→ (or ⇧-click, or Select ⇥ on a phone) select a range of pulses, whether it is
-              empty, full or part of a tile. Typing over it writes there and silences the rest;
-              Backspace silences it; copy, cut and paste work on it too.
+              Tap the beat numbers of a bar twice to select the whole bar. ⇧← ⇧→ (or ⇧-click, or
+              Select ⇥ on a phone) select a range of pulses, whether it is empty, full or part of a
+              tile. Typing over it writes there and silences the rest; Backspace silences it; copy,
+              cut and paste work on it too.
             </p>
           </details>
           <details className="help-topic">
@@ -217,7 +220,12 @@ export function Help() {
               the beat, syncopation, variety or evenness. Pointing at an option previews it. Browse
               opens on fills with a shape: repeats, growing patterns, pyramids, refrains, even
               spreads, cadences, mirrors, and the <b>tihai</b>: a phrase said three times with the
-              same tile between, so the third time ends exactly on the 1.
+              same tile between, so the third time ends exactly on the 1. <b>All shapes</b> lists a
+              few fills of every kind under its name, with the way to all of that kind; ↑ ↓ walk the
+              list. <b>Known rhythms</b> are fills with a name (tresillo, cinquillo, the claves,
+              bossa, bembé, aksak), at any breadth that fits; <b>Rotating</b> starts a cell one
+              group later each time. <b>From the piece</b> takes what is written just before the
+              region, and the opening, and says it again there: as it is, backwards, turned.
             </p>
           </details>
           <details className="help-topic">
