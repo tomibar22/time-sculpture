@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeMeter } from '../doc';
 import { fillOptions, sortFills } from '../fills';
+import { countWays, countWaysOf, sampleTilingOf, tileCounts } from '../count';
 
 const meter = makeMeter(4, 1, 4); // 16 pulses, beats at 0 4 8 12
 
@@ -33,5 +34,33 @@ describe('fill options', () => {
   });
   it('returns nothing when the sizes cannot fill', () => {
     expect(fillOptions(meter, 0, 5, [2, 4]).options).toEqual([]);
+  });
+});
+
+describe('fills with a set number of tiles', () => {
+  const meter = makeMeter(4, 2, 4);
+  it('counts them, and lists exactly those when there are few', () => {
+    // 8 pulses from 2s and 3s: 2 2 2 2 (4 tiles) or 3 3 2 in any order (3 tiles)
+    expect(tileCounts(8, [2, 3])).toEqual([3, 4]);
+    expect(countWaysOf(8, [2, 3], 3)).toBe(3n);
+    const { options, total } = fillOptions(meter, 0, 8, [2, 3], 400, Math.random, 3);
+    expect(total).toBe(3n);
+    expect(options.map((o) => o.key).sort()).toEqual(['2 3 3', '3 2 3', '3 3 2']);
+  });
+  it('samples only fills of that many tiles when there are many', () => {
+    const { options, total } = fillOptions(meter, 0, 32, [1, 2, 3, 4, 5], 60, Math.random, 9);
+    expect(total).toBe(countWaysOf(32, [1, 2, 3, 4, 5], 9));
+    expect(options.length).toBeGreaterThan(40);
+    for (const o of options) {
+      expect(o.sizes).toHaveLength(9);
+      expect(o.sizes.reduce((a, n) => a + n, 0)).toBe(32);
+    }
+  });
+  it('the counts by tiles add up to all the ways', () => {
+    const sizes = [1, 2, 3, 5];
+    const sum = tileCounts(20, sizes).reduce((a, k) => a + countWaysOf(20, sizes, k), 0n);
+    expect(sum).toBe(countWays(20, sizes));
+    expect(sampleTilingOf(20, sizes, 1)).toBeNull();
+    expect(sampleTilingOf(20, sizes, 4)).toEqual([5, 5, 5, 5]);
   });
 });

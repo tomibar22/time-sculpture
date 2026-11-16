@@ -217,13 +217,49 @@ export async function deliverFile(blob: Blob, name: string): Promise<void> {
       if (e instanceof DOMException && e.name === 'AbortError') return;
     }
   }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  // a computer: the browser's own "Save as" where there is one (it says where the file went,
+  // and is never held back as an "automatic download"); not under test automation
+  const picker = (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker;
+  if (!coarse && picker && !navigator.webdriver) {
+    try {
+      const ext = name.slice(name.lastIndexOf('.'));
+      const handle = await picker({
+        suggestedName: name,
+        types: blob.type ? [{ description: name, accept: { [blob.type]: [ext] } }] : undefined,
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      toast(`Saved ${handle.name}`);
+      return;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      // no permission for a dialog now (too long since the click), or refused: download instead
+    }
+  }
+  const save = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    // inside the open dialog when there is one: the rest of the page is inert under it
+    (document.querySelector('dialog[open]') ?? document.body).append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  };
+  save();
+  // the browser may have held it back without a word: the button downloads it by hand
+  if (!coarse) toast(`${name} is in your downloads`, { action: { label: 'Download', run: save } });
+}
+
+interface SavePicker {
+  (opts: {
+    suggestedName: string;
+    types?: { description: string; accept: Record<string, string[]> }[];
+  }): Promise<{
+    name: string;
+    createWritable(): Promise<{ write(b: Blob): Promise<void>; close(): Promise<void> }>;
+  }>;
 }
 
 export async function exportFile(): Promise<void> {
@@ -334,7 +370,6 @@ export async function exportBackup(): Promise<void> {
     new Blob([JSON.stringify(backup) + '\n'], { type: 'application/json' }),
     `Time Sculpture library ${day}.json`,
   );
-  toast(`${pieces.length} composition${pieces.length === 1 ? '' : 's'} backed up`);
 }
 
 /**
@@ -383,5 +418,4 @@ export async function exportPdf(): Promise<void> {
     fitRows,
   });
   await deliverFile(blob, fileName(currentName, 'pdf'));
-  toast('PDF ready');
 }

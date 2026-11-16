@@ -143,6 +143,8 @@ function pickedBeats(sel: { a: number; b: number } | null): ReadonlySet<number> 
 
 export function Score() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  /** Practice: the tiles are silent this time round, and look it. */
+  const hushed = useUiStore((st) => st.hushed);
   const gesture = useRef<Gesture | null>(null);
   const hover = useRef<string | null>(null);
   const palette = useRef<Palette | null>(null);
@@ -1289,7 +1291,7 @@ export function Score() {
     <div className="score-wrap">
       <canvas
         ref={canvasRef}
-        className="score"
+        className={hushed ? 'score hushed' : 'score'}
         data-testid="score"
         tabIndex={0}
         aria-label="Score. Drag a group to move it, drag a line to reshape, tap to select, shift-click to select several, drag in the open space or along the beat numbers (or alt-drag anywhere, or long-press and drag) to select a range of pulses, drag the knob under the caret or under an end of the selection to select on, drag the grips of a selected group to trim it, pick beats in the band under a row to change their subdivision. Use the group list after this for keyboard and screen reader access."

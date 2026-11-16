@@ -47,6 +47,7 @@ import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/st
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.matches('input, textarea, select') || t.isContentEditable);
+const inDialog = (t: EventTarget | null) => t instanceof HTMLElement && !!t.closest('dialog');
 const isActivatable = (t: EventTarget | null) =>
   t instanceof HTMLElement && t.matches('button, summary, a, [role="button"]');
 /** The page has selected text (e.g. in the help): leave copy to the browser. */
@@ -67,7 +68,7 @@ export function useKeyboard() {
       // on the stage Space and Esc work even right after the tempo slider was moved
       const onSlider = e.target instanceof HTMLInputElement && e.target.type === 'range';
       const stageKey = (e.code === 'Space' || e.key === 'Escape') && useUiStore.getState().stage;
-      if (isTyping(e.target) && !(onSlider && stageKey)) return;
+      if (isTyping(e.target) && !(onSlider && (stageKey || e.code === 'Space'))) return;
       const mod = e.metaKey || e.ctrlKey;
       // letter shortcuts follow the physical key, so they work with any layout (e.g. Hebrew)
       const k = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
@@ -118,7 +119,9 @@ export function useKeyboard() {
         return void (e.preventDefault(), enterStage());
 
       if (e.key === ' ' || e.code === 'Space') {
-        if (isActivatable(e.target)) return;
+        // Space is Play, whatever has the focus (user request): only a dialog keeps it for its
+        // own buttons (typing in a field never gets here)
+        if (inDialog(e.target)) return;
         e.preventDefault();
         if (e.shiftKey) playFromCaret();
         else togglePlayback();
@@ -314,12 +317,20 @@ export function useKeyboard() {
       paste(parsed ?? undefined);
     };
 
+    // Space played on keydown: the focused button must not be pressed by the same key on keyup
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isTyping(e.target) || inDialog(e.target)) return;
+      if (useUiStore.getState().menu) return;
+      if (isActivatable(e.target) && !useUiStore.getState().stage) e.preventDefault();
+    };
+    window.addEventListener('keyup', onKeyUp, true);
     window.addEventListener('keydown', onKey);
     document.addEventListener('copy', onCopy);
     document.addEventListener('cut', onCopy);
     document.addEventListener('paste', onPaste);
     return () => {
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp, true);
       document.removeEventListener('copy', onCopy);
       document.removeEventListener('cut', onCopy);
       document.removeEventListener('paste', onPaste);

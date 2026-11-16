@@ -3334,3 +3334,142 @@ button.now.start-btn.set b {
     padding: 0 6px;
   }
 }
+
+/* Browse: only fills with a set number of tiles */
+.fill-tiles {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.fill-sort .fill-tiles select {
+  min-width: 58px;
+  font-family: var(--f-mono);
+}
+@media (max-width: 560px) {
+  .fill-tiles-lbl {
+    font-size: 0.72rem;
+  }
+  .fill-sort .fill-tiles select {
+    min-width: 50px;
+    padding: 0 4px;
+  }
+}
+
+/* ---------------------------------------------------------------- practice (beside Play) */
+.practice {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+/* the tiles are silent, or in turn: a small crossed dot under the metronome */
+.count-mute {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  translate: -50% 0;
+  background: var(--accent);
+}
+.practice-pop {
+  position: absolute;
+  left: -64px;
+  bottom: calc(100% + 12px);
+  z-index: 5;
+  width: min(330px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 12px 40px rgb(0 0 0 / 0.22),
+    0 2px 8px rgb(0 0 0 / 0.1);
+  animation: ctx-in 0.12s ease-out;
+}
+.practice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.practice-row .segs {
+  flex-wrap: nowrap;
+}
+.practice-row .segs button {
+  min-height: 40px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.practice-turns {
+  display: flex;
+  gap: 8px;
+}
+.practice-turns .stepper {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: space-between;
+}
+.practice-turns .stepper button {
+  min-height: 40px;
+  min-width: 36px;
+}
+.practice-turns .stepper output {
+  font-size: 1rem;
+  min-width: 2em;
+}
+.practice-turn-lbl {
+  padding-left: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.practice-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .practice-pop {
+    animation: none;
+  }
+}
+/* this time round the tiles are silent: the score says so */
+canvas.score {
+  transition:
+    filter 0.25s,
+    opacity 0.25s;
+}
+canvas.score.hushed {
+  filter: grayscale(0.92);
+  opacity: 0.55;
+}
+/* phones: the tiles filter sits beside Sizes and Shape, so the tools keep their one line */
+.fill-folds .fill-tiles {
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--r-control);
+  background: var(--soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fill-folds .fill-tiles select {
+  min-height: 40px;
+  min-width: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: 700 0.95rem var(--f-body);
+  text-transform: none;
+  letter-spacing: 0;
+}

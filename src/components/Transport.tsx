@@ -6,7 +6,7 @@ import { useDocStore, useUiStore } from '../state/store';
 import { redo, undo } from '../state/actions';
 import { PlayIcon, RedoIcon, StopIcon, UndoIcon } from './Icons';
 import { Keypad } from './Keypad';
-import { CountInButton } from './CountIn';
+import { PracticeButton } from './CountIn';
 import { FillPanel } from './FillPanel';
 import { SelectionBar } from './SelectionBar';
 import { SubdivPanel } from './SubdivPanel';
@@ -130,7 +130,7 @@ function Transport() {
         >
           {playing ? <StopIcon /> : <PlayIcon />}
         </button>
-        <CountInButton />
+        <PracticeButton />
         <Readout />
         <label className="tempo">
           <span aria-hidden="true">♩</span>

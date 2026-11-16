@@ -14,6 +14,8 @@ const LOOKAHEAD_S = 0.12;
 const INTERVAL_MS = 25;
 
 interface Slot {
+  /** The tiles are silent this time round (practice). */
+  hush: boolean;
   t: number;
   T0: number;
   T1: number;
@@ -31,6 +33,16 @@ let current: Slot | null = null;
 /** Count-in: when it began and when the piece itself starts (audio time), and its bar size. */
 let countFrom = 0;
 let startAt = 0;
+/** Times the music has come round since Play (practice: tiles heard and silent in turn). */
+let round = 0;
+/** Practice (editor only): are the tiles silent this time round? The click always stays. */
+const hushedNow = (): boolean => {
+  const ui = useUiStore.getState();
+  if (ui.stage || ui.tiles === 'on') return false;
+  if (ui.tiles === 'off') return true;
+  const { on, off } = ui.turns;
+  return round % (on + off) >= on;
+};
 let countBar = 0;
 let countBars = 1;
 let countBeat = 1;
@@ -127,8 +139,10 @@ function schedule(): void {
           plan.findIndex((p) => from >= p.a - EPS && from < p.b - EPS),
         );
         T = Math.max(from, plan[seg]!.a);
+        round++;
         continue;
       }
+      if (seg + 1 >= plan.length) round++;
       seg = (seg + 1) % plan.length;
       T = plan[seg]!.a;
       continue;
@@ -139,10 +153,12 @@ function schedule(): void {
     }
     // inside a practice loop the piece's own "1" is just a bar line
     const click = ev.click === 'landing' && ui.loop ? 'downbeat' : ev.click;
-    if (sound !== 'off') playClick(next, click, ui.ticks, ui.click || ui.stage);
+    // practice: with the tiles silent the click is what is left, so it sounds whatever the option
+    const hush = hushedNow();
+    if (sound !== 'off') playClick(next, click, ui.ticks, ui.click || ui.stage || hush);
     const dur = span(ev.t0, ev.t1);
-    if (ev.onset && sound === 'all') playGroup(next, ev.onset.n, dur * ev.onset.n);
-    queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur });
+    if (ev.onset && sound === 'all' && !hush) playGroup(next, ev.onset.n, dur * ev.onset.n);
+    queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur, hush });
     next += dur;
     T = ev.t1;
   }
@@ -174,6 +190,7 @@ function frame(): void {
   }
   while (queue.length && queue[0]!.t <= now) current = queue.shift()!;
   if (current) {
+    if (current.hush !== ui.hushed) ui.set({ hushed: current.hush });
     const p = Math.min(1, Math.max(0, (now - current.t) / current.dur));
     useUiStore.getState().set({ playhead: current.T0 + (current.T1 - current.T0) * p });
   }
@@ -207,6 +224,7 @@ export function startPlayback(
   current = null;
   endAt = null;
   countBar = 0;
+  round = 0;
   // count in (bars of the main beat) before the music starts: the stage's own setting, or the
   // editor's (the bar it counts is the bar where playing begins)
   const ui = useUiStore.getState();
@@ -236,7 +254,13 @@ export function stopPlayback(): void {
   endAt = null;
   countBar = 0;
   countClicks = [];
-  useUiStore.getState().set({ playing: false, playhead: null, countdown: null, loop: null });
+  useUiStore.getState().set({
+    playing: false,
+    playhead: null,
+    countdown: null,
+    loop: null,
+    hushed: false,
+  });
 }
 
 // A hidden page's timers are throttled, so the scheduler would fall behind and then play
@@ -266,6 +290,12 @@ export function togglePlayback(): void {
     return startPlayback(a, { a, b });
   }
   const NB = doc.meter.subdivision.length;
-  const from = startFrom();
+  // like the insert marker of a DAW: with a caret in the piece, Play starts at the caret
+  // (coming round, it goes on from where Play starts otherwise: the start that was set, or the top)
+  let from = startFrom();
+  if (!ui.stage && ui.caret !== null) {
+    const grid = buildGrid(doc.meter);
+    if (ui.caret > 0 && ui.caret < grid.TS) from = grid.times[ui.caret]!;
+  }
   startPlayback(from < NB - EPS ? from : 0);
 }

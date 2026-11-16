@@ -46,6 +46,7 @@ export function FillPanel() {
   // fills themselves get the room; a tap on either opens its row
   const phone = useMedia(PHONE);
   const shape = useUiStore((s) => s.fillShape);
+  const wantedTiles = useUiStore((s) => s.fillTiles);
   const [fold, setFold] = useState<'sizes' | 'shapes' | null>(null);
   useEffect(() => setFold((f) => (f === 'shapes' ? null : f)), [shape]);
   if (!tab) return null;
@@ -129,6 +130,17 @@ export function FillPanel() {
                 <span className="fold-val">{shapeName}</span>
                 <ChevronIcon />
               </button>
+              {region && (
+                <TilesFilter
+                  counts={E.tileCounts(region.b - region.a, sizes)}
+                  tiles={
+                    wantedTiles !== null &&
+                    E.tileCounts(region.b - region.a, sizes).includes(wantedTiles)
+                      ? wantedTiles
+                      : null
+                  }
+                />
+              )}
             </div>
           )}
           <div
@@ -161,7 +173,7 @@ export function FillPanel() {
           ) : total === 0n ? (
             <p className="lib-note">These sizes can&apos;t fill {R} pulses exactly.</p>
           ) : (
-            <Browse shapesHidden={folded && fold !== 'shapes'} />
+            <Browse shapesHidden={folded && fold !== 'shapes'} tilesInHead={folded} />
           )}
         </>
       )}
@@ -169,7 +181,38 @@ export function FillPanel() {
   );
 }
 
-function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
+/** Only fills with a set number of tiles (any = every number that fits). */
+function TilesFilter({ counts, tiles }: { counts: number[]; tiles: number | null }) {
+  const set = useUiStore((s) => s.set);
+  if (counts.length < 2) return null;
+  return (
+    <label className="fill-tiles" title="Only fills with this many tiles">
+      <span className="fill-tiles-lbl">Tiles</span>
+      <select
+        aria-label="Number of tiles"
+        data-testid="fill-tiles"
+        value={tiles ?? ''}
+        onChange={(e) => set({ fillTiles: e.target.value ? +e.target.value : null })}
+      >
+        <option value="">any</option>
+        {counts.map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function Browse({
+  shapesHidden = false,
+  tilesInHead = false,
+}: {
+  shapesHidden?: boolean;
+  /** The tiles filter is shown beside Sizes and Shape (phones), not in the tools line. */
+  tilesInHead?: boolean;
+}) {
   const sizes = useUiStore((s) => s.fillSizes);
   const sort = useUiStore((s) => s.fillSort);
   const shape = useUiStore((s) => s.fillShape);
@@ -198,10 +241,15 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   const around = stack[stack.length - 1] ?? null;
   const aroundRef = useRef<HTMLDivElement>(null);
 
+  // how many tiles a fill may have here; one of them can be asked for
+  const wanted = useUiStore((s) => s.fillTiles);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const counts = useMemo(() => E.tileCounts(R, sizes), [R, sizes.join(',')]);
+  const tiles = wanted !== null && counts.includes(wanted) ? wanted : null;
   const { options, total } = useMemo(
-    () => E.fillOptions(meter, region.a, R, sizes, LIMIT),
+    () => E.fillOptions(meter, region.a, R, sizes, LIMIT, Math.random, tiles ?? undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [meter, region.a, R, sizes.join(',')],
+    [meter, region.a, R, sizes.join(','), tiles],
   );
   // kept motifs, fitted to this region (as they are, or cycled until they land)
   const mine = useMemo(() => {
@@ -316,8 +364,9 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   }, [options]);
   const list: Listed[] = useMemo(() => {
     if (around) return nearby;
-    if (shape === 'mine') return mine;
-    if (shape === 'echo') return echo;
+    const few = (xs: Listed[]) => (tiles ? xs.filter((o) => o.sizes.length === tiles) : xs);
+    if (shape === 'mine') return few(mine);
+    if (shape === 'echo') return few(echo);
     if (shape === 'bred') return brood.kids;
     if (shape === 'any') return E.sortFills(options, sort);
     return options
@@ -330,7 +379,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
           a.tiles - b.tiles ||
           a.key.localeCompare(b.key),
       );
-  }, [options, sort, shape, mine, echo, brood, around, nearby]);
+  }, [options, sort, shape, mine, echo, brood, around, nearby, tiles]);
 
   const parents = useMemo(() => {
     const ps = new Map<string, number[]>();
@@ -385,19 +434,20 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   const groups = useMemo(() => {
     if (shape !== 'shapes' || around) return null;
     const out: { id: string; label: string; hint: string; items: Listed[] }[] = [];
-    if (echo.length)
+    const said = tiles ? echo.filter((o) => o.sizes.length === tiles) : echo;
+    if (said.length)
       out.push({
         id: 'echo',
         label: 'From the piece',
         hint: 'What is already written, said again here',
-        items: echo,
+        items: said,
       });
     for (const f of E.SHAPE_FAMILIES) {
       const items = list.filter((o) => o.shape?.family === f.id);
       if (items.length) out.push({ id: f.id, label: f.label, hint: f.hint, items });
     }
     return out;
-  }, [shape, list, echo, around]);
+  }, [shape, list, echo, around, tiles]);
   const onListKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
     const step = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity }[e.key];
     if (step === undefined) return;
@@ -421,7 +471,9 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
               : list.length
                 ? (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.hint ??
                   `${list.length} shaped fills`)
-                : 'No shapes fit these sizes; try more sizes or Anything.';
+                : tiles
+                  ? `No shapes with ${tiles} tiles here; try Anything, or another number.`
+                  : 'No shapes fit these sizes; try more sizes or Anything.';
 
   return (
     <div className="fill-browse">
@@ -498,6 +550,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
             Map
           </button>
         </div>
+        {!around && !tilesInHead && <TilesFilter counts={counts} tiles={tiles} />}
         {shape === 'any' && view === 'list' && !around && (
           <>
             <label htmlFor="fill-sort" className="sr-only">

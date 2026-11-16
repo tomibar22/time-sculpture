@@ -53,7 +53,13 @@ export interface DevicePrefs {
   motifs: number[][];
   /** Bars counted in before Play in the editor (the stage has its own setting). */
   countIn: 0 | 1 | 2;
+  /** Practice: are the tiles heard, silent (the click alone), or heard and silent in turn? */
+  tiles: TilesMode;
+  /** In turn: this many times round with the tiles, then this many with the click alone. */
+  turns: { on: number; off: number };
 }
+
+export type TilesMode = 'on' | 'off' | 'turns';
 const PREFS_KEY = 'time-sculpture/prefs';
 export const MAX_MOTIFS = 60;
 function loadPrefs(): Partial<DevicePrefs> {
@@ -65,6 +71,10 @@ function loadPrefs(): Partial<DevicePrefs> {
     if (typeof p.ticks === 'boolean') out.ticks = p.ticks;
     if (typeof p.click === 'boolean') out.click = p.click;
     if (p.countIn === 0 || p.countIn === 1 || p.countIn === 2) out.countIn = p.countIn;
+    if (p.tiles === 'on' || p.tiles === 'off' || p.tiles === 'turns') out.tiles = p.tiles;
+    const n = (v: unknown) => (Number.isInteger(v) ? Math.max(1, Math.min(8, v as number)) : 1);
+    if (p.turns && typeof p.turns === 'object')
+      out.turns = { on: n(p.turns.on), off: n(p.turns.off) };
     if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
       out.moveMode = p.moveMode;
     if (Array.isArray(p.fillSizes)) {
@@ -211,6 +221,8 @@ export interface UiState {
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
   fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo';
+  /** Browse: only fills with exactly this many tiles (null = any number). */
+  fillTiles: number | null;
   /** Browse as a list, or as a map of the fills laid out by two measures. */
   fillView: 'list' | 'map';
   fillAxes: [FillAxis, FillAxis];
@@ -218,6 +230,13 @@ export interface UiState {
   motifs: number[][];
   /** Bars counted in before Play in the editor: off, 1 or 2 (a device preference). */
   countIn: 0 | 1 | 2;
+  /** Practice: the tiles heard, silent, or in turn (device preferences; see DevicePrefs). */
+  tiles: TilesMode;
+  turns: { on: number; off: number };
+  /** While playing: this time round the tiles are silent (the score goes grey). */
+  hushed: boolean;
+  /** The practice popover beside Play (count-in, tiles heard or silent). */
+  practiceOpen: boolean;
   /** The docked subdivision row, for the beats picked in the band, or under the selection, range or caret. */
   subPanel: boolean;
   /** Beats picked in the subdivision band (first to last, both included): what the row works on. */
@@ -311,10 +330,15 @@ export const useUiStore = create<UiState>((set) => ({
   fillPanel: null,
   fillSort: 'onbeat',
   fillShape: 'shapes',
+  fillTiles: null,
   fillView: 'list',
   fillAxes: ['tiles', 'sync'],
   motifs: [],
   countIn: 0,
+  tiles: 'on',
+  turns: { on: 1, off: 1 },
+  hushed: false,
+  practiceOpen: false,
   subPanel: false,
   beatSel: null,
   modDialog: null,
@@ -361,7 +385,9 @@ useUiStore.subscribe((s, p) => {
     s.moveMode !== p.moveMode ||
     s.fillSizes !== p.fillSizes ||
     s.motifs !== p.motifs ||
-    s.countIn !== p.countIn
+    s.countIn !== p.countIn ||
+    s.tiles !== p.tiles ||
+    s.turns !== p.turns
   )
     savePrefs({
       theme: s.theme,
@@ -371,5 +397,7 @@ useUiStore.subscribe((s, p) => {
       fillSizes: s.fillSizes,
       motifs: s.motifs,
       countIn: s.countIn,
+      tiles: s.tiles,
+      turns: s.turns,
     });
 });

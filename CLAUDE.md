@@ -141,16 +141,27 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   audio/context.ts `installAudioUnlock`) closes it and builds + primes a fresh one inside that
   gesture. (A resumed iOS context can report 'running' and stay silent: the bug "no sound after
   leaving and returning to the app".) Never resume audio outside a gesture.
-- **Count-in** (editor; user request): `ui.countIn` 0/1/2 bars (device pref), one button beside
-  Play (`CountInButton`, components/CountIn.tsx: a metronome icon, a small number badge when on;
-  each tap: off → 1 bar → 2 bars → off, with a short toast). `startPlayback` counts in the bar
-  where playing begins (`barLength`), clicks only (downbeat, then beats), then plays; it also counts
-  before a looped selection. Not on a jump while playing (ruler tap passes `noCount`). The stage
-  keeps its own `stagePrefs.countIn` and `.countdown`. `CountInOverlay`: the whole page blurred
-  under a translucent veil (`.count-in`, z 55), the beat huge in the middle (display font) and a
-  dot per beat of the bar (accent dots in the last bar); a tap on it stops. `ui.countdown` carries
-  `bar` / `bars`. Phones (≤ 560 px): the inline tempo slider is hidden to make room; the tempo
-  number ("♩72") opens the tempo dialog (±, tap tempo, slider).
+- **Practice** (editor; user requests): one button beside Play (`PracticeButton` in
+  components/CountIn.tsx: a metronome; lit when anything is on, a number badge = count-in bars, a
+  bar under it = tiles not always heard) opens a small popover (`ui.practiceOpen`, closes on a
+  press elsewhere / Esc) with two device prefs:
+  - **Count-in** `ui.countIn` 0/1/2 bars. `startPlayback` counts in the bar where playing begins
+    (`barLength`), clicks only, then plays; also before a looped selection; not on a jump while
+    playing (ruler tap passes `noCount`). `CountInOverlay`: the page blurred under a veil
+    (`.count-in`, z 55), the beat huge in the middle, a dot per beat (accent in the last bar); a
+    tap stops. `ui.countdown` carries `bar` / `bars`. The stage keeps its own count-in.
+  - **Tiles** `ui.tiles` 'on' | 'off' | 'turns' + `ui.turns {on, off}` (1–8 times round each):
+    silent = only the click sounds (it sounds then even if the click option is off); in turn =
+    `on` rounds heard, then `off` rounds silent (`round` in player.ts counts every time the
+    music comes round, loop or whole piece; `hushedNow`). While a silent round plays `ui.hushed`
+    is true and the score canvas goes grey (`canvas.score.hushed`). Not on the stage.
+    Phones (≤ 560 px): the inline tempo slider is hidden to make room; the tempo number ("♩72")
+    opens the tempo dialog.
+- **Play starts at the caret** (like a DAW's insert marker; user request): `togglePlayback` with a
+  caret inside the piece (0 < caret < TS, no selection) starts there; coming round it goes on from
+  `playStart` or the top. A selection loops (above). **Space is always Play** (user request): also
+  with a button, a slider or the score in focus (keyup is swallowed so the button is not pressed);
+  only text fields, checkboxes / selects, an open dialog and the context menu keep Space.
 - Tempo 30–240 (`MIN_TEMPO`/`MAX_TEMPO`), slider in the transport; the number opens
   `TempoDialog` (±1, ±5, tap tempo over the last ≤ 6 taps).
 
@@ -733,3 +744,17 @@ overrides.
 - A fill written into the **open space** from the panel keeps that stretch selected as a range
   while the panel is open (`filledSpace` in state/fill.ts), so another fill or variation goes to
   the same place; `closeFill` drops the range and leaves the caret at its end.
+
+### Browse: a set number of tiles; saving files on a computer
+
+- **Tiles filter** (`ui.fillTiles`, null = any): a select "Tiles" in Browse's tools line (beside
+  Sizes and Shape on phones, `TilesFilter`). Engine: `waysByTiles`, `tileCounts`, `countWaysOf`,
+  `sampleTilingOf` (count.ts) and `fillOptions(…, tiles)`: fills are counted, listed or sampled
+  uniformly among those with exactly that many tiles (not filtered after the fact); built shapes,
+  tihais, Mine and From the piece are filtered by length. Variations (Vary) are not filtered.
+- **Saving on a computer** (`deliverFile`): fine pointer → the browser's "Save as"
+  (`showSaveFilePicker`, not under `navigator.webdriver`), else an anchor download appended inside
+  the open dialog (the page under a modal dialog is inert) plus a toast "… is in your downloads"
+  with a **Download** button (a download by hand is never held back as automatic). Touch devices
+  keep the share sheet. `vite:preloadError` (a lazy chunk is gone after a new deploy) saves and
+  reloads (pwa.ts).

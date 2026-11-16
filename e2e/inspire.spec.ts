@@ -89,14 +89,16 @@ test('with a selection, Play loops the selection until Stop', async ({ page }) =
   await expect(page.getByTestId('caretname')).toContainText('4 pulses');
 });
 
-test('count-in: off, 1 bar, 2 bars from one button; the page goes soft and counts, then plays', async ({
+test('practice: the count-in is set beside Play; the page goes soft and counts, then plays', async ({
   page,
 }) => {
-  const btn = page.getByTestId('count-in');
-  await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  const btn = page.getByTestId('practice');
+  const pop = page.getByRole('dialog', { name: 'Practice' });
   await btn.click();
-  await expect(btn).toHaveAttribute('aria-pressed', 'true');
-  await expect(btn).toContainText('1');
+  await pop.getByRole('button', { name: '1 bar' }).click();
+  await page.keyboard.press('Escape');
+  await expect(pop).toHaveCount(0);
+  await expect(btn).toContainText('count-in 1 bar');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   const overlay = page.getByTestId('count-overlay');
   await expect(overlay).toBeVisible();
@@ -111,12 +113,52 @@ test('count-in: off, 1 bar, 2 bars from one button; the page goes soft and count
   await overlay.click();
   await expect(overlay).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
-  // remembered, and the next tap is 2 bars, then off
+  // remembered on this device
   await page.reload();
   await ready(page);
-  await expect(btn).toContainText('1');
+  await expect(btn).toContainText('count-in 1 bar');
+});
+
+test('practice: the tiles silent, or heard and silent in turn; the score greys when they are', async ({
+  page,
+}) => {
+  const btn = page.getByTestId('practice');
+  const pop = page.getByRole('dialog', { name: 'Practice' });
   await btn.click();
-  await expect(btn).toContainText('2');
-  await btn.click();
-  await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  await pop.getByRole('button', { name: 'In turn' }).click();
+  await pop.getByRole('button', { name: 'Silent: one time more' }).click();
+  await expect(pop.getByTestId('turns-silent')).toHaveText('×2');
+  await expect(pop).toContainText('Once round with the tiles, then twice with the click alone.');
+  await pop.getByRole('button', { name: 'Silent', exact: true }).click();
+  await expect(pop).toContainText('Only the click sounds');
+  // a tap elsewhere puts the popover away
+  await page.getByLabel('Name of the composition').click();
+  await expect(pop).toHaveCount(0);
+  await expect(btn).toContainText('tiles silent');
+  await page.getByTestId('score').focus();
+  await page.keyboard.press('Space');
+  await expect(page.locator('canvas.score.hushed')).toBeVisible();
+  await page.keyboard.press('Space');
+  await expect(page.locator('canvas.score.hushed')).toHaveCount(0);
+});
+
+test('Space is Play even with a button in focus, and Play starts at the caret', async ({
+  page,
+}) => {
+  // a button has the focus: Space plays and does not press it
+  const btn = page.getByTestId('practice');
+  await btn.focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Practice' })).toHaveCount(0);
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  // a caret at the start of bar 2: playing begins there, not at the top
+  await page.getByTestId('score').focus();
+  await page.keyboard.press('Home');
+  for (let i = 0; i < 16; i++) await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1');
+  await page.keyboard.press('Space');
+  await expect(page.locator('.now')).toContainText('bar 2', { timeout: 1500 });
+  await page.keyboard.press('Space');
 });

@@ -1,4 +1,4 @@
-import { countWays, sampleTiling } from './count';
+import { countWays, countWaysOf, sampleTiling, sampleTilingOf, waysByTiles } from './count';
 import { beatOfPulse, buildGrid, isOnBeat } from './grid';
 import { barMap } from './sections';
 import { shapeFills, shapeOf, tihaiFills, type Shape } from './shapes';
@@ -137,11 +137,14 @@ export const FILL_SORTS: { id: FillSort; label: string }[] = [
 ];
 
 /** Every tiling of R with the sizes, in lexicographic order, stopping after `limit`. */
-function enumerate(R: number, sizes: number[], limit: number): number[][] {
+function enumerate(R: number, sizes: number[], limit: number, tiles?: number): number[][] {
   const S = [...new Set(sizes)].sort((a, b) => a - b);
   const out: number[][] = [];
   const path: number[] = [];
-  const ok = (r: number) => countWays(r, S) > 0n;
+  const by = tiles ? waysByTiles(R, S) : null;
+  // can r pulses still be finished (with exactly the tiles that are left, when they are counted)?
+  const ok = (r: number) =>
+    by ? (by[tiles! - path.length - 1]?.[r] ?? 0n) > 0n : countWays(r, S) > 0n;
   const go = (r: number) => {
     if (out.length >= limit) return;
     if (r === 0) return void out.push(path.slice());
@@ -179,16 +182,19 @@ export function fillOptions(
   sizes: number[],
   limit = 400,
   rng: () => number = Math.random,
+  /** Only fills with exactly this many tiles (counted, listed and sampled among those alone). */
+  tiles?: number,
 ): { options: FillOption[]; total: bigint } {
-  const total = countWays(R, sizes);
+  const total = tiles ? countWaysOf(R, sizes, tiles) : countWays(R, sizes);
   if (R <= 0 || total === 0n) return { options: [], total };
+  const fits = (t: readonly number[]) => !tiles || t.length === tiles;
   let tilings: number[][];
-  if (total <= BigInt(limit)) tilings = enumerate(R, sizes, limit);
+  if (total <= BigInt(limit)) tilings = enumerate(R, sizes, limit, tiles);
   else {
     const seen = new Set<string>();
     tilings = [];
     for (let tries = 0; tilings.length < limit && tries < limit * 4; tries++) {
-      const t = sampleTiling(R, sizes, rng)!;
+      const t = tiles ? sampleTilingOf(R, sizes, tiles, rng)! : sampleTiling(R, sizes, rng)!;
       const k = t.join(' ');
       if (!seen.has(k)) {
         seen.add(k);
@@ -203,7 +209,7 @@ export function fillOptions(
   const have = new Set(tilings.map((t) => t.join(' ')));
   for (const s of shapeFills(R, sizes, 40, rng)) {
     const k = s.sizes.join(' ');
-    if (!have.has(k)) {
+    if (fits(s.sizes) && !have.has(k)) {
       have.add(k);
       tilings.push(s.sizes);
     }
@@ -224,7 +230,7 @@ export function fillOptions(
   for (const t of tihaiFills(R, sizes)) {
     const o = byKey.get(t.sizes.join(' '));
     if (o) o.shape = t.shape;
-    else options.push(measure(t.sizes, undefined, t.shape));
+    else if (fits(t.sizes)) options.push(measure(t.sizes, undefined, t.shape));
   }
   return { options, total };
 }

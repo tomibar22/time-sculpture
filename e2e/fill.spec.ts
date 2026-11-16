@@ -97,3 +97,26 @@ test('vary a fill straight from the list: try it, Vary, pick a variation, Use', 
   await around.getByRole('button', { name: '‹ Back' }).click();
   await expect(around).toHaveCount(0);
 });
+
+test('browse only the fills with a set number of tiles', async ({ page }) => {
+  await page.getByRole('button', { name: 'Fill it…' }).click();
+  await fillFold(page, 'Shape');
+  await page.getByRole('button', { name: 'Anything' }).click();
+  const list = page.getByRole('list', { name: 'Ways to fill' });
+  // 9 open pulses in exactly 2 tiles: every fill listed has two
+  await page.getByTestId('fill-tiles').selectOption('2');
+  await expect(list.locator('.fill-main').nth(1)).toBeVisible();
+  const keys = await list
+    .locator('.fill-main')
+    .evaluateAll((rows) => rows.map((r) => r.querySelector('.sr-only')?.textContent ?? ''));
+  expect(keys.length).toBeGreaterThan(1);
+  for (const k of keys)
+    expect(
+      k
+        .replace(/\.\s*$/, '')
+        .trim()
+        .split(' '),
+    ).toHaveLength(2);
+  await page.getByTestId('fill-tiles').selectOption('');
+  await expect(list.locator('.fill-main').nth(8)).toBeVisible();
+});

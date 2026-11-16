@@ -98,9 +98,15 @@ export function Help() {
           <details className="help-topic">
             <summary>Listen and loop</summary>
             <p>
-              <b>Count-in</b>: the metronome beside Play. Each tap goes off, 1 bar, 2 bars. With it
-              on, Play first counts the bar in, large in the middle of a softened screen, then
-              plays. A tap on the count stops.
+              <b>Practice</b>: the metronome beside Play. <b>Count-in</b> (1 or 2 bars) counts the
+              bar in, large in the middle of a softened screen, then plays; a tap on the count
+              stops. <b>Tiles</b>: Silent leaves only the click, so the rhythm is yours to play; In
+              turn plays so many times round with the tiles and so many with the click alone (the
+              score goes grey while they are silent).
+            </p>
+            <p>
+              Play starts at the caret when there is one (Esc removes it; then Play starts at the
+              top, or where you set it). Space always plays and stops, whatever was clicked last.
             </p>
             <p>
               Space plays from the top; with tiles or a range selected, the selection loops until
@@ -251,10 +257,10 @@ export function Help() {
               region, and the opening, and says it again there: as it is, backwards, turned.
             </p>
             <p>
-              Almost right? Tap a fill to try it, then <b>Vary</b> beside Use: the list becomes that
-              fill said other ways (nudged, swapped, rotated, backwards, regrouped), without
-              anything being written. Tap one to try it, Use to write it, Vary again to go further,
-              ‹ Back to return.
+              <b>Tiles</b> narrows the fills to those with a set number of tiles. Almost right? Tap
+              a fill to try it, then <b>Vary</b> beside Use: the list becomes that fill said other
+              ways (nudged, swapped, rotated, backwards, regrouped), without anything being written.
+              Tap one to try it, Use to write it, Vary again to go further, ‹ Back to return.
             </p>
           </details>
           <details className="help-topic">
