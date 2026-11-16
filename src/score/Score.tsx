@@ -667,7 +667,7 @@ export function Score() {
         const now = ui();
         if (now.playing && !now.loop) {
           stopPlayback();
-          startPlayback(g.grid.times[Math.min(k, g.grid.TS - 1)]!);
+          startPlayback(g.grid.times[Math.min(k, g.grid.TS - 1)]!, null, { noCount: true });
           return;
         }
         // a second tap on the same bar selects the whole bar

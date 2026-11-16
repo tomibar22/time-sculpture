@@ -141,6 +141,16 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   audio/context.ts `installAudioUnlock`) closes it and builds + primes a fresh one inside that
   gesture. (A resumed iOS context can report 'running' and stay silent: the bug "no sound after
   leaving and returning to the app".) Never resume audio outside a gesture.
+- **Count-in** (editor; user request): `ui.countIn` 0/1/2 bars (device pref), one button beside
+  Play (`CountInButton`, components/CountIn.tsx: a metronome icon, a small number badge when on;
+  each tap: off → 1 bar → 2 bars → off, with a short toast). `startPlayback` counts in the bar
+  where playing begins (`barLength`), clicks only (downbeat, then beats), then plays; it also counts
+  before a looped selection. Not on a jump while playing (ruler tap passes `noCount`). The stage
+  keeps its own `stagePrefs.countIn` and `.countdown`. `CountInOverlay`: the whole page blurred
+  under a translucent veil (`.count-in`, z 55), the beat huge in the middle (display font) and a
+  dot per beat of the bar (accent dots in the last bar); a tap on it stops. `ui.countdown` carries
+  `bar` / `bars`. Phones (≤ 560 px): the inline tempo slider is hidden to make room; the tempo
+  number ("♩72") opens the tempo dialog (±, tap tempo, slider).
 - Tempo 30–240 (`MIN_TEMPO`/`MAX_TEMPO`), slider in the transport; the number opens
   `TempoDialog` (±1, ±5, tap tempo over the last ≤ 6 taps).
 

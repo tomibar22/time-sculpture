@@ -1,4 +1,4 @@
-import { buildGrid, EPS, nextPulse, playOrder, spanOf, toMain } from '../engine';
+import { barMap, buildGrid, EPS, nextPulse, playOrder, spanOf, toMain } from '../engine';
 import type { Meter, Span } from '../engine';
 import { useDocStore, useUiStore } from '../state/store';
 import { audioNow, ensureAudio } from './context';
@@ -32,6 +32,7 @@ let current: Slot | null = null;
 let countFrom = 0;
 let startAt = 0;
 let countBar = 0;
+let countBars = 1;
 let countBeat = 1;
 /** Count-in clicks still to schedule (lazily, so a stop silences the rest). */
 let countClicks: { t: number; kind: 'beat' | 'downbeat' }[] = [];
@@ -61,6 +62,15 @@ const playOrderOf = (m: Meter) => {
   }
   return order;
 };
+
+/** Beats in the bar that holds time t (main beats only matter for the count's pace). */
+function barLength(meter: Meter, t: number): number {
+  const map = barMap(meter);
+  const bar = map.barOf[Math.min(Math.floor(t + EPS), map.barOf.length - 1)] ?? 0;
+  const a = map.barStarts[bar] ?? 0;
+  const b = map.barStarts[bar + 1] ?? map.NB;
+  return Math.max(1, Math.round(b - a)) || meter.beatsPerCycle;
+}
 
 /** Practice loop (written time, beats): only this stretch plays, round and round. */
 const loopPlan = (NB: number): Span[] | null => {
@@ -143,7 +153,15 @@ function frame(): void {
   const ui = useUiStore.getState();
   if (countBar) {
     const i = now < startAt ? Math.max(0, Math.floor((now - countFrom) / countBeat)) : -1;
-    const cd = i >= 0 ? { beat: (i % countBar) + 1, of: countBar } : null;
+    const cd =
+      i >= 0
+        ? {
+            beat: (i % countBar) + 1,
+            of: countBar,
+            bar: Math.floor(i / countBar) + 1,
+            bars: countBars,
+          }
+        : null;
     if (cd?.beat !== ui.countdown?.beat) ui.set({ countdown: cd });
     if (!cd) countBar = 0;
   }
@@ -169,7 +187,7 @@ function frame(): void {
 export function startPlayback(
   from = 0,
   loop: { a: number; b: number } | null = null,
-  opts: { once?: boolean } = {},
+  opts: { once?: boolean; noCount?: boolean } = {},
 ): void {
   if (timer) return;
   if (!ensureAudio()) return;
@@ -189,11 +207,13 @@ export function startPlayback(
   current = null;
   endAt = null;
   countBar = 0;
-  // on the stage: count in (bars of the main beat) before the piece starts
+  // count in (bars of the main beat) before the music starts: the stage's own setting, or the
+  // editor's (the bar it counts is the bar where playing begins)
   const ui = useUiStore.getState();
-  const bars = ui.stage ? ui.stagePrefs.countIn : 0;
+  const bars = ui.stage ? ui.stagePrefs.countIn : opts.noCount ? 0 : ui.countIn;
   if (bars) {
-    countBar = activeDoc().meter.beatsPerCycle;
+    countBar = barLength(meter, T);
+    countBars = bars;
     countBeat = 60 / ui.tempo;
     countFrom = next;
     countClicks = Array.from({ length: bars * countBar }, (_, i) => ({

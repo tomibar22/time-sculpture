@@ -51,6 +51,8 @@ export interface DevicePrefs {
   fillSizes: number[];
   /** Fills saved with ♥ (sizes), fitted to any region later; the newest first. */
   motifs: number[][];
+  /** Bars counted in before Play in the editor (the stage has its own setting). */
+  countIn: 0 | 1 | 2;
 }
 const PREFS_KEY = 'time-sculpture/prefs';
 export const MAX_MOTIFS = 60;
@@ -62,6 +64,7 @@ function loadPrefs(): Partial<DevicePrefs> {
     if (p.theme === 'system' || p.theme === 'light' || p.theme === 'dark') out.theme = p.theme;
     if (typeof p.ticks === 'boolean') out.ticks = p.ticks;
     if (typeof p.click === 'boolean') out.click = p.click;
+    if (p.countIn === 0 || p.countIn === 1 || p.countIn === 2) out.countIn = p.countIn;
     if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
       out.moveMode = p.moveMode;
     if (Array.isArray(p.fillSizes)) {
@@ -213,6 +216,8 @@ export interface UiState {
   fillAxes: [FillAxis, FillAxis];
   /** Fills saved with ♥ (device preference). */
   motifs: number[][];
+  /** Bars counted in before Play in the editor: off, 1 or 2 (a device preference). */
+  countIn: 0 | 1 | 2;
   /** The docked subdivision row, for the beats picked in the band, or under the selection, range or caret. */
   subPanel: boolean;
   /** Beats picked in the subdivision band (first to last, both included): what the row works on. */
@@ -256,7 +261,8 @@ export interface UiState {
   /** The group just revealed and when (performance.now()), for its entrance. */
   buildPop: { id: string; at: number } | null;
   /** During a count-in: the beat being counted (1-based) and how many beats a bar has. */
-  countdown: { beat: number; of: number } | null;
+  /** Count-in: beat (1-based) of `of` in the bar, and the bar (1-based) of `bars`. */
+  countdown: { beat: number; of: number; bar?: number; bars?: number } | null;
   theme: Theme;
   /** Live preview during a drag (rendered instead of the document). */
   preview: Doc | null;
@@ -308,6 +314,7 @@ export const useUiStore = create<UiState>((set) => ({
   fillView: 'list',
   fillAxes: ['tiles', 'sync'],
   motifs: [],
+  countIn: 0,
   subPanel: false,
   beatSel: null,
   modDialog: null,
@@ -353,7 +360,8 @@ useUiStore.subscribe((s, p) => {
     s.click !== p.click ||
     s.moveMode !== p.moveMode ||
     s.fillSizes !== p.fillSizes ||
-    s.motifs !== p.motifs
+    s.motifs !== p.motifs ||
+    s.countIn !== p.countIn
   )
     savePrefs({
       theme: s.theme,
@@ -362,5 +370,6 @@ useUiStore.subscribe((s, p) => {
       moveMode: s.moveMode,
       fillSizes: s.fillSizes,
       motifs: s.motifs,
+      countIn: s.countIn,
     });
 });

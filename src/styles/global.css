@@ -3214,3 +3214,123 @@ button.now.start-btn.set b {
     padding: 0 14px;
   }
 }
+
+/* ---------------------------------------------------------------- count-in */
+/* the switch beside Play: quiet when off, lit with its number of bars when on */
+.count-btn {
+  position: relative;
+  flex-shrink: 0;
+  color: var(--faint);
+}
+.count-btn.on {
+  color: var(--accent);
+}
+.count-n {
+  position: absolute;
+  right: 4px;
+  top: 5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+/* while counting in: the page goes soft, the beat is counted large in the middle */
+.count-in {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(0.9);
+  backdrop-filter: blur(10px) saturate(0.9);
+  animation: count-fade 0.18s ease-out;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@keyframes count-fade {
+  from {
+    opacity: 0;
+  }
+}
+.count-in-num {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(7rem, 34vmin, 15rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  animation: count-beat 0.42s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes count-beat {
+  from {
+    opacity: 0.35;
+    transform: scale(1.18);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.count-in-dots {
+  display: flex;
+  gap: 12px;
+}
+.count-in-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--muted);
+  transition: background 0.1s;
+}
+.count-in-dots i.on {
+  background: var(--muted);
+}
+/* the bar right before the music: the dots in the accent */
+.count-in-dots.last i {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.count-in-dots.last i.on {
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .count-in,
+  .count-in-num {
+    animation: none;
+  }
+}
+.tempo-note-sm {
+  display: none;
+}
+/* phones: Play, count-in, where it starts, the tempo (a tap sets it: ±, tap tempo, a slider),
+   undo / redo and the pad fit one line; the inline slider steps aside for the count-in */
+@media (max-width: 560px) {
+  .transport .tempo {
+    display: none;
+  }
+  .transport .tempo-num {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .tempo-note-sm {
+    display: inline;
+    margin-right: 2px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .count-btn {
+    min-width: 40px;
+    padding: 0 6px;
+  }
+}

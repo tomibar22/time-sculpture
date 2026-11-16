@@ -98,6 +98,11 @@ export function Help() {
           <details className="help-topic">
             <summary>Listen and loop</summary>
             <p>
+              <b>Count-in</b>: the metronome beside Play. Each tap goes off, 1 bar, 2 bars. With it
+              on, Play first counts the bar in, large in the middle of a softened screen, then
+              plays. A tap on the count stops.
+            </p>
+            <p>
               Space plays from the top; with tiles or a range selected, the selection loops until
               you stop it. To start somewhere else, tap “from the top” beside Play and choose a bar
               by its number, or place the caret and press ▶ Start here: a green flag marks the place

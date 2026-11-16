@@ -88,3 +88,35 @@ test('with a selection, Play loops the selection until Stop', async ({ page }) =
   // the selection is still there, ready to play again
   await expect(page.getByTestId('caretname')).toContainText('4 pulses');
 });
+
+test('count-in: off, 1 bar, 2 bars from one button; the page goes soft and counts, then plays', async ({
+  page,
+}) => {
+  const btn = page.getByTestId('count-in');
+  await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  await btn.click();
+  await expect(btn).toHaveAttribute('aria-pressed', 'true');
+  await expect(btn).toContainText('1');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  const overlay = page.getByTestId('count-overlay');
+  await expect(overlay).toBeVisible();
+  await expect(overlay.locator('.count-in-dots i')).toHaveCount(4);
+  // one bar of 4 at ♩72 is about 3.3 s: then it plays on without the overlay
+  await expect(overlay).toHaveCount(0, { timeout: 6000 });
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Stop', exact: true }).click();
+  // a tap on the count stops before anything plays
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(overlay).toBeVisible();
+  await overlay.click();
+  await expect(overlay).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  // remembered, and the next tap is 2 bars, then off
+  await page.reload();
+  await ready(page);
+  await expect(btn).toContainText('1');
+  await btn.click();
+  await expect(btn).toContainText('2');
+  await btn.click();
+  await expect(btn).toHaveAttribute('aria-pressed', 'false');
+});

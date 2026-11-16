@@ -160,3 +160,11 @@ export const EraseIcon = () => (
     <path d="M8 19h11M5 14l8.500-8.500a1.500 1.500 0 0 1 2.100 0L19 8.900a1.500 1.500 0 0 1 0 2.100L11 19H8l-3-3a1.400 1.400 0 0 1 0-2z" />
   </svg>
 );
+/** Count-in: a metronome. */
+export const MetronomeIcon = () => (
+  <svg {...base}>
+    <path d="M9.2 3.5h5.6L19 20.5H5z" />
+    <path d="M12 16l5-9" />
+    <path d="M8 16h8" />
+  </svg>
+);
