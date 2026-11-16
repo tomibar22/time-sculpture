@@ -8,7 +8,9 @@ import { countWays, sampleTiling } from './count';
 export type ShapeFamily =
   | 'tihai'
   | 'chakradhar'
+  | 'world'
   | 'repeat'
+  | 'turn'
   | 'additive'
   | 'grow'
   | 'pyramid'
@@ -35,7 +37,17 @@ export const SHAPE_FAMILIES: { id: ShapeFamily; label: string; hint: string }[] 
     label: 'Chakradhar',
     hint: 'A tihai of tihais: each of its three phrases is a small tihai',
   },
+  {
+    id: 'world',
+    label: 'Known rhythms',
+    hint: 'Rhythms with a name: tresillo, cinquillo, the claves, bossa, bembé, aksak…',
+  },
   { id: 'repeat', label: 'Repeat', hint: 'A cell repeated: 3 3 2 · 3 3 2' },
+  {
+    id: 'turn',
+    label: 'Rotating',
+    hint: 'A cell that starts one group later each time: 3 3 2 · 3 2 3 · 2 3 3',
+  },
   {
     id: 'additive',
     label: 'Additive',
@@ -67,6 +79,66 @@ function period(t: number[]): number {
     if (t.every((x, i) => x === t[i % p])) return p;
   }
   return 0;
+}
+
+/**
+ * Rhythms with a name, as the sizes between their strokes. They are found at any scale (a
+ * tresillo is 3 3 2, and 6 6 4) and any number of times in a row.
+ */
+export const WORLD_RHYTHMS: { name: string; sizes: number[] }[] = [
+  { name: 'Tresillo', sizes: [3, 3, 2] },
+  { name: 'Habanera', sizes: [3, 1, 2, 2] },
+  { name: 'Cinquillo', sizes: [2, 1, 2, 1, 2] },
+  { name: 'Son clave', sizes: [3, 3, 4, 2, 4] },
+  { name: 'Rumba clave', sizes: [3, 4, 3, 2, 4] },
+  { name: 'Bossa nova', sizes: [3, 3, 4, 3, 3] },
+  { name: 'Gahu', sizes: [3, 3, 4, 4, 2] },
+  { name: 'Shiko', sizes: [4, 2, 4, 2, 4] },
+  { name: 'Soukous', sizes: [3, 3, 4, 1, 5] },
+  { name: 'Bembé', sizes: [2, 2, 1, 2, 2, 2, 1] },
+  { name: 'Fume-fume', sizes: [2, 2, 3, 2, 3] },
+  { name: 'Aksak 7', sizes: [2, 2, 3] },
+  { name: 'Aksak 7 (long first)', sizes: [3, 2, 2] },
+  { name: 'Aksak 9', sizes: [2, 2, 2, 3] },
+  { name: 'Aksak 10', sizes: [3, 3, 2, 2] },
+  { name: 'Aksak 11', sizes: [2, 2, 3, 2, 2] },
+];
+
+function worldLabel(t: number[]): string | null {
+  const p = period(t) || t.length;
+  const c = t.slice(0, p);
+  const k = t.length / p;
+  for (const w of WORLD_RHYTHMS) {
+    if (w.sizes.length !== p) continue;
+    const scale = c[0]! / w.sizes[0]!;
+    if (!Number.isInteger(scale) || scale < 1) continue;
+    if (!w.sizes.every((v, i) => v * scale === c[i])) continue;
+    return `${w.name}${scale > 1 ? `, ${scale} times as broad` : ''}${k > 1 ? ` ×${k}` : ''}`;
+  }
+  return null;
+}
+
+const rotate = (c: number[], by: number) => {
+  const n = c.length;
+  const r = ((by % n) + n) % n;
+  return [...c.slice(r), ...c.slice(0, r)];
+};
+
+/** Blocks of one cell, each starting one group later (or earlier) than the one before. */
+function turnLabel(t: number[]): string | null {
+  for (let p = 2; p <= t.length / 2; p++) {
+    if (t.length % p) continue;
+    const c = t.slice(0, p);
+    if (new Set(c).size < 2 || period(c)) continue;
+    const blocks = t.length / p;
+    for (const dir of [1, -1]) {
+      let ok = true;
+      for (let i = 1; i < blocks && ok; i++)
+        ok = same(t.slice(i * p, (i + 1) * p), rotate(c, dir * i));
+      if (ok) return `${cell(c)} turning${dir < 0 ? ' back' : ''}, ×${blocks}`;
+    }
+  }
+  return null;
 }
 
 const cell = (t: number[]) => (t.length === 1 ? `${t[0]}` : `(${t.join(' ')})`);
@@ -240,7 +312,9 @@ function goldenLabel(t: number[]): string | null {
 }
 
 const LABELS: [ShapeFamily, (t: number[]) => string | null][] = [
+  ['world', worldLabel],
   ['repeat', repeatLabel],
+  ['turn', turnLabel],
   ['additive', additiveLabel],
   ['grow', growLabel],
   ['pyramid', pyramidLabel],
@@ -379,6 +453,20 @@ export function shapeFills(
       put([...body, e]);
       put([e, ...body]);
     }
+  }
+  // rhythms with a name, at any scale that fits, as many times as the region holds
+  for (const w of WORLD_RHYTHMS)
+    for (const scale of [1, 2, 3, 4]) {
+      const c = w.sizes.map((v) => v * scale);
+      const s = sum(c);
+      if (R % s === 0) put(times(c, R / s));
+    }
+  // a cell turning: each block starts one group later (or earlier) than the one before
+  for (const c of cells) {
+    if (c.length < 2 || new Set(c).size < 2 || period(c)) continue;
+    const s = sum(c);
+    if (R % s || R / s < 2 || R / s > c.length + 1) continue;
+    for (const dir of [1, -1]) put(range(0, R / s - 1, 1).flatMap((i) => rotate(c, dir * i)));
   }
   // growing / shrinking
   for (const x of S)

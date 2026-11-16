@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as E from '../engine';
 import type { FillOption } from '../engine';
 import {
@@ -26,6 +26,8 @@ const SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
 const LIMIT = 400;
 /** Rows drawn at a time in a long list. */
 const PAGE = 40;
+/** Fills shown of each kind in "All shapes". */
+const GROUP_SHOWN = 3;
 
 /** A fill with a note on where it came from (a kept motif fitted here, a bred child). */
 type Listed = FillOption & { note?: string };
@@ -55,9 +57,11 @@ export function FillPanel() {
         ? 'Anything'
         : shape === 'mine'
           ? 'Mine'
-          : shape === 'bred'
-            ? 'Bred'
-            : (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.label ?? 'Shapes');
+          : shape === 'echo'
+            ? 'From the piece'
+            : shape === 'bred'
+              ? 'Bred'
+              : (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.label ?? 'Shapes');
 
   const toggle = (n: number) =>
     set({
@@ -206,6 +210,49 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
     }
     return out;
   }, [motifs, R, meter, region.a]);
+  // the piece's own material, said again here: what comes just before the region and the
+  // opening of the piece, as they are and reordered (so a fill can grow out of what is written)
+  const doc = useDocStore((s) => s.doc);
+  const echo = useMemo(() => {
+    const out: Listed[] = [];
+    const seen = new Set<string>();
+    const strokes = (a: number, b: number): number[] => {
+      // a silence after a stroke reads as a longer stroke; one at the very start joins the next
+      const t: number[] = [];
+      let lead = 0;
+      for (const g of E.sliceRange(doc, a, b)) {
+        if (g.kind === 'sound') {
+          t.push(g.n + lead);
+          lead = 0;
+        } else if (t.length) t[t.length - 1]! += g.n;
+        else lead += g.n;
+      }
+      return t;
+    };
+    const add = (t: number[] | null, note: string) => {
+      if (!t || t.length < 2 || seen.has(t.join(' '))) return;
+      seen.add(t.join(' '));
+      out.push({ ...E.optionOf(meter, region.a, t), note });
+    };
+    const from = (src: number[], name: string) => {
+      const base = E.fitMotif(src, R);
+      if (!base || base.length < 2) return;
+      add(base, `${name}, again`);
+      const vs = E.variations(
+        base.map((n) => ({ n, kind: 'sound' as const })),
+        40,
+        () => 0.5,
+      ).filter((v) => v.kind === 'order');
+      for (const v of vs.slice(0, 7))
+        add(
+          v.groups.map((g) => g.n),
+          `${name}, ${v.label.toLowerCase()}`,
+        );
+    };
+    if (region.a > 0) from(strokes(Math.max(0, region.a - R), region.a), 'What came before');
+    if (region.a >= R) from(strokes(0, R), 'The opening');
+    return out;
+  }, [doc, meter, region.a, R]);
   // a new region: start over
   useEffect(() => {
     setBrood({ gen: 0, kids: [] });
@@ -216,7 +263,8 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   useEffect(() => {
     if (shape === 'mine' && !mine.length) set({ fillShape: 'shapes' });
     if (shape === 'bred' && !brood.kids.length) set({ fillShape: 'shapes' });
-  }, [shape, mine.length, brood.kids.length, set]);
+    if (shape === 'echo' && !echo.length) set({ fillShape: 'shapes' });
+  }, [shape, mine.length, brood.kids.length, echo.length, set]);
 
   const families = useMemo(() => {
     const n = new Map<string, number>();
@@ -225,6 +273,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   }, [options]);
   const list: Listed[] = useMemo(() => {
     if (shape === 'mine') return mine;
+    if (shape === 'echo') return echo;
     if (shape === 'bred') return brood.kids;
     if (shape === 'any') return E.sortFills(options, sort);
     return options
@@ -237,7 +286,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
           a.tiles - b.tiles ||
           a.key.localeCompare(b.key),
       );
-  }, [options, sort, shape, mine, brood]);
+  }, [options, sort, shape, mine, echo, brood]);
 
   const parents = useMemo(() => {
     const ps = new Map<string, number[]>();
@@ -287,16 +336,48 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
     io.observe(el);
     return () => io.disconnect();
   }, [shown, list, view]);
+  // "All shapes" is a table of contents: a few of every family under its name, and the way to
+  // the rest of it (a flat list of hundreds began with sixty of one kind)
+  const groups = useMemo(() => {
+    if (shape !== 'shapes') return null;
+    const out: { id: string; label: string; hint: string; items: Listed[] }[] = [];
+    if (echo.length)
+      out.push({
+        id: 'echo',
+        label: 'From the piece',
+        hint: 'What is already written, said again here',
+        items: echo,
+      });
+    for (const f of E.SHAPE_FAMILIES) {
+      const items = list.filter((o) => o.shape?.family === f.id);
+      if (items.length) out.push({ id: f.id, label: f.label, hint: f.hint, items });
+    }
+    return out;
+  }, [shape, list, echo]);
+  const onListKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    const step = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity }[e.key];
+    if (step === undefined) return;
+    const rows = [...e.currentTarget.querySelectorAll<HTMLElement>('.fill-main')];
+    const i = rows.indexOf(document.activeElement as HTMLElement);
+    if (i < 0) return;
+    e.preventDefault();
+    rows[Math.max(0, Math.min(rows.length - 1, i + step))]?.focus();
+  };
   const hint =
     shape === 'mine'
       ? 'Fills you kept, fitted to this length.'
-      : shape === 'bred'
-        ? `Children of what you kept. Keep the ones you like, then breed again.`
-        : shape === 'any'
-          ? null
-          : list.length
-            ? (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.hint ?? `${list.length} shaped fills`)
-            : 'No shapes fit these sizes; try more sizes or Anything.';
+      : shape === 'echo'
+        ? 'What is already written, said again here: as it is, backwards, turned.'
+        : shape === 'shapes' && list.length
+          ? `${list.length} shaped fills, by kind. ↑ ↓ walk the list.`
+          : shape === 'bred'
+            ? `Children of what you kept. Keep the ones you like, then breed again.`
+            : shape === 'any'
+              ? null
+              : list.length
+                ? (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.hint ??
+                  `${list.length} shaped fills`)
+                : 'No shapes fit these sizes; try more sizes or Anything.';
 
   return (
     <div className="fill-browse">
@@ -309,6 +390,16 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
             onClick={() => set({ fillShape: 'mine' })}
           >
             <HeartIcon filled /> Mine <span className="fill-count">{mine.length}</span>
+          </button>
+        )}
+        {echo.length > 0 && (
+          <button
+            type="button"
+            title="What is already written, said again here: as it is, backwards, turned"
+            aria-pressed={shape === 'echo'}
+            onClick={() => set({ fillShape: 'echo' })}
+          >
+            From the piece <span className="fill-count">{echo.length}</span>
           </button>
         )}
         {brood.kids.length > 0 && (
@@ -459,21 +550,64 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
           <FillMap options={list} cand={cand} onCand={(o) => o && tryIt(o)} onUse={use} />
         </>
       ) : (
-        <ul className="fill-list" aria-label="Ways to fill" onMouseLeave={settle}>
-          {list.slice(0, shown).map((o) => (
-            <Row
-              key={o.key}
-              o={o}
-              beats={beats}
-              written={picked === o.key}
-              trying={trying?.key === o.key}
-              kept={kept.has(o.key)}
-              named={named}
-              onChoose={choose}
-              item
-            />
-          ))}
-          {shown < list.length && <li ref={more} className="fill-more" aria-hidden="true" />}
+        <ul
+          className="fill-list"
+          aria-label="Ways to fill"
+          onMouseLeave={settle}
+          onKeyDown={onListKey}
+        >
+          {groups
+            ? groups.map((g) => (
+                <Fragment key={g.id}>
+                  <li className="fill-group">
+                    <span className="fill-group-name" title={g.hint}>
+                      {g.label}
+                    </span>
+                    {g.items.length > GROUP_SHOWN && (
+                      <button
+                        type="button"
+                        className="link-btn"
+                        title={g.hint}
+                        onClick={() => set({ fillShape: g.id as typeof shape })}
+                      >
+                        all {g.items.length}
+                        <span className="sr-only"> of {g.label}</span>
+                      </button>
+                    )}
+                  </li>
+                  {g.items.slice(0, GROUP_SHOWN).map((o) => (
+                    <Row
+                      key={`${g.id} ${o.key}`}
+                      o={o}
+                      beats={beats}
+                      written={picked === o.key}
+                      trying={trying?.key === o.key}
+                      kept={kept.has(o.key)}
+                      named={named}
+                      onChoose={choose}
+                      item
+                    />
+                  ))}
+                </Fragment>
+              ))
+            : list
+                .slice(0, shown)
+                .map((o) => (
+                  <Row
+                    key={o.key}
+                    o={o}
+                    beats={beats}
+                    written={picked === o.key}
+                    trying={trying?.key === o.key}
+                    kept={kept.has(o.key)}
+                    named={named}
+                    onChoose={choose}
+                    item
+                  />
+                ))}
+          {!groups && shown < list.length && (
+            <li ref={more} className="fill-more" aria-hidden="true" />
+          )}
         </ul>
       )}
       <UseBar
@@ -523,9 +657,11 @@ const Row = memo(function Row({
         data-written={written || undefined}
         title={trying ? 'Tap again to use it' : undefined}
         onMouseEnter={() => previewFill(o)}
+        onFocus={(e) => e.currentTarget.matches(':focus-visible') && previewFill(o)}
         onClick={() => onChoose(o)}
       >
         <Strip sizes={o.sizes} rests={o.rests} beats={beats} />
+        <span className="sr-only">{o.key}. </span>
         <span className="fill-cap">
           <Contour sizes={o.sizes} />
           <span className="fill-meta">{meta}</span>

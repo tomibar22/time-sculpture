@@ -2958,3 +2958,27 @@ button.now.start-btn.set b {
 .start-btn .start-short {
   display: none;
 }
+
+/* "All shapes": a few fills of every kind under its name */
+.fill-list .fill-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 12px 0 2px;
+  padding: 0 4px;
+}
+.fill-list .fill-group:first-child {
+  margin-top: 2px;
+}
+.fill-group-name {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fill-list .fill-group .link-btn {
+  min-height: 32px;
+  font-size: 0.82rem;
+}

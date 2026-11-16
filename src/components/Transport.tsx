@@ -75,7 +75,8 @@ export function Dock() {
   // on a phone an open fill panel takes the place of the bar and the pad, so the score (and the
   // preview in it) stays in view
   const phone = useMedia(PHONE);
-  const filling = useUiStore((s) => s.fillPanel !== null) && phone;
+  // (on tablets too: held sideways, the panel, the bar and the pad together left no score)
+  const filling = useUiStore((s) => s.fillPanel !== null) && (phone || docked);
   const ref = useRef<HTMLDivElement>(null);
   // scrolled on to the options or the help: the score is off the screen, so the bar and the pad
   // step aside and only the transport stays

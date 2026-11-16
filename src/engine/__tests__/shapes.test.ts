@@ -5,7 +5,14 @@ const fam = (t: number[]) => shapeOf(t)?.family;
 
 describe('shapes', () => {
   it('names the shape of a fill', () => {
-    expect(shapeOf([3, 3, 2, 3, 3, 2])?.label).toBe('(3 3 2) ×2');
+    expect(shapeOf([3, 2, 4, 3, 2, 4])?.label).toBe('(3 2 4) ×2');
+    // rhythms with a name, at any scale and any number of times
+    expect(shapeOf([3, 3, 2, 3, 3, 2])?.label).toBe('Tresillo ×2');
+    expect(shapeOf([6, 6, 4])?.label).toBe('Tresillo, 2 times as broad');
+    expect(fam([3, 3, 4, 2, 4])).toBe('world');
+    // a cell that starts one group later each time
+    expect(shapeOf([4, 3, 2, 3, 2, 4, 2, 4, 3])?.label).toBe('(4 3 2) turning, ×3');
+    expect(fam([4, 3, 2, 2, 4, 3])).toBe('turn');
     expect(fam([3, 2, 3, 3, 2])).toBe('grow');
     expect(fam([3, 2, 3, 3, 2, 3, 3, 3, 2])).toBe('grow');
     expect(shapeOf([3, 3, 3, 2])?.label).toBe('3 ×3 → 2');
@@ -37,5 +44,16 @@ describe('shapes', () => {
     expect(keys).toContain('3 3 2 3 3 2');
     expect(keys).toContain('3 2 4 2 5');
     expect(keys).toContain('4 3 2 3 4');
+  });
+
+  it('builds known rhythms and turning cells that fit', () => {
+    const fills = shapeFills(32, [2, 3, 4]);
+    const keys = new Map(fills.map((f) => [f.sizes.join(' '), f.shape]));
+    expect(keys.get('3 3 4 2 4 3 3 4 2 4')?.label).toBe('Son clave ×2');
+    expect(keys.get('3 3 2 3 3 2 3 3 2 3 3 2')?.family).toBe('world');
+    const turns = shapeFills(27, [2, 3, 4]).filter((f) => f.shape.family === 'turn');
+    expect(turns.map((f) => f.sizes.join(' '))).toContain('4 3 2 3 2 4 2 4 3');
+    for (const f of fills) expect(f.sizes.reduce((a, b) => a + b, 0)).toBe(32);
+    for (const f of turns) expect(f.sizes.reduce((a, b) => a + b, 0)).toBe(27);
   });
 });

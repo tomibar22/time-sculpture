@@ -197,7 +197,7 @@ export interface UiState {
   fillPanel: 'browse' | 'vary' | null;
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
-  fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred';
+  fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo';
   /** Browse as a list, or as a map of the fills laid out by two measures. */
   fillView: 'list' | 'map';
   fillAxes: [FillAxis, FillAxis];
