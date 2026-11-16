@@ -245,6 +245,12 @@ export function Help() {
               group later each time. <b>From the piece</b> takes what is written just before the
               region, and the opening, and says it again there: as it is, backwards, turned.
             </p>
+            <p>
+              Almost right? Tap a fill to try it, then <b>Vary</b> beside Use: the list becomes that
+              fill said other ways (nudged, swapped, rotated, backwards, regrouped), without
+              anything being written. Tap one to try it, Use to write it, Vary again to go further,
+              ‹ Back to return.
+            </p>
           </details>
           <details className="help-topic">
             <summary>Vary</summary>

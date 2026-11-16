@@ -70,3 +70,30 @@ test('fills by kind: a known rhythm by its name, and what the piece already says
   // the sizes are read out too, not only the name
   await expect(list.locator('.fill-main', { hasText: 'Tresillo ×2' })).toContainText('3 3 2 3 3 2');
 });
+
+test('vary a fill straight from the list: try it, Vary, pick a variation, Use', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Fill it…' }).click();
+  const list = page.getByRole('list', { name: 'Ways to fill' });
+  // any fill of the 9 open pulses, on trial
+  const first = list.locator('.fill-main').first();
+  await first.click();
+  const key = (await first.locator('.sr-only').first().innerText()).replace(/\.\s*$/, '').trim();
+  await page.getByRole('button', { name: 'Vary', exact: true }).click();
+  // the list is now that fill and its variations; nothing is written yet
+  const around = page.getByRole('group', { name: 'Variations' });
+  await expect(around).toContainText(`Variations of ${key}`);
+  await expect(list.locator('.fill-main').first()).toContainText('As it is');
+  await expectSeq(page, DEFAULT_SEQ);
+  // a variation: tried, then used; it still fills exactly the 9 pulses
+  const v = list.locator('.fill-main').nth(1);
+  const vKey = (await v.locator('.sr-only').first().innerText()).replace(/\.\s*$/, '').trim();
+  expect(vKey).not.toBe(key);
+  await v.click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
+  await expectSeq(page, `(2) 3 3 2 ${vKey} │ 3 (1) 3 2 4`);
+  // Back returns to all the fills
+  await around.getByRole('button', { name: '‹ Back' }).click();
+  await expect(around).toHaveCount(0);
+});

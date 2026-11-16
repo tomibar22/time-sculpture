@@ -2,7 +2,7 @@ import * as E from '../engine';
 import type { FillOption } from '../engine';
 import { ui as sfx } from '../audio/voices';
 import { announce, plural, run, toast } from './actions';
-import { selectedRegion, setCaret } from './editing';
+import { selectedRegion } from './editing';
 import { MAX_MOTIFS, useDocStore, useUiStore } from './store';
 import { startPlayback, stopPlayback } from '../audio/player';
 
@@ -52,6 +52,10 @@ export function previewVary(v: E.Variation | null): void {
 
 export function closeFill(): void {
   if (ui().playing && ui().loop) stopPlayback();
+  const r = ui().range;
+  if (filledSpace && r && r.a === filledSpace.a && r.b === filledSpace.b)
+    ui().set({ range: null, rangeAnchor: null });
+  filledSpace = null;
   ui().set({ fillPanel: null, preview: null });
 }
 
@@ -116,9 +120,22 @@ function apply(groups: E.GroupSpec[], label: string): boolean {
       rangeAnchor: region.a,
       caret: region.b,
     });
-  } else setCaret(region.b, { quiet: true });
+  } else {
+    // the open space, now full: it stays the region while the panel is open (another fill, or a
+    // variation of this one, goes to the same place); closing the panel leaves only the caret
+    filledSpace = { a: region.a, b: region.b };
+    useUiStore.getState().set({
+      selection: [],
+      range: { a: region.a, b: region.b },
+      rangeAnchor: region.a,
+      caret: region.b,
+    });
+  }
   return true;
 }
+
+/** The stretch that was open space until a fill from the panel was written into it. */
+let filledSpace: { a: number; b: number } | null = null;
 
 /** Fill the region with a random tiling of the chosen sizes. */
 export function fillRandom(): boolean {

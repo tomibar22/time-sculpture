@@ -3166,3 +3166,51 @@ button.now.start-btn.set b {
   width: 16px;
   height: 16px;
 }
+
+/* Browse: "Vary" on the fill on trial turns the list into its variations */
+.fill-usebar .fill-vary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+}
+.fill-usebar .fill-vary svg {
+  width: 18px;
+  height: 18px;
+}
+.fill-around {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 4px;
+  font-size: 0.86rem;
+}
+.fill-around .link-btn {
+  min-height: 36px;
+  white-space: nowrap;
+}
+.fill-around-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.fill-around-name b {
+  font-family: var(--f-mono);
+  color: var(--fg);
+}
+@media (max-width: 560px) {
+  .fill-usebar {
+    gap: 6px;
+    padding-left: 10px;
+  }
+  .fill-usebar .fill-vary {
+    padding: 0 8px;
+  }
+  .fill-usebar .primary {
+    padding: 0 14px;
+  }
+}

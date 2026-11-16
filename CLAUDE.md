@@ -712,3 +712,15 @@ overrides.
 - `ui.doomed {a, b}` (bars, 0-based): the bars a removal would take, drawn as a red wash
   (`DrawState.doomed`, beats) while the menu item or the range-bar button is hovered / focused /
   asked, and while the Remove part of the Bars dialog is in use.
+
+### Vary straight from Browse (user request: often a variation of a fill is wanted, not the fill)
+
+- The Use bar in Browse has **Vary** beside Use (`UseBar` `onVary` / `varying`; not in the Vary
+  panel). It turns the list (and the map) into the fill on trial and its `variations` (sounding
+  ones only, first row "As it is"), nothing written: local `stack` in Browse (`around` = its top,
+  `nearby` = the rows). A header (`.fill-around`, group "Variations") names the fill, counts them
+  and has "‹ Back" (one step; Vary on a variation goes a step further). Rows behave as everywhere:
+  tap tries, tap again or Use writes. Choosing a shape chip or a new region leaves the variations.
+- A fill written into the **open space** from the panel keeps that stretch selected as a range
+  while the panel is open (`filledSpace` in state/fill.ts), so another fill or variation goes to
+  the same place; `closeFill` drops the range and leaves the caret at its end.

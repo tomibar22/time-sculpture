@@ -190,6 +190,13 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   /** A fill pinned for comparison. */
   const [pin, setPin] = useState<Listed | null>(null);
   const [brood, setBrood] = useState<{ gen: number; kids: Listed[] }>({ gen: 0, kids: [] });
+  /**
+   * "Vary" on the fill on trial: the list becomes that fill and its variations, right here,
+   * nothing written. Varying one of those goes a step further; Back returns a step.
+   */
+  const [stack, setStack] = useState<Listed[]>([]);
+  const around = stack[stack.length - 1] ?? null;
+  const aroundRef = useRef<HTMLDivElement>(null);
 
   const { options, total } = useMemo(
     () => E.fillOptions(meter, region.a, R, sizes, LIMIT),
@@ -259,7 +266,43 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
     setPin(null);
     setCand(null);
     setTrying(null);
+    setStack([]);
   }, [region.a, R]);
+  // choosing a kind of fill leaves the variations
+  useEffect(() => setStack([]), [shape]);
+  const nearby = useMemo(() => {
+    if (!around) return [];
+    const out: Listed[] = [{ ...around, note: 'As it is' }];
+    const vs = E.variations(
+      around.sizes.map((n) => ({ n, kind: 'sound' as const })),
+      60,
+    );
+    for (const v of vs) {
+      if (v.groups.some((g) => g.kind !== 'sound')) continue;
+      out.push({
+        ...E.optionOf(
+          meter,
+          region.a,
+          v.groups.map((g) => g.n),
+        ),
+        note: v.label,
+      });
+    }
+    return out;
+  }, [around, meter, region.a]);
+  const vary = (o: Listed) => {
+    setStack((st) => (st[st.length - 1]?.key === o.key ? st : [...st, o]));
+    setCand(o);
+    setTrying(o);
+    previewFill(o);
+  };
+  // the variations begin at the top of what is in sight
+  useEffect(() => {
+    const el = aroundRef.current;
+    const panel = el?.closest('.fillpanel');
+    if (!el || !panel) return;
+    panel.scrollTop += el.getBoundingClientRect().top - panel.getBoundingClientRect().top - 6;
+  }, [around]);
   useEffect(() => {
     if (shape === 'mine' && !mine.length) set({ fillShape: 'shapes' });
     if (shape === 'bred' && !brood.kids.length) set({ fillShape: 'shapes' });
@@ -272,6 +315,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
     return n;
   }, [options]);
   const list: Listed[] = useMemo(() => {
+    if (around) return nearby;
     if (shape === 'mine') return mine;
     if (shape === 'echo') return echo;
     if (shape === 'bred') return brood.kids;
@@ -286,7 +330,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
           a.tiles - b.tiles ||
           a.key.localeCompare(b.key),
       );
-  }, [options, sort, shape, mine, echo, brood]);
+  }, [options, sort, shape, mine, echo, brood, around, nearby]);
 
   const parents = useMemo(() => {
     const ps = new Map<string, number[]>();
@@ -321,7 +365,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   // after a hover, the score goes back to the fill on trial
   const settle = useCallback(() => previewFill(tryingRef.current), []);
   const kept = useMemo(() => new Set(motifs.map((m) => m.join(' '))), [motifs]);
-  const named = shape !== 'any';
+  const named = shape !== 'any' || !!around;
   // a long list is drawn a screenful at a time: more rows arrive as the end comes into view
   const [shown, setShown] = useState(PAGE);
   const more = useRef<HTMLLIElement>(null);
@@ -339,7 +383,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
   // "All shapes" is a table of contents: a few of every family under its name, and the way to
   // the rest of it (a flat list of hundreds began with sixty of one kind)
   const groups = useMemo(() => {
-    if (shape !== 'shapes') return null;
+    if (shape !== 'shapes' || around) return null;
     const out: { id: string; label: string; hint: string; items: Listed[] }[] = [];
     if (echo.length)
       out.push({
@@ -353,7 +397,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
       if (items.length) out.push({ id: f.id, label: f.label, hint: f.hint, items });
     }
     return out;
-  }, [shape, list, echo]);
+  }, [shape, list, echo, around]);
   const onListKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
     const step = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity }[e.key];
     if (step === undefined) return;
@@ -454,7 +498,7 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
             Map
           </button>
         </div>
-        {shape === 'any' && view === 'list' && (
+        {shape === 'any' && view === 'list' && !around && (
           <>
             <label htmlFor="fill-sort" className="sr-only">
               Sort
@@ -523,7 +567,23 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
           <CloseIcon />
         </button>
       </div>
-      <p className="lib-note fill-hint">
+      {around && (
+        <div className="fill-around" ref={aroundRef} role="group" aria-label="Variations">
+          <button
+            type="button"
+            className="link-btn"
+            title={stack.length > 1 ? 'Back to the fill before' : 'Back to all the fills'}
+            onClick={() => setStack((st) => st.slice(0, -1))}
+          >
+            ‹ Back
+          </button>
+          <span className="fill-around-name">
+            Variations of <b>{around.key}</b>
+          </span>
+          <span className="fill-count">{nearby.length - 1}</span>
+        </div>
+      )}
+      <p className="lib-note fill-hint" hidden={!!around}>
         {hint ??
           (total > BigInt(LIMIT)
             ? `${LIMIT} of ${total.toLocaleString('en-US')}, picked at random`
@@ -614,6 +674,8 @@ function Browse({ shapesHidden = false }: { shapesHidden?: boolean }) {
         trying={trying}
         beats={beats}
         onUse={() => trying && use(trying)}
+        onVary={trying && trying.sizes.length > 1 ? () => vary(trying) : undefined}
+        varying={!!trying && around?.key === trying.key}
         onCancel={() => {
           setTrying(null);
           previewFill(null);

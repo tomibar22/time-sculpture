@@ -3,7 +3,7 @@ import * as E from '../engine';
 import { fillRegion } from '../state/fill';
 import { useDocStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { CloseIcon, HeartIcon } from './Icons';
+import { BranchIcon, CloseIcon, HeartIcon } from './Icons';
 
 /** A line in a strip: where it falls (0–1 of the region) and whether a bar starts there. */
 export interface StripLine {
@@ -132,7 +132,13 @@ export function UseBar({
   beats,
   onUse,
   onCancel,
+  onVary,
+  varying = false,
 }: {
+  /** Browse: show this fill's variations in the list (it is not written). */
+  onVary?: () => void;
+  /** The list already shows the variations of this very fill. */
+  varying?: boolean;
   /** The fill on trial, or null (no bar). */
   trying: { sizes: number[]; rests?: number[] } | null;
   beats?: StripLine[];
@@ -148,6 +154,19 @@ export function UseBar({
         <span className="sr-only"> {trying.sizes.join(' ')}</span>
       </span>
       <Strip sizes={trying.sizes} rests={trying.rests} beats={beats} />
+      {onVary && (
+        <button
+          type="button"
+          className="fill-vary"
+          aria-pressed={varying}
+          disabled={varying}
+          title="Not quite it? See this fill said other ways: nudged, rotated, backwards, regrouped…"
+          onClick={onVary}
+        >
+          <BranchIcon />
+          Vary
+        </button>
+      )}
       <button type="button" className="primary" onClick={onUse}>
         Use
       </button>
