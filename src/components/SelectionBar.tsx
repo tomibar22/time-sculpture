@@ -327,6 +327,13 @@ function CaretBar() {
           </button>
           <button
             type="button"
+            title="A pattern said again and again so that it ends exactly here: how many times, and from where (tihais, crossing patterns)"
+            onClick={() => openFill('land')}
+          >
+            Land…
+          </button>
+          <button
+            type="button"
             title="Ending bracket over the range: 1., 2. … (V)"
             onClick={() => openVolta(range)}
           >

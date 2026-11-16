@@ -758,3 +758,18 @@ overrides.
   with a **Download** button (a download by hand is never held back as automatic). Touch devices
   keep the share sheet. `vite:preloadError` (a lazy chunk is gone after a new deploy) saves and
   reloads (pwa.ts).
+
+### Land a pattern (user request: a calculator for tihais and crossing patterns)
+
+- `ui.fillPanel === 'land'` (`LandPanel.tsx`, no head row; ✕ in the pattern line): build a pattern
+  of tiles (`ui.landPattern`; size buttons 1–16, ⌫, Clear, "Copied 3 3 2" from the clipboard) and
+  `patternLandings(R, pattern)` (engine/land.ts) lists every way it ends exactly on the end of the
+  region: ×k for every k that fits (the most first; `lead` = pulses left before it), then tihais
+  (three times, a gap of g pulses held on the last tile of the first two, since silence is never
+  written). Each row: the strip over the whole region (the lead blank), "×4" / "Tihai · gap 2",
+  where it begins ("from bar 1, beat 3 +3/4"; "on the beat" / "on 1" in the accent) or "fills it
+  exactly". Try, then Use (`previewLanding` / `writeLanding` in state/fill.ts): only
+  [region.a + lead, region.b) is written with `fillRange`, so what is before stays; the region
+  stays selected while the panel is open.
+- Entries: "Land…" beside "Fill it…" in the state line (open space), "Land…" in the range bar,
+  "Land a pattern…" in the range menu and "Land a pattern here…" in the empty-place menu.

@@ -3473,3 +3473,82 @@ canvas.score.hushed {
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* ---------------------------------------------------------------- land a pattern */
+.land {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.land-pattern {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.land-lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.land-tiles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.land-tiles i {
+  flex: 0 0 auto;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: 7px;
+  font: 600 0.9rem/28px var(--f-mono);
+  text-align: center;
+}
+.land-tiles .dim {
+  font-size: 0.86rem;
+  color: var(--faint);
+}
+.land-sum {
+  font-size: 0.86rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.land-pattern button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  white-space: nowrap;
+}
+.land .fill-sizes button {
+  flex: 0 0 auto;
+  min-width: 44px;
+  color: var(--fg);
+}
+.land-times {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+.land-mark {
+  color: var(--accent);
+  font-weight: 700;
+}
+.land .fill-cap {
+  gap: 10px;
+}
+.land-hint {
+  font-size: 0.8rem;
+}
+@media (max-width: 560px) {
+  .land-pattern {
+    gap: 4px;
+  }
+  .land-pattern button {
+    padding: 0 8px;
+  }
+}

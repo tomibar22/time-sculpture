@@ -217,7 +217,9 @@ export interface UiState {
   /** Tile sizes the fill panel may use. */
   fillSizes: number[];
   /** The fill panel: closed, or open on the random, browse or vary tab. */
-  fillPanel: 'browse' | 'vary' | null;
+  fillPanel: 'browse' | 'vary' | 'land' | null;
+  /** Land a pattern: the tiles of the pattern being tried (kept while the app is open). */
+  landPattern: number[];
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
   fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo';
@@ -328,6 +330,7 @@ export const useUiStore = create<UiState>((set) => ({
   playing: false,
   fillSizes: [2, 3, 4, 5, 7],
   fillPanel: null,
+  landPattern: [],
   fillSort: 'onbeat',
   fillShape: 'shapes',
   fillTiles: null,

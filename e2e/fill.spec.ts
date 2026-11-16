@@ -120,3 +120,28 @@ test('browse only the fills with a set number of tiles', async ({ page }) => {
   await page.getByTestId('fill-tiles').selectOption('');
   await expect(list.locator('.fill-main').nth(8)).toBeVisible();
 });
+
+test('land a pattern: how many times it goes in, and from where, to end on the end', async ({
+  page,
+}) => {
+  // the open space: 9 pulses up to bar 2, beat 1 +3/4
+  await page.getByRole('button', { name: 'Land…' }).first().click();
+  await page.getByTestId('land-2').click();
+  const list = page.getByRole('list', { name: 'Ways it lands' });
+  await expect(page.locator('.land')).toContainText('2 goes in 4 times, with 1 left before it');
+  // ×4 first, down to ×1, then the tihais (three times with a gap)
+  await expect(list.locator('.fill-main').first()).toContainText('×4');
+  await expect(list).toContainText('Tihai · gap 1');
+  // a tap tries it (nothing written), a second tap writes it: one pulse stays open before it
+  await list.locator('.fill-main').first().click();
+  await expectSeq(page, DEFAULT_SEQ);
+  await list.locator('.fill-main').first().click();
+  await expect(page.getByTestId('sequence')).toContainText('2 2 2 2');
+  // a longer pattern: 3 2 lands once in what is the same stretch
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.getByTestId('land-3').click();
+  await page.getByTestId('land-2').click();
+  await expect(page.getByTestId('land-pattern')).toHaveText('32');
+  await expect(list.locator('.fill-main')).toHaveCount(1);
+  await expect(list.locator('.fill-main').first()).toContainText('×1');
+});

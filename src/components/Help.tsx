@@ -264,6 +264,17 @@ export function Help() {
             </p>
           </details>
           <details className="help-topic">
+            <summary>Land a pattern (tihais, crossing patterns)</summary>
+            <p>
+              How many fives fit before the 1, and where must they begin? Select a stretch (or use
+              the open space), choose <b>Land…</b>, and tap sizes to build a pattern: one tile, or a
+              whole phrase. Every way it ends exactly on the end of the stretch is listed: said 4
+              times, 3 times… with the place where it must begin, and as a tihai (three times with a
+              gap). Tap one to see and hear it in the score, Use to write it. What is before its
+              first tile stays as it is.
+            </p>
+          </details>
+          <details className="help-topic">
             <summary>Vary</summary>
             <p>
               Select a run of groups (or a range) and press Vary… (⇧V): the same stretch of time

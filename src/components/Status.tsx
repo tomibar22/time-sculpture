@@ -94,6 +94,14 @@ export function PieceState() {
       >
         Fill it…
       </button>
+      <button
+        type="button"
+        className="link-btn"
+        title="A pattern said again and again so that it ends exactly at the end of the open space: how many times, and from where"
+        onClick={() => openFill('land')}
+      >
+        Land…
+      </button>
     </span>
   );
 }

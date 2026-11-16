@@ -22,7 +22,7 @@ export function fillRegion(): { a: number; b: number; kind: 'selection' | 'space
   return s.b > s.a ? { ...s, kind: 'space' } : null;
 }
 
-export function openFill(tab: 'browse' | 'vary'): void {
+export function openFill(tab: 'browse' | 'vary' | 'land'): void {
   const region = fillRegion();
   if (tab === 'vary' && region?.kind !== 'selection') {
     sfx.nope();
@@ -155,6 +155,42 @@ export function fillRandom(): boolean {
 
 export function fillWith(o: FillOption): void {
   if (apply(E.fillGroups(o), `fill ${o.key}`)) announce(`Filled with ${o.key}`);
+}
+
+/** Land a pattern: show it in the score, ending where the region ends (not written). */
+export function previewLanding(l: E.PatternLanding | null): void {
+  const region = fillRegion();
+  if (!l || !region) return ui().set({ preview: null });
+  const r = E.fillRange(
+    doc(),
+    region.a + l.lead,
+    region.b,
+    l.sizes.map((n) => ({ n, kind: 'sound' as const })),
+  );
+  ui().set({ preview: r.report.ok ? r.doc : null });
+}
+
+/** Land a pattern: write it. What is before its first tile stays as it is. */
+export function writeLanding(l: E.PatternLanding): void {
+  const region = fillRegion();
+  if (!region) return;
+  const r = E.fillRange(
+    doc(),
+    region.a + l.lead,
+    region.b,
+    l.sizes.map((n) => ({ n, kind: 'sound' as const })),
+  );
+  ui().set({ preview: null });
+  if (!run(r, { label: `land ${l.sizes.join(' ')}`, select: 'none' })) return;
+  // the stretch stays the region while the panel is open, so another way can be tried
+  if (region.kind === 'space') filledSpace = { a: region.a, b: region.b };
+  ui().set({
+    selection: [],
+    range: { a: region.a, b: region.b },
+    rangeAnchor: region.a,
+    caret: region.b,
+  });
+  announce(`Written: ${l.sizes.join(' ')}`);
 }
 
 /** Show an option in the score without committing it. */

@@ -19,6 +19,7 @@ import { FillMap } from './FillMap';
 import { BreedIcon, ChevronIcon, CloseIcon, DiceIcon, HeartIcon, PinIcon } from './Icons';
 import { PHONE, useMedia } from './useMedia';
 import { VaryPanel } from './VaryPanel';
+import { LandPanel } from './LandPanel';
 
 export { Strip } from './fillParts';
 
@@ -96,6 +97,8 @@ export function FillPanel() {
       )}
       {tab === 'vary' ? (
         <VaryPanel />
+      ) : tab === 'land' ? (
+        <LandPanel />
       ) : (
         <>
           {folded && (

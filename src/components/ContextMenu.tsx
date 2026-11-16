@@ -275,6 +275,7 @@ function Menu({ menu }: { menu: ContextMenuState }) {
       { label: ui.playing ? 'Stop' : 'Loop', hint: '⇧Space', run: playFromCaret },
       { label: 'Fill…', run: () => openFill('browse') },
       { label: 'Vary…', hint: '⇧V', run: () => openFill('vary') },
+      { label: 'Land a pattern…', run: () => openFill('land') },
       'sep',
       {
         label: hasTotal ? 'Remove total' : 'Total',
@@ -305,6 +306,13 @@ function Menu({ menu }: { menu: ContextMenuState }) {
               run: () => {
                 setRange(gap.a, gap.b);
                 openFill('browse');
+              },
+            },
+            {
+              label: 'Land a pattern here…',
+              run: () => {
+                setRange(gap.a, gap.b);
+                openFill('land');
               },
             },
           ] satisfies Row[])
