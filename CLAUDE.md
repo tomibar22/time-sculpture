@@ -444,6 +444,11 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   ways: leaving pushes with `keepalive`), online, 1.5 s after a save, every 60 s on screen.
   `adopt` sets `lastSaved`, so opening a piece never bumps its date. e2e `sync.spec.ts` uses a
   fake server with the same rules. `/api/` is excluded from the SPA rewrite and the SW fallback.
+  **Hearts (kept fills) sync too**: each is a row `m-3_3_2` (piece `{sizes}`) on the same table,
+  so adding on one device and removing on another never undo each other (a removal is a
+  tombstone). `noteMotif` (called by `toggleMotif`) queues it; `takeMotif` applies a row when it
+  is newer than the last local change (`time-sculpture/sync-motifs`); joining sends the hearts
+  already kept. Other device prefs (theme, count-in, tiles, sizes) stay per device.
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
   `current`. Autosave 400 ms after any change, and on `pagehide`.
 - File format **v2** (`src/persistence/serialize.ts`, documented in `docs/file-format.md`):

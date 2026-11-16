@@ -3,6 +3,7 @@ import { reloadOpen, removePiece, saveNow } from './session';
 import { fromSaved } from './serialize';
 import type { SavedPiece } from './serialize';
 import { toast } from '../state/actions';
+import { MAX_MOTIFS, useUiStore } from '../state/store';
 
 /**
  * The library kept the same on every device (iPhone, iPad, computer) through `/api/sync`
@@ -106,6 +107,44 @@ async function call<T>(code: string, init: RequestInit & { query?: string } = {}
 
 const outbox = () => read<Outbox>(OUT) ?? {};
 
+/* ------------------------------------------------------------------ hearts (kept fills) */
+/**
+ * Every fill kept with the heart is one row on the server (id "m-3_3_2", the piece is {sizes}),
+ * so adding on one device and removing on another never undo each other, and a removal travels
+ * as a tombstone like a deleted composition. `MOTIF_META` remembers when each was last changed
+ * here (kept or let go), for the same "newest change wins" rule.
+ */
+const MOTIF_META = 'time-sculpture/sync-motifs';
+const motifId = (sizes: readonly number[]) => `m-${sizes.join('_')}`;
+const motifSizes = (id: string) => id.slice(2).split('_').map(Number);
+const isMotifId = (id: string) => id.startsWith('m-');
+type MotifMeta = Record<string, { updated: number; deleted: boolean }>;
+
+/** A fill was kept or let go on this device: send it. */
+export function noteMotif(sizes: readonly number[], deleted: boolean): void {
+  const id = motifId(sizes);
+  const updated = Date.now();
+  write(MOTIF_META, { ...(read<MotifMeta>(MOTIF_META) ?? {}), [id]: { updated, deleted } });
+  queue(id, updated, deleted);
+}
+
+/** One heart from the server, if its change is newer than ours. */
+function takeMotif(row: Row): boolean {
+  const meta = read<MotifMeta>(MOTIF_META) ?? {};
+  if ((outbox()[row.id]?.updated ?? 0) >= row.updated) return false;
+  if ((meta[row.id]?.updated ?? 0) >= row.updated) return false;
+  const sizes = motifSizes(row.id);
+  if (!sizes.length || sizes.some((n) => !Number.isInteger(n) || n < 1 || n > 64)) return false;
+  const k = sizes.join(' ');
+  const ui = useUiStore.getState();
+  const has = ui.motifs.some((m) => m.join(' ') === k);
+  write(MOTIF_META, { ...meta, [row.id]: { updated: row.updated, deleted: row.deleted } });
+  if (row.deleted && has) ui.set({ motifs: ui.motifs.filter((m) => m.join(' ') !== k) });
+  else if (!row.deleted && !has) ui.set({ motifs: [sizes, ...ui.motifs].slice(0, MAX_MOTIFS) });
+  else return false;
+  return true;
+}
+
 function queue(id: string, updated: number, deleted: boolean) {
   if (!read<Saved>(KEY)) return;
   write(OUT, { ...outbox(), [id]: { updated, deleted } });
@@ -169,6 +208,17 @@ async function push(code: string): Promise<void> {
     const pieces = [];
     for (const id of ids.slice(i, i + 50)) {
       const o = out[id]!;
+      if (isMotifId(id)) {
+        const sizes = motifSizes(id);
+        pieces.push({
+          id,
+          name: sizes.join(' '),
+          updated: o.updated,
+          deleted: o.deleted,
+          piece: o.deleted ? null : { sizes },
+        });
+        continue;
+      }
       const piece = o.deleted ? null : await loadPiece(id);
       if (!o.deleted && !piece) continue; // gone since: its delete is queued too
       pieces.push({ id, name: piece?.title ?? '', updated: o.updated, deleted: o.deleted, piece });
@@ -203,6 +253,7 @@ async function pull(code: string, rev: number): Promise<number> {
 
 /** One piece from the server, if it is newer than the one here. Returns whether it changed. */
 async function take(row: Row, here: number | undefined): Promise<boolean> {
+  if (isMotifId(row.id)) return takeMotif(row);
   const waiting = outbox()[row.id];
   if (waiting && waiting.updated >= row.updated) return false; // ours is newer: it goes up next
   if (row.deleted) {
@@ -236,6 +287,15 @@ export async function connect(code: string): Promise<'ok' | 'bad-code' | 'not-se
   write(KEY, { code: c, rev: 0 } satisfies Saved);
   const out: Outbox = {};
   for (const e of await libraryIndex()) out[e.id] = { updated: e.updated, deleted: false };
+  // the hearts already kept here go up too
+  const now = Date.now();
+  const meta = read<MotifMeta>(MOTIF_META) ?? {};
+  for (const m of useUiStore.getState().motifs) {
+    const id = motifId(m);
+    out[id] = { updated: now, deleted: false };
+    meta[id] = { updated: now, deleted: false };
+  }
+  write(MOTIF_META, meta);
   write(OUT, { ...outbox(), ...out });
   setState({ on: true, status: 'idle' });
   await syncNow();

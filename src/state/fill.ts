@@ -3,6 +3,7 @@ import type { FillOption } from '../engine';
 import { ui as sfx } from '../audio/voices';
 import { announce, plural, run, toast } from './actions';
 import { selectedRegion } from './editing';
+import { noteMotif } from '../persistence/sync';
 import { MAX_MOTIFS, useDocStore, useUiStore } from './store';
 import { startPlayback, stopPlayback } from '../audio/player';
 
@@ -103,6 +104,7 @@ export function toggleMotif(sizes: readonly number[]): void {
       ? ui().motifs.filter((m) => m.join(' ') !== k)
       : [[...sizes], ...ui().motifs].slice(0, MAX_MOTIFS),
   });
+  noteMotif(sizes, has);
   toast(has ? `Let go of ${k}` : `Kept ${k}`);
 }
 

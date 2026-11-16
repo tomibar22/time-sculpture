@@ -108,3 +108,55 @@ test('a composition saved on one device appears, changes and goes away on the ot
   await ctxA.close();
   await ctxB.close();
 });
+
+test('a fill kept with the heart on one device is kept on the other, and let go again', async ({
+  browser,
+}) => {
+  const serve = fakeServer();
+  const ctxA = await browser.newContext();
+  const ctxB = await browser.newContext();
+  await serve(ctxA);
+  await serve(ctxB);
+  const a = await device(ctxA);
+  const b = await device(ctxB);
+  await join(a);
+  await a.keyboard.press('Escape');
+  await join(b);
+  await b.keyboard.press('Escape');
+
+  const kept = (p: Page) =>
+    p.evaluate(() => JSON.parse(localStorage.getItem('time-sculpture/prefs') ?? '{}').motifs ?? []);
+  const open = async (p: Page) => {
+    await p.getByRole('button', { name: 'Fill it…' }).click();
+    return p.getByRole('list', { name: 'Ways to fill' });
+  };
+  // A keeps the first fill
+  const listA = await open(a);
+  const first = listA.locator('li', { has: a.locator('.fill-heart') }).first();
+  const key = (await first.locator('.sr-only').first().innerText()).replace(/\.\s*$/, '').trim();
+  await first.locator('.fill-heart').click();
+  await a.waitForTimeout(300);
+  await expect.poll(() => kept(a)).toHaveLength(1);
+  await syncNow(a);
+  await syncNow(b);
+  await b.keyboard.press('Escape');
+  // B has it (kept fills are a device preference in the page's storage)
+  await expect.poll(() => kept(b)).toHaveLength(1);
+  expect((await kept(b))[0].join(' ')).toBe(key);
+
+  // B lets it go (the heart again, in its own panel); A loses it too
+  const listB = await open(b);
+  await listB
+    .locator('li', { has: b.locator('.fill-heart') })
+    .filter({ hasText: key })
+    .first()
+    .locator('.fill-heart')
+    .click();
+  await b.waitForTimeout(300);
+  await expect.poll(() => kept(b)).toHaveLength(0);
+  await syncNow(b);
+  await syncNow(a);
+  await expect.poll(() => kept(a)).toHaveLength(0);
+  await ctxA.close();
+  await ctxB.close();
+});

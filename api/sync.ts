@@ -72,7 +72,7 @@ function valid(p: unknown): p is Incoming {
   return (
     !!x &&
     typeof x.id === 'string' &&
-    /^[\w-]{1,64}$/.test(x.id) &&
+    /^[\w-]{1,200}$/.test(x.id) &&
     typeof x.updated === 'number' &&
     Number.isFinite(x.updated) &&
     typeof x.deleted === 'boolean' &&
