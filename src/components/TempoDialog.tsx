@@ -17,7 +17,84 @@ const NAMES: [number, string][] = [
 export const tempoName = (bpm: number) => NAMES.find(([max]) => bpm < max)![1];
 
 /**
- * The tempo, exactly: − and + by one or five, a slider, and Tap (tap the beat a few times; the
+ * Tap tempo: tap the beat a few times and the average of the last taps (six at most) becomes
+ * the tempo. A long pause starts a new count.
+ */
+export function useTapTempo() {
+  const taps = useRef<number[]>([]);
+  const [tapped, setTapped] = useState(0);
+  const tap = () => {
+    const now = performance.now();
+    const t = taps.current;
+    if (t.length && now - t[t.length - 1]! > 2500) t.length = 0;
+    t.push(now);
+    if (t.length > 6) t.shift();
+    sfx.snap();
+    setTapped(t.length);
+    if (t.length >= 2)
+      useUiStore.getState().set({ tempo: clampTempo(60000 / ((now - t[0]!) / (t.length - 1))) });
+  };
+  const reset = () => {
+    taps.current = [];
+    setTapped(0);
+  };
+  return { tap, tapped, reset };
+}
+
+/**
+ * The tempo as a number that can be typed. What is typed counts at once when it is a tempo
+ * (30–240), so it is never lost by tapping away; Enter or leaving the field brings anything else
+ * into range. ↑ ↓ step by one.
+ */
+export function TempoField({ id, testid }: { id?: string; testid?: string }) {
+  const tempo = useUiStore((s) => s.tempo);
+  const set = useUiStore((s) => s.set);
+  const [draft, setDraft] = useState<string | null>(null);
+  const type = (text: string) => {
+    const digits = text.replace(/\D/g, '');
+    setDraft(digits);
+    const v = parseInt(digits, 10);
+    if (v >= MIN_TEMPO && v <= MAX_TEMPO) set({ tempo: v });
+  };
+  const commit = () => {
+    if (draft === null) return;
+    const v = parseInt(draft, 10);
+    if (Number.isFinite(v)) set({ tempo: clampTempo(v) });
+    setDraft(null);
+  };
+  return (
+    <input
+      id={id}
+      className="tempo-field"
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="off"
+      maxLength={3}
+      aria-label={id ? undefined : 'Tempo, beats per minute'}
+      title={`Beats per minute, ${MIN_TEMPO} to ${MAX_TEMPO}: type a number`}
+      data-testid={testid}
+      value={draft ?? String(tempo)}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => type(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commit();
+          (e.target as HTMLInputElement).select();
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          setDraft(null);
+          set({ tempo: clampTempo(useUiStore.getState().tempo + (e.key === 'ArrowUp' ? 1 : -1)) });
+        }
+      }}
+    />
+  );
+}
+
+/**
+ * The tempo, exactly: the number itself can be typed; − and + by one or five, a slider, and Tap (tap the beat a few times; the
  * average of the last taps becomes the tempo). Opened from the tempo number in the transport.
  */
 export function TempoDialog() {
@@ -25,29 +102,17 @@ export function TempoDialog() {
   const open = useUiStore((s) => s.tempoDialog);
   const tempo = useUiStore((s) => s.tempo);
   const set = useUiStore((s) => s.set);
-  const taps = useRef<number[]>([]);
-  const [tapped, setTapped] = useState(0);
+  const { tap, tapped, reset } = useTapTempo();
 
   useEffect(() => {
     if (!open) return dialog.current?.close();
-    taps.current = [];
-    setTapped(0);
+    reset();
     if (!dialog.current?.open) dialog.current?.showModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const close = () => set({ tempoDialog: false });
   const step = (d: number) => set({ tempo: clampTempo(useUiStore.getState().tempo + d) });
-  const tap = () => {
-    const now = performance.now();
-    const t = taps.current;
-    // a long pause starts a new count
-    if (t.length && now - t[t.length - 1]! > 2500) t.length = 0;
-    t.push(now);
-    if (t.length > 6) t.shift();
-    sfx.snap();
-    setTapped(t.length);
-    if (t.length >= 2) set({ tempo: clampTempo(60000 / ((now - t[0]!) / (t.length - 1))) });
-  };
 
   return (
     <dialog
@@ -64,11 +129,11 @@ export function TempoDialog() {
             Done
           </button>
         </div>
-        <div className="tempo-big" aria-live="polite">
+        <div className="tempo-big">
           <span className="tempo-note" aria-hidden="true">
             ♩ =
           </span>
-          <output data-testid="tempo-value">{tempo}</output>
+          <TempoField testid="tempo-value" />
           <span className="tempo-name">{tempoName(tempo)}</span>
         </div>
         <div className="tempo-steps" role="group" aria-label="Change the tempo">

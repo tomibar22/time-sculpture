@@ -94,6 +94,16 @@ export function LandPanel() {
     writeLanding(l);
   };
   const lastTile = pattern[pattern.length - 1];
+  /** Where the stretch ends, which is where the last tile falls: the 1, a beat, or neither. */
+  const end = (() => {
+    const d = useDocStore.getState().doc;
+    const grid = E.buildGrid(d.meter);
+    if (region.b >= grid.TS) return 'on the 1';
+    const b = E.beatOfPulse(grid, region.b);
+    if (grid.pre[b] !== region.b) return 'after the stretch';
+    const at = E.barBeat(d.meter, b);
+    return at.beat === 1 ? 'on the 1' : `on beat ${at.beat}`;
+  })();
   const shown = (l: E.PatternLanding) => ({
     sizes: l.lead ? [l.lead, ...l.sizes] : l.sizes,
     rests: l.lead ? [0] : undefined,
@@ -180,13 +190,13 @@ export function LandPanel() {
           role="switch"
           aria-checked={on1}
           data-testid="land-on1"
-          title="Like a tihai: the pattern's last tile begins exactly where the stretch ends, on the 1. It is not written."
+          title={`Like a tihai: the pattern's last tile begins exactly where the stretch ends (${end}). It is not written.`}
           onClick={() => set({ landOn1: !on1 })}
         >
           <span className="switch-track" aria-hidden="true">
             <span className="switch-knob" />
           </span>
-          Last tile on the 1
+          Last tile {end}
         </button>
         <div className="land-from">
           <span id="land-from">Begins</span>
@@ -213,10 +223,10 @@ export function LandPanel() {
           ? `Build a pattern: every way it ends exactly on the end of these ${R} pulses is shown, with where it must begin.`
           : !all.length
             ? on1 && pattern.length === 1 && p <= R
-              ? 'One tile alone, on the 1: nothing is left to write. Add a tile.'
+              ? `One tile alone, ${end}: nothing is left to write. Add a tile.`
               : `The pattern (${p}) is longer than the stretch (${R}).`
             : on1
-              ? `Ends on the 1 after these ${R} pulses: the last tile (${lastTile}) begins there, so it is not written.`
+              ? `The last tile (${lastTile}) falls ${end}, right after these ${R} pulses, so it is not written.`
               : `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
                   R % p ? `, with ${R % p} left before it` : ', exactly'
                 }.`}
@@ -251,10 +261,10 @@ export function LandPanel() {
                     onClick={() => tryIt(l)}
                   >
                     <Strip {...shown(l)} beats={beats} />
-                    <span className="fill-cap">
+                    <span className="fill-cap land-cap">
                       <span className="land-times">{title(l)}</span>
-                      <span className="fill-meta">
-                        {l.kind === 'shape' && l.note ? `${l.note} · ` : ''}
+                      {l.kind === 'shape' && l.note && <span className="land-what">{l.note}</span>}
+                      <span className="fill-meta land-where">
                         {l.lead ? `from ${w.text}` : 'fills it exactly'}
                         {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}
                         {l.on1 ? (
@@ -268,7 +278,7 @@ export function LandPanel() {
                             >
                               {l.on1}
                             </i>
-                            {' on the 1'}
+                            {` ${end === 'after the stretch' ? 'after it' : end}`}
                           </span>
                         ) : null}
                       </span>

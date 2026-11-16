@@ -7,9 +7,10 @@ import { audioNow, ensureAudio, noise, tone } from './context';
 const vol = (ch: MixChannel) => mixGain(useUiStore.getState().mix, ch);
 
 /**
- * Musical voices used by the player. The mixer has four faders: the 1 (the landing and every
- * bar's downbeat), the other beats, the subdivision ticks, and the drum (the tiles). `level`
- * lifts a voice for one stroke (the count-in's ticks are meant to be heard).
+ * Musical voices used by the player. The mixer has four faders, each on its own: the 1 (the
+ * landing and every bar's downbeat; not switched off with the beats), the other beats (`beats`
+ * = they are on), the subdivision ticks (`ticks`), and the drum (the tiles). `level` lifts a
+ * voice for one stroke (the count-in's ticks are meant to be heard).
  */
 export function playClick(
   t: number,
@@ -20,16 +21,16 @@ export function playClick(
 ): void {
   switch (kind) {
     case 'landing': {
-      // the 1: a soft low drum, heard whatever the click option says (it is what the phrase
-      // lands on)
+      // the 1 of the piece: a soft low drum under the bar's click (it is what the phrase lands on)
       const g = vol('one');
       if (g <= 0) break;
       tone(t, 'sine', 150, 0.5 * g, 0.45, 52);
-      if (beats) woodblock(t, 1900, 0.11 * g);
+      woodblock(t, 1900, 0.11 * g);
       break;
     }
     case 'downbeat':
-      if (beats) woodblock(t, 1900, 0.11 * vol('one') * level);
+      // the 1 of every bar has its own fader, whatever the other beats do
+      woodblock(t, 1900, 0.11 * vol('one') * level);
       break;
     case 'beat':
       if (beats) woodblock(t, 1350, 0.07 * vol('beat') * level);

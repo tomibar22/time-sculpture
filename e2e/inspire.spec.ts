@@ -49,14 +49,14 @@ test('loop the selection, and set the tempo by tapping', async ({ page }) => {
 
   await page.getByRole('button', { name: /^Tempo/ }).click();
   await page.getByRole('button', { name: '5 faster' }).click();
-  await expect(page.getByTestId('tempo-value')).toHaveText('77');
+  await expect(page.getByTestId('tempo-value')).toHaveValue('77');
   const tap = page.getByRole('button', { name: /Tap the beat/ });
   for (let i = 0; i < 4; i++) {
     await tap.dispatchEvent('pointerdown');
     await page.waitForTimeout(300);
   }
   // four taps 0.3 s apart ≈ ♩200 (timers are not exact)
-  const bpm = Number(await page.getByTestId('tempo-value').textContent());
+  const bpm = Number(await page.getByTestId('tempo-value').inputValue());
   expect(bpm).toBeGreaterThan(150);
   expect(bpm).toBeLessThanOrEqual(215);
 });
@@ -184,7 +184,13 @@ test('practice: the tempo is typed, the count-in can tick the subdivision, and a
   await pop.getByRole('button', { name: '1 bar' }).click();
   await pop.getByTestId('count-sub').click();
   await expect(pop.getByTestId('count-sub')).toHaveAttribute('aria-checked', 'true');
-  // the mixer: a fader at nothing turns its voice off; Reset brings everything back
+  // what is typed counts at once, so tapping away never loses it
+  await bpm.fill('84');
+  await page.getByLabel('Name of the composition').click();
+  await btn.click();
+  await expect(bpm).toHaveValue('84');
+  // the mixer has its own page: a fader at nothing turns its voice off; Reset brings all back
+  await pop.getByRole('tab', { name: 'Mix' }).click();
   await pop.getByTestId('mix-drum').fill('40');
   await pop.getByTestId('mix-beat').fill('0');
   await expect(pop.locator('.mixer-row.off')).toHaveCount(1);
@@ -192,9 +198,10 @@ test('practice: the tempo is typed, the count-in can tick the subdivision, and a
   await page.reload();
   await ready(page);
   await btn.click();
+  await expect(pop.getByTestId('count-sub')).toHaveAttribute('aria-checked', 'true');
+  await pop.getByRole('tab', { name: 'Mix' }).click();
   await expect(pop.getByTestId('mix-drum')).toHaveValue('40');
   await expect(pop.getByTestId('mix-beat')).toHaveValue('0');
-  await expect(pop.getByTestId('count-sub')).toHaveAttribute('aria-checked', 'true');
   await pop.getByRole('button', { name: 'Reset' }).click();
   await expect(pop.getByTestId('mix-drum')).toHaveValue('70');
   await expect(pop.getByTestId('mix-beat')).toHaveValue('70');
@@ -212,6 +219,7 @@ test('practice: a click pattern is a small sequencer of the bar, and of a cycle 
   const pop = page.getByRole('dialog', { name: 'Practice' });
   const said = pop.getByTestId('click-said');
   await btn.click();
+  await pop.getByRole('tab', { name: 'Click' }).click();
   // off by default: nothing to set, the click is the plain one
   await expect(pop.getByRole('button', { name: 'Beat 1', exact: true })).toHaveCount(0);
   await pop.getByTestId('click-pattern').click();
@@ -241,6 +249,11 @@ test('practice: a click pattern is a small sequencer of the bar, and of a cycle 
   await expect(pop.getByRole('button', { name: 'Bar 2 of 3, silent' })).toBeVisible();
   await pop.getByRole('button', { name: 'Bar 1 of 3' }).click();
   await expect(said).toHaveText('Bar 1: every beat.');
+  // Play does not put the popover away: what is set is heard, and the bar that sounds is marked
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(pop.locator('.pat-tab.pat-now')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(pop).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(btn).toContainText('click pattern');
   // it plays, and it is remembered on this device
@@ -251,6 +264,7 @@ test('practice: a click pattern is a small sequencer of the bar, and of a cycle 
   await page.reload();
   await ready(page);
   await btn.click();
+  await pop.getByRole('tab', { name: 'Click' }).click();
   await pop.getByRole('button', { name: 'Bar 3 of 3' }).click();
   await expect(said).toHaveText('Bar 3: beat 1.');
   await pop.getByRole('button', { name: 'Like bar 1' }).click();

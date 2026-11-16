@@ -98,13 +98,17 @@ export function Help() {
           <details className="help-topic">
             <summary>Listen and loop</summary>
             <p>
-              <b>Practice</b>: the metronome beside Play. <b>Count-in</b> (1 or 2 bars) counts the
-              bar in, large in the middle of a softened screen, then plays; a tap on the count
-              stops; it can tick the subdivision too. <b>Tiles</b>: Silent leaves only the click, so
-              the rhythm is yours to play; In turn plays so many times round with the tiles and so
-              many with the click alone (the score goes grey while they are silent). The tempo can
-              be typed there, and the <b>Mix</b> sets how loud the drum, the 1, the beats and the
-              subdivision are (a fader at nothing turns that voice off).
+              <b>Practice</b>: the metronome beside Play opens three pages (Play still starts and
+              stops while it is open, so every change is heard at once). On the first, the tempo can
+              be typed or tapped; <b>Count-in</b> (1 or 2 bars) counts the bar in, large in the
+              middle of a softened screen, then plays (a tap on the count stops), and can tick the
+              subdivision too. <b>Tiles</b>: Silent leaves only the click, so the rhythm is yours to
+              play; In turn plays so many times round with the tiles and so many with the click
+              alone (the score goes grey while they are silent).
+            </p>
+            <p>
+              <b>Mix</b>: how loud the drum, the 1 of every bar, the other beats and the subdivision
+              are. Each fader is on its own; pulled to nothing, its voice is off.
             </p>
             <p>
               <b>Click pattern</b> makes the click a rhythm of its own. The bar is shown as it is:

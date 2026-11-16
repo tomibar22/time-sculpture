@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { patternLandings } from '../land';
 
 describe('landing a pattern on the end of a stretch', () => {
@@ -60,5 +61,34 @@ describe('landing a pattern on the end of a stretch', () => {
   it('a pattern longer than the stretch does not land', () => {
     expect(patternLandings(4, [3, 2])).toEqual([]);
     expect(patternLandings(8, [])).toEqual([]);
+  });
+});
+
+describe('landing a pattern: every way, for any pattern and stretch', () => {
+  it('ends exactly on the end, with whole tiles, each listed once', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 96 }),
+        fc.array(fc.integer({ min: 1, max: 16 }), { minLength: 1, maxLength: 6 }),
+        fc.boolean(),
+        (R, pattern, on1) => {
+          const ls = patternLandings(R, pattern, { on1 });
+          const seen = new Set<string>();
+          for (const l of ls) {
+            expect(l.sizes.length).toBeGreaterThan(0);
+            expect(l.sizes.every((n) => Number.isInteger(n) && n >= 1)).toBe(true);
+            expect(l.lead).toBeGreaterThanOrEqual(0);
+            expect(l.lead + l.sizes.reduce((a, n) => a + n, 0)).toBe(R);
+            expect(!!l.on1).toBe(on1);
+            for (const i of l.gaps ?? []) expect(l.sizes[i]).toBe(l.gap);
+            expect(seen.has(l.key)).toBe(false);
+            seen.add(l.key);
+            const same = `${l.lead}:${l.sizes.join(' ')}`;
+            expect(seen.has(same)).toBe(false);
+            seen.add(same);
+          }
+        },
+      ),
+    );
   });
 });

@@ -28,8 +28,17 @@ function barShape(meter: E.Meter): number[][] {
  */
 export function ClickPatternSection() {
   const pat = useUiStore((s) => s.clickPat);
+  const click = useUiStore((s) => s.click);
+  const ticks = useUiStore((s) => s.ticks);
+  const now = useUiStore((s) => s.clickBarNow);
   const set = useUiStore((s) => s.set);
   const meter = useDocStore((s) => s.doc.meter);
+  // while playing: the beat of the bar that sounds now (a moving mark, as in a sequencer)
+  const beatNow = useUiStore((s) =>
+    s.playhead === null || s.clickBarNow === null
+      ? -1
+      : (E.barMap(useDocStore.getState().doc.meter).beatInBar[Math.floor(s.playhead + 1e-6)] ?? -1),
+  );
   const [shown, setShown] = useState(0);
   const [every, setEvery] = useState(false);
   const k = Math.min(shown, pat.bars.length - 1);
@@ -66,6 +75,13 @@ export function ClickPatternSection() {
           </span>
         </button>
       </div>
+      {!pat.on && (
+        <p className="practice-note">
+          Off: the click is on every beat. Switch it on to choose which beats and which pulses
+          inside them click, bar by bar: only 2 and 4, one sixteenth in the bar, the 1 once in four
+          bars.
+        </p>
+      )}
       {pat.on && (
         <>
           <div className="pat-head">
@@ -97,7 +113,7 @@ export function ClickPatternSection() {
                 <button
                   key={i}
                   type="button"
-                  className={`pat-tab${silent(b, shape) ? ' silent' : ''}`}
+                  className={`pat-tab${silent(b, shape) ? ' silent' : ''}${now === i ? ' pat-now' : ''}`}
                   aria-pressed={i === k}
                   aria-label={`Bar ${i + 1} of ${pat.bars.length}${silent(b, shape) ? ', silent' : ''}`}
                   onClick={() => setShown(i)}
@@ -117,7 +133,10 @@ export function ClickPatternSection() {
                 const on = E.innerOn(bar, b, d);
                 const picked = on.length < d - 1;
                 return (
-                  <div className="pat-beat" key={`${b}:${d}`}>
+                  <div
+                    className={`pat-beat${beatNow === b && (now === k || now === null) ? ' pat-now' : ''}`}
+                    key={`${b}:${d}`}
+                  >
                     {i === 0 ? (
                       <button
                         type="button"
@@ -172,6 +191,24 @@ export function ClickPatternSection() {
           <p className="practice-note pat-note">
             <span data-testid="click-said">{said(bar, shape, pat.bars.length > 1 ? k : -1)}</span>
           </p>
+          {(!click || !ticks) && (
+            <p className="practice-note pat-warn" role="status">
+              <span>
+                {!click && !ticks
+                  ? 'The beats and the subdivision are off in the Mix.'
+                  : !click
+                    ? 'The beats are off in the Mix: only the 1 of a bar clicks.'
+                    : 'The subdivision is off in the Mix: the dots are silent.'}
+              </span>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => set({ click: true, ticks: true })}
+              >
+                Turn on
+              </button>
+            </p>
+          )}
           <div className="pat-acts">
             <button type="button" className="link-btn" onClick={() => putBar(E.clickBar(false))}>
               Clear the bar

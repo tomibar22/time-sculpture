@@ -162,10 +162,10 @@ test('land: a tihai shows its gap as a tile; the last tile can fall on the 1', a
   const list = page.getByRole('list', { name: 'Ways it lands' });
   // 9 pulses, 2 1 with the last tile on the 1: 2 1 2 1 2 [1] takes 8, one pulse stays before it
   await page.getByTestId('land-on1').click();
-  await expect(page.locator('.land')).toContainText('the last tile (1) begins there');
+  await expect(page.locator('.land')).toContainText('The last tile (1) falls after the stretch');
   const first = list.locator('.fill-main').first();
   await expect(first).toContainText('×3');
-  await expect(first).toContainText('then 1 on the 1');
+  await expect(first).toContainText('then 1 after it');
   await first.click();
   await first.click();
   await expect(page.getByTestId('sequence')).toContainText('2 1 2 1 2 3');

@@ -23,6 +23,8 @@ const LOOKAHEAD_S = 0.12;
 const INTERVAL_MS = 25;
 
 interface Slot {
+  /** The bar of the click pattern's cycle this pulse is in (−1: no pattern). */
+  bar: number;
   /** The tiles are silent this time round (practice). */
   hush: boolean;
   t: number;
@@ -195,7 +197,8 @@ function schedule(): void {
       playClick(next, click, ui.ticks, ui.click || ui.stage || hush);
     const dur = span(ev.t0, ev.t1);
     if (ev.onset && sound === 'all' && !hush) playGroup(next, ev.onset.n, dur * ev.onset.n);
-    queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur, hush });
+    const cyc = !ui.stage && ui.clickPat.on ? barsHeard % ui.clickPat.bars.length : -1;
+    queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur, hush, bar: cyc });
     next += dur;
     T = ev.t1;
   }
@@ -228,6 +231,8 @@ function frame(): void {
   while (queue.length && queue[0]!.t <= now) current = queue.shift()!;
   if (current) {
     if (current.hush !== ui.hushed) ui.set({ hushed: current.hush });
+    const bar = current.bar < 0 ? null : current.bar;
+    if (bar !== ui.clickBarNow) ui.set({ clickBarNow: bar });
     const p = Math.min(1, Math.max(0, (now - current.t) / current.dur));
     useUiStore.getState().set({ playhead: current.T0 + (current.T1 - current.T0) * p });
   }
@@ -304,6 +309,7 @@ export function stopPlayback(): void {
     countdown: null,
     loop: null,
     hushed: false,
+    clickBarNow: null,
   });
 }
 

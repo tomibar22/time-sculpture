@@ -83,10 +83,17 @@ export interface Mix {
   sub: number;
 }
 export type MixChannel = keyof Mix;
-/** Where each fader stands when untouched (the gain there is the voice's own level). */
-export const MIX_DEFAULT: Mix = { drum: 70, one: 70, beat: 70, sub: 35 };
+/** Where every fader stands when untouched (the gain there is the voice's own level). */
+export const MIX_DEFAULT: Mix = { drum: 70, one: 70, beat: 70, sub: 70 };
+/**
+ * How steeply a fader rises: the ticks are made very soft, so their fader reaches further (four
+ * times louder at the top; the others twice).
+ */
+const MIX_CURVE: Mix = { drum: 2, one: 2, beat: 2, sub: 4 };
 /** A fader's gain: 1 at its default, 0 at the bottom, a few times louder at the top. */
-export const mixGain = (mix: Mix, ch: MixChannel) => (mix[ch] / MIX_DEFAULT[ch]) ** 2;
+export const mixGain = (mix: Mix, ch: MixChannel) => (mix[ch] / MIX_DEFAULT[ch]) ** MIX_CURVE[ch];
+/** Stored mixes say which scale they are on (the first one had the ticks' default at 35). */
+const MIX_SCALE = 2;
 
 export type TilesMode = 'on' | 'off' | 'turns';
 const PREFS_KEY = 'time-sculpture/prefs';
@@ -111,6 +118,9 @@ function loadPrefs(): Partial<DevicePrefs> {
         const v = (p.mix as Partial<Mix>)[k];
         if (typeof v === 'number' && v >= 0 && v <= 100) m[k] = Math.round(v);
       }
+      // the first scale: the same loudness on today's fader
+      if ((p as { mixScale?: number }).mixScale !== MIX_SCALE)
+        m.sub = Math.min(100, Math.round((70 * Math.sqrt(m.sub / 35)) / 5) * 5);
       out.mix = m;
     }
     if (p.clickPat) out.clickPat = cleanClickPattern(p.clickPat);
@@ -133,7 +143,7 @@ function loadPrefs(): Partial<DevicePrefs> {
 }
 function savePrefs(p: DevicePrefs): void {
   try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ ...p, mixScale: MIX_SCALE }));
   } catch {
     /* private mode: the choices last for this session only */
   }
@@ -285,6 +295,10 @@ export interface UiState {
   hushed: boolean;
   /** The practice popover beside Play (count-in, tiles heard or silent). */
   practiceOpen: boolean;
+  /** Its page: practice (tempo, count-in, tiles), the click pattern, the mixer. */
+  practiceTab: 'practice' | 'click' | 'mix';
+  /** While playing with a click pattern: the bar of its cycle that sounds now. */
+  clickBarNow: number | null;
   /** The docked subdivision row, for the beats picked in the band, or under the selection, range or caret. */
   subPanel: boolean;
   /** Beats picked in the subdivision band (first to last, both included): what the row works on. */
@@ -393,6 +407,8 @@ export const useUiStore = create<UiState>((set) => ({
   clickPat: CLICK_PATTERN,
   hushed: false,
   practiceOpen: false,
+  practiceTab: 'practice',
+  clickBarNow: null,
   subPanel: false,
   beatSel: null,
   modDialog: null,

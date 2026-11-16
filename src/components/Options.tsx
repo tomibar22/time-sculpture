@@ -15,7 +15,7 @@ export function Options() {
             checked={click}
             onChange={(e) => set({ click: e.target.checked })}
           />{' '}
-          Hear the beat (a click on every beat; the 1 always sounds)
+          Hear the beats (a click on every beat; the 1 of a bar always sounds)
         </label>
         <label className="opt">
           <input

@@ -2293,7 +2293,8 @@ dialog.tempo-dialog {
   gap: 10px;
   font-family: var(--f-display);
 }
-.tempo-big output {
+.tempo-big output,
+.tempo-big .tempo-field {
   font-size: 4rem;
   font-weight: 700;
   line-height: 1;
@@ -4024,4 +4025,264 @@ button.pat-cell.dot[aria-pressed='true']::before {
   min-height: 30px;
   padding: 0;
   font-size: 0.8rem;
+}
+
+/* ---------------------------------------------------------------- review: the practice popover in pages */
+.practice-pop {
+  width: min(340px, calc(100vw - 24px));
+  gap: 14px;
+}
+.practice-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.practice-tabs button {
+  position: relative;
+  min-height: 40px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.practice-tabs button[aria-selected='true'] {
+  background: var(--card);
+  color: var(--fg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.14);
+}
+/* something on this page is in use */
+.practice-tabs button.marked::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.practice-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 148px;
+}
+.practice-page .clickpat,
+.practice-page .mixer {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.practice-tempo > button.practice-tap {
+  min-height: 40px;
+  padding: 0 12px;
+  margin-right: 4px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--muted);
+}
+.practice-bpm {
+  padding: 0 10px;
+}
+.practice-bpm .tempo-field {
+  width: 3.2ch;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fg);
+  /* 16 px at least: iOS zooms into smaller fields */
+  font: 600 1.05rem var(--f-mono);
+  text-align: center;
+}
+/* the tempo dialog: the big number is a field */
+.tempo-big .tempo-field {
+  width: 2.1em;
+  padding: 0 0.06em;
+  border: 0;
+  border-radius: 14px;
+  outline: 0;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--f-display);
+  text-align: center;
+  caret-color: var(--accent);
+}
+.tempo-big .tempo-field:focus {
+  background: var(--soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+@media (hover: hover) {
+  .tempo-big .tempo-field:hover:not(:focus) {
+    background: var(--soft);
+  }
+}
+
+/* the mixer: a name and what it is, a fader with a notch where it starts, the level */
+.mixer {
+  gap: 4px;
+}
+.mixer-row {
+  grid-template-columns: 7.2em 1fr 2.2em;
+  min-height: 46px;
+}
+.mixer-lbl {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.mixer-lbl small {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.mixer-fader {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+.mixer-fader::before {
+  content: '';
+  position: absolute;
+  left: calc(9px + (100% - 18px) * 0.7);
+  top: 50%;
+  width: 2px;
+  height: 12px;
+  margin: -6px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--line);
+}
+.mixer-fader input {
+  position: relative;
+}
+.mixer-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+  margin-top: 4px;
+}
+.mixer-foot button.link-btn {
+  flex: 0 0 auto;
+  min-height: 28px;
+  font-size: 0.8rem;
+}
+
+/* the click pattern: cells big enough for a finger */
+.pat-grid {
+  gap: 8px 12px;
+  padding: 10px;
+  justify-content: flex-start;
+}
+.pat-grid .pat-cell {
+  width: 40px;
+  height: 40px;
+  font-size: 0.9rem;
+}
+.pat-grid .pat-cell.dot {
+  width: 32px;
+}
+.pat-cell.one[aria-pressed='true'],
+button.pat-cell.one[aria-pressed='true'] {
+  color: var(--card);
+}
+.pat-tab,
+.pat-cycle button {
+  width: 40px;
+  height: 40px;
+}
+/* the bar of the cycle that is playing now */
+.pat-tab.pat-now {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.pat-warn {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--fg);
+}
+.pat-warn button.link-btn {
+  flex: 0 0 auto;
+  min-height: 28px;
+  font-size: 0.8rem;
+}
+@media (max-width: 560px) {
+  /* phones: the popover takes the width of the screen */
+  .practice-pop {
+    width: calc(100vw - 24px);
+  }
+}
+.practice-pop {
+  /* two beats of four side by side in the click pattern */
+  width: min(366px, calc(100vw - 24px));
+}
+@media (max-width: 560px) {
+  .practice-pop {
+    width: calc(100vw - 24px);
+  }
+}
+
+/* ---------------------------------------------------------------- review: land rows read in full */
+/* the name of a way, then where it begins on a line of its own: nothing is cut off */
+.land .fill-row .fill-main {
+  grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 17rem);
+}
+.land .fill-cap.land-cap {
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+}
+.land-what {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.land-cap .land-where {
+  flex: 1 1 100%;
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.35;
+}
+.land-opts button.switch {
+  white-space: normal;
+  text-align: left;
+}
+@media (max-width: 560px) {
+  .land .fill-row .fill-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* a plain way keeps one line under its strip; a shaped one names itself first */
+  .land-cap .land-where {
+    flex: 1 1 0;
+    min-width: 60%;
+  }
+}
+
+/* while playing: the beat that sounds now, in the bar of the cycle that is shown */
+.pat-beat {
+  position: relative;
+  padding-bottom: 5px;
+}
+.pat-beat.pat-now::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.pat-grid {
+  gap: 4px 12px;
+}
+
+/* wide screens: room for a fill's whole name beside its strip */
+@media (min-width: 700px) {
+  .fill-browse .fill-row .fill-main {
+    grid-template-columns: minmax(0, 1fr) 16rem;
+  }
 }

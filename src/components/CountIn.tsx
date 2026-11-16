@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { stopPlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { MIX_DEFAULT, useUiStore } from '../state/store';
-import type { MixChannel, TilesMode } from '../state/store';
+import type { Mix, MixChannel, TilesMode } from '../state/store';
 import { ClickPatternSection } from './ClickPattern';
 import { MetronomeIcon } from './Icons';
+import { TempoField, useTapTempo } from './TempoDialog';
 
 const COUNT = [
   [0, 'Off'],
@@ -33,8 +34,11 @@ export function PracticeButton() {
   const wrap = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!open) return;
-    const away = (e: PointerEvent) =>
-      !wrap.current?.contains(e.target as Node) && set({ practiceOpen: false });
+    // a press elsewhere puts it away; Play does not, so what is set here can be heard at once
+    const away = (e: PointerEvent) => {
+      const t = e.target as Element;
+      if (!wrap.current?.contains(t) && !t.closest?.('.bigplay')) set({ practiceOpen: false });
+    };
     const esc = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       e.stopPropagation();
@@ -48,7 +52,10 @@ export function PracticeButton() {
     };
   }, [open, set]);
   const pattern = useUiStore((s) => s.clickPat.on);
+  const tab = useUiStore((s) => s.practiceTab);
+  const mixed = useUiStore(mixChanged);
   const on = countIn > 0 || tiles !== 'on' || pattern;
+  const marked = { practice: countIn > 0 || tiles !== 'on', click: pattern, mix: mixed };
   const said = [
     countIn ? `count-in ${countIn === 1 ? '1 bar' : '2 bars'}` : '',
     tiles === 'off' ? 'tiles silent' : tiles === 'turns' ? 'tiles in turn' : '',
@@ -65,7 +72,7 @@ export function PracticeButton() {
         className={`icon ghost count-btn${on ? ' on' : ''}`}
         aria-expanded={open}
         aria-haspopup="dialog"
-        title={`Practice: count-in, and the tiles heard or silent${said ? ` (${said})` : ''}`}
+        title={`Practice: tempo, count-in, the tiles heard or silent, a click pattern and the mix${said ? ` (${said})` : ''}`}
         data-testid="practice"
         onClick={() => set({ practiceOpen: !open })}
       >
@@ -80,126 +87,157 @@ export function PracticeButton() {
       </button>
       {open && (
         <div className="practice-pop" role="dialog" aria-label="Practice">
-          <TempoRow />
-          <div className="practice-row">
-            <span id="pr-count">Count-in</span>
-            <div className="segs text" role="group" aria-labelledby="pr-count">
-              {COUNT.map(([n, label]) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-pressed={countIn === n}
-                  onClick={() => set({ countIn: n })}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {countIn > 0 && (
-            <div className="practice-row sub">
-              <span id="pr-sub">Count the subdivision too</span>
+          <div className="segs text practice-tabs" role="tablist" aria-label="Practice">
+            {TABS.map(([id, label]) => (
               <button
+                key={id}
                 type="button"
-                className="switch"
-                role="switch"
-                aria-checked={countSub}
-                aria-labelledby="pr-sub"
-                data-testid="count-sub"
-                onClick={() => set({ countSub: !countSub })}
+                role="tab"
+                id={`pr-tab-${id}`}
+                aria-selected={tab === id}
+                tabIndex={tab === id ? 0 : -1}
+                aria-controls="pr-page"
+                className={marked[id] ? 'marked' : undefined}
+                onClick={() => set({ practiceTab: id })}
+                onKeyDown={(e) => {
+                  // ← → walk the pages, as tabs do
+                  const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+                  if (!d) return;
+                  e.preventDefault();
+                  const i = TABS.findIndex(([t]) => t === id);
+                  const next = TABS[(i + d + TABS.length) % TABS.length]![0];
+                  set({ practiceTab: next });
+                  document.getElementById(`pr-tab-${next}`)?.focus();
+                }}
               >
-                <span className="switch-track" aria-hidden="true">
-                  <span className="switch-knob" />
-                </span>
+                {label}
+                {marked[id] && <span className="sr-only"> (in use)</span>}
               </button>
-            </div>
-          )}
-          <div className="practice-row">
-            <span id="pr-tiles">Tiles</span>
-            <div className="segs text" role="group" aria-labelledby="pr-tiles">
-              {TILES.map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={tiles === id}
-                  onClick={() => set({ tiles: id })}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-          {tiles === 'turns' && (
-            <div className="practice-turns">
-              <Turns label="Heard" value={turns.on} onStep={(d) => turn('on', d)} />
-              <Turns label="Silent" value={turns.off} onStep={(d) => turn('off', d)} />
-            </div>
-          )}
-          {tiles !== 'on' && (
-            <p className="practice-note">
-              {tiles === 'off'
-                ? 'Only the click sounds: the tiles are yours to play.'
-                : `${times(turns.on)} round with the tiles, then ${times(turns.off).toLowerCase()} with the click alone.`}
-            </p>
-          )}
-          <ClickPatternSection />
-          <Mixer />
+          <div
+            className="practice-page"
+            id="pr-page"
+            role="tabpanel"
+            aria-labelledby={`pr-tab-${tab}`}
+          >
+            {tab === 'practice' && (
+              <>
+                <TempoRow />
+                <div className="practice-row">
+                  <span id="pr-count">Count-in</span>
+                  <div className="segs text" role="group" aria-labelledby="pr-count">
+                    {COUNT.map(([n, label]) => (
+                      <button
+                        key={n}
+                        type="button"
+                        aria-pressed={countIn === n}
+                        onClick={() => set({ countIn: n })}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {countIn > 0 && (
+                  <div className="practice-row sub">
+                    <span id="pr-sub">Count the subdivision too</span>
+                    <button
+                      type="button"
+                      className="switch"
+                      role="switch"
+                      aria-checked={countSub}
+                      aria-labelledby="pr-sub"
+                      data-testid="count-sub"
+                      onClick={() => set({ countSub: !countSub })}
+                    >
+                      <span className="switch-track" aria-hidden="true">
+                        <span className="switch-knob" />
+                      </span>
+                    </button>
+                  </div>
+                )}
+                <div className="practice-row">
+                  <span id="pr-tiles">Tiles</span>
+                  <div className="segs text" role="group" aria-labelledby="pr-tiles">
+                    {TILES.map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={tiles === id}
+                        onClick={() => set({ tiles: id })}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {tiles === 'turns' && (
+                  <div className="practice-turns">
+                    <Turns label="Heard" value={turns.on} onStep={(d) => turn('on', d)} />
+                    <Turns label="Silent" value={turns.off} onStep={(d) => turn('off', d)} />
+                  </div>
+                )}
+                {tiles !== 'on' && (
+                  <p className="practice-note">
+                    {tiles === 'off'
+                      ? 'Only the click sounds: the tiles are yours to play.'
+                      : `${times(turns.on)} round with the tiles, then ${times(turns.off).toLowerCase()} with the click alone.`}
+                  </p>
+                )}
+              </>
+            )}
+            {tab === 'click' && <ClickPatternSection />}
+            {tab === 'mix' && <Mixer />}
+          </div>
         </div>
       )}
     </span>
   );
 }
 
+const TABS: ['practice' | 'click' | 'mix', string][] = [
+  ['practice', 'Practice'],
+  ['click', 'Click'],
+  ['mix', 'Mix'],
+];
+/** Is the mix anything but the plain one? */
+const mixChanged = (s: { mix: Mix; click: boolean; ticks: boolean }) =>
+  !s.click ||
+  !s.ticks ||
+  (Object.keys(MIX_DEFAULT) as MixChannel[]).some((ch) => s.mix[ch] !== MIX_DEFAULT[ch]);
+
 const clampTempo = (v: number) => Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(v)));
 
-/** The tempo, typed: a number field between − and +. Enter or leaving the field sets it. */
+/** The tempo: a number that can be typed, between − and +, and Tap (tap the beat). */
 function TempoRow() {
-  const tempo = useUiStore((s) => s.tempo);
   const set = useUiStore((s) => s.set);
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = () => {
-    if (draft === null) return;
-    const v = parseInt(draft, 10);
-    if (Number.isFinite(v)) set({ tempo: clampTempo(v) });
-    setDraft(null);
-  };
-  const step = (d: number) => {
-    setDraft(null);
-    set({ tempo: clampTempo(useUiStore.getState().tempo + d) });
-  };
+  const { tap, tapped } = useTapTempo();
+  const step = (d: number) => set({ tempo: clampTempo(useUiStore.getState().tempo + d) });
   return (
     <div className="practice-row">
       <label htmlFor="pr-tempo">Tempo</label>
       <div className="practice-tempo">
+        <button
+          type="button"
+          className="practice-tap"
+          title="Tap the beat a few times: the taps set the tempo"
+          onPointerDown={tap}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (!e.repeat) tap();
+            }
+          }}
+        >
+          Tap{tapped >= 2 && <span className="sr-only"> ({tapped} taps)</span>}
+        </button>
         <button type="button" aria-label="1 slower" onClick={() => step(-1)}>
           −
         </button>
         <span className="practice-bpm">
           <span aria-hidden="true">♩</span>
-          <input
-            id="pr-tempo"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            autoComplete="off"
-            maxLength={3}
-            title={`Beats per minute, ${MIN_TEMPO} to ${MAX_TEMPO}`}
-            data-testid="practice-tempo"
-            value={draft ?? String(tempo)}
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                commit();
-                (e.target as HTMLInputElement).select();
-              } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                e.preventDefault();
-                step(e.key === 'ArrowUp' ? 1 : -1);
-              }
-            }}
-          />
+          <TempoField id="pr-tempo" testid="practice-tempo" />
         </span>
         <button type="button" aria-label="1 faster" onClick={() => step(1)}>
           +
@@ -210,20 +248,22 @@ function TempoRow() {
 }
 
 const CHANNELS: [MixChannel, string, string][] = [
-  ['drum', 'Drum', 'The tiles'],
-  ['one', 'The 1', 'The first beat of every bar'],
-  ['beat', 'Beats', 'The other beats'],
-  ['sub', 'Subdivision', 'The ticks inside a beat'],
+  ['drum', 'Drum', 'the tiles'],
+  ['one', 'The 1', 'of every bar'],
+  ['beat', 'Beats', 'the other beats'],
+  ['sub', 'Subdivision', 'inside a beat'],
 ];
 
 /**
- * The mixer: one fader for each voice. Beats and Subdivision are also the two "hear" options:
- * a fader pulled to nothing turns its voice off, and moving it turns the voice on again.
+ * The mixer: one fader for each voice, each on its own. Beats and Subdivision are also the two
+ * "hear" options: a fader pulled to nothing turns its voice off, and moving it turns the voice
+ * on again. A notch marks where a fader stands untouched.
  */
 function Mixer() {
   const mix = useUiStore((s) => s.mix);
   const click = useUiStore((s) => s.click);
   const ticks = useUiStore((s) => s.ticks);
+  const tiles = useUiStore((s) => s.tiles);
   const set = useUiStore((s) => s.set);
   const shown = (ch: MixChannel) =>
     (ch === 'beat' && !click) || (ch === 'sub' && !ticks) ? 0 : mix[ch];
@@ -235,11 +275,40 @@ function Mixer() {
       ...(ch === 'sub' ? { ticks: v > 0 } : {}),
     });
   };
-  const changed = !click || !ticks || CHANNELS.some(([ch]) => mix[ch] !== MIX_DEFAULT[ch]);
+  const changed = mixChanged({ mix, click, ticks });
   return (
-    <div className="mixer" role="group" aria-labelledby="pr-mix">
-      <div className="mixer-head">
-        <span id="pr-mix">Mix</span>
+    <div className="mixer" role="group" aria-label="Mix">
+      {CHANNELS.map(([ch, label, what]) => {
+        const v = shown(ch);
+        return (
+          <label key={ch} className={`mixer-row${v === 0 ? ' off' : ''}`}>
+            <span className="mixer-lbl">
+              {label}
+              <small>{what}</small>
+            </span>
+            <span className="mixer-fader" style={{ ['--at' as string]: `${MIX_DEFAULT[ch]}%` }}>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={v}
+                data-testid={`mix-${ch}`}
+                aria-valuetext={v === 0 ? 'off' : `${v}`}
+                style={{ ['--v' as string]: `${v}%` }}
+                onChange={(e) => move(ch, +e.target.value)}
+              />
+            </span>
+            <output className="mono">{v === 0 ? 'off' : v}</output>
+          </label>
+        );
+      })}
+      <p className="practice-note mixer-foot">
+        <span>
+          {tiles === 'off'
+            ? 'The tiles are set to silent in Practice, so the drum is not heard now.'
+            : 'The notch is where a fader starts.'}
+        </span>
         {changed && (
           <button
             type="button"
@@ -249,27 +318,7 @@ function Mixer() {
             Reset
           </button>
         )}
-      </div>
-      {CHANNELS.map(([ch, label, what]) => {
-        const v = shown(ch);
-        return (
-          <label key={ch} className={`mixer-row${v === 0 ? ' off' : ''}`} title={what}>
-            <span className="mixer-lbl">{label}</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={v}
-              data-testid={`mix-${ch}`}
-              aria-valuetext={v === 0 ? 'off' : `${v}`}
-              style={{ ['--v' as string]: `${v}%` }}
-              onChange={(e) => move(ch, +e.target.value)}
-            />
-            <output className="mono">{v === 0 ? 'off' : v}</output>
-          </label>
-        );
-      })}
+      </p>
     </div>
   );
 }

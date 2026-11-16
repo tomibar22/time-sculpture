@@ -825,3 +825,26 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   ringed = picked), "A tap on a dot sets: That beat | Every beat" (`toggleClickPulse` with the
   beats of the same ratio), the bar in words (`click-said`), and Clear the bar / Every click /
   Like bar 1.
+
+### Review round: the practice popover in pages, faders on their own, Land wording
+
+- **Three pages** (`ui.practiceTab` 'practice' | 'click' | 'mix'; tabs with ← →, a dot on a tab
+  whose page is in use): Practice (tempo, count-in, tiles), Click (the click pattern), Mix. No
+  page scrolls; on phones the popover takes the screen's width. **A press on Play does not close
+  the popover** (`away` skips `.bigplay`), so changes are heard at once.
+- **Tempo, typed** is one component, `TempoField` (TempoDialog.tsx), used in the popover and as
+  the big number of the tempo dialog: what is typed counts at once when it is 30–240 (so tapping
+  away never loses it), Enter / blur clamp the rest. `useTapTempo` is shared too ("Tap" in the
+  popover's tempo row).
+- **Mixer**: every fader starts at 70 (`MIX_DEFAULT`; a notch marks it), `mixGain` has a steeper
+  curve for the ticks (`MIX_CURVE`, ×4 at the top). Stored mixes carry `mixScale` (the first
+  scale had the ticks at 35 and is converted on load). **The 1 is on its own**: every bar's
+  downbeat sounds on The 1 fader whatever `ui.click` says (`click` only switches the other
+  beats; before, Beats at nothing also silenced the bars' downbeats, leaving only the landing).
+- **Click pattern**: cells are 40 px (dots 32 × 40); a note says when the beats or the
+  subdivision are off in the Mix ("Turn on"); while playing, the tab of the bar of the cycle that
+  sounds is ringed (`ui.clickBarNow`, from the player's slots) and the beat that sounds is
+  underlined.
+- **Land**: the last tile falls "on the 1", "on beat N" or "after the stretch", whatever the end
+  of the region is (`end` in LandPanel; the switch, the hint and the rows say the same). Rows
+  read in full: the name of a way, then where it begins on a line of its own (`.land-cap`).
