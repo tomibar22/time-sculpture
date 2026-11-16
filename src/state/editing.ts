@@ -2,7 +2,16 @@ import * as E from '../engine';
 import type { GroupKind, GroupSpec } from '../engine';
 import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
-import { announce, paintSubdivision, plural, run, toast } from './actions';
+import {
+  announce,
+  barsLabel,
+  cutBars,
+  paintSubdivision,
+  plural,
+  run,
+  toast,
+  wholeBars,
+} from './actions';
 import { useDocStore, useUiStore } from './store';
 
 /**
@@ -243,6 +252,34 @@ export function deleteAtCaret(dir: -1 | 1): boolean {
   if (s.selection.length) return false;
   if (s.range) {
     const { a, b } = s.range;
+    // whole bars: the first Backspace empties them (they stay selected and the toast offers to
+    // take the bars away too); Backspace on bars that are already empty removes the bars, like
+    // an empty line in a text
+    const bars = wholeBars();
+    if (bars) {
+      let at = 0;
+      const empty = !d.items.some((x) => {
+        const hit = x.kind === 'sound' && at < b && at + x.n > a;
+        at += x.n;
+        return hit;
+      });
+      const count = bars.b - bars.a + 1;
+      if (empty) {
+        cutBars(bars.a, count);
+        return true;
+      }
+      if (run(E.clearRange(d, a, b), { label: 'clear range', select: 'none', sound: sfx.remove })) {
+        setUi({ range: { a, b }, rangeAnchor: a, caret: b });
+        const name = barsLabel(bars.a, bars.b);
+        toast(`${name[0]!.toUpperCase()}${name.slice(1)} emptied`, {
+          action: {
+            label: count === 1 ? 'Remove the bar' : 'Remove the bars',
+            run: () => void cutBars(bars.a, count),
+          },
+        });
+      }
+      return true;
+    }
     if (run(E.clearRange(d, a, b), { label: 'clear range', select: 'none', sound: sfx.remove })) {
       setCaret(a, { quiet: true });
       announce(`${plural(b - a, 'pulse')} silenced`);

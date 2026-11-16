@@ -6,6 +6,7 @@ import { Logo, PieceTitle } from './components/PieceTitle';
 import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
 import { MarkDialog } from './components/MarkDialog';
+import { ContextMenu } from './components/ContextMenu';
 import { BarsDialog, MeterDialog, RowDialog, StartDialog } from './components/PieceDialogs';
 import { useTouchUndo } from './components/useTouchUndo';
 import { TempoDialog } from './components/TempoDialog';
@@ -73,6 +74,7 @@ export function App() {
       <TempoDialog />
       <MeterDialog />
       <BarsDialog />
+      <ContextMenu />
       <RowDialog />
       <StartDialog />
       <ZoomHud />

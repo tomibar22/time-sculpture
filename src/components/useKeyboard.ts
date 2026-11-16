@@ -40,6 +40,8 @@ import {
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { openFill } from '../state/fill';
+import { openMenuAtSelection } from '../score/menu';
+import { deleteBarsHere } from '../state/actions';
 import { toggleOverview, zoomStep } from '../state/zoom';
 import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/stage';
 
@@ -70,6 +72,17 @@ export function useKeyboard() {
       // letter shortcuts follow the physical key, so they work with any layout (e.g. Hebrew)
       const k = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const hasSel = useUiStore.getState().selection.length > 0;
+
+      // the context menu has the keys while it is open (it handles its own; Esc puts it away)
+      if (useUiStore.getState().menu) {
+        if (e.key === 'Escape') useUiStore.getState().set({ menu: null, doomed: null });
+        return;
+      }
+      if ((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu') {
+        if (useUiStore.getState().stage) return;
+        e.preventDefault();
+        return openMenuAtSelection();
+      }
 
       // the stage only plays: Space, zoom, and Esc / F to leave
       if (useUiStore.getState().stage) {
@@ -267,6 +280,8 @@ export function useKeyboard() {
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
+        // ⇧⌫: the bars themselves go (the ones under the selection or the caret), time and all
+        if (e.shiftKey) return void deleteBarsHere();
         if (hasSel) return removeSelection();
         deleteAtCaret(e.key === 'Backspace' ? -1 : 1);
         return;

@@ -52,6 +52,8 @@ export interface DrawState {
   cursor: number | null;
   /** Selected pulse range. */
   range?: { a: number; b: number } | null;
+  /** A stretch (beats) about to be removed with its bars: tinted red as a warning. */
+  doomed?: { t0: number; t1: number } | null;
   playhead: number | null;
   flash: { ids: ReadonlySet<ItemId>; alpha: number };
   focusedId: ItemId | null;
@@ -528,6 +530,26 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     if (t >= g.grid.NB) return { x: rowEndX(g, g.R - 1), r: g.R - 1 };
     return xOf(g, t);
   };
+  if (s.doomed) {
+    // the bars a "Delete bar" would take away: a red wash from the numbers down to the band
+    for (let r = 0; r < g.R; r++) {
+      const row = g.rows[r]!;
+      const a = Math.max(s.doomed.t0, row.b0);
+      const b = Math.min(s.doomed.t1, row.b0 + row.nb);
+      if (b <= a) continue;
+      const x0 = L.margin + (a - row.b0) * row.bw;
+      const x1 = L.margin + (b - row.b0) * row.bw;
+      const top = rowTop(g, r);
+      const h = tileY(g, r) + L.tileH + 8 - top;
+      c.fillStyle = P.land;
+      c.globalAlpha = 0.16;
+      c.fillRect(x0, top, x1 - x0, h);
+      c.globalAlpha = 0.9;
+      c.fillRect(x0, top, x1 - x0, 2);
+      c.fillRect(x0, top + h - 2, x1 - x0, 2);
+      c.globalAlpha = 1;
+    }
+  }
   if (s.range) {
     // a translucent band over the selected pulses, row by row, with clear edges
     for (const seg of segments(g, s.range.a, s.range.b - s.range.a)) {

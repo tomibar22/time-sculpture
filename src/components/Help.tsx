@@ -169,7 +169,25 @@ export function Help() {
             </p>
           </details>
           <details className="help-topic">
+            <summary>The menu: right-click, or hold</summary>
+            <p>
+              Right-click anything in the score (hold a finger on it on a phone or tablet; ⇧F10 on a
+              keyboard) for a short menu about just that: a group (cut, copy, duplicate, split,
+              loop, vary…), a selected range, an empty place (paste, fill it, play from here, marks
+              and repeats), or, on the beat numbers, the bar. Every menu ends with the bar under the
+              pointer: add a bar before or after, select it, change the metre from it, remove it. A
+              finger held on a group and then dragged still moves the group.
+            </p>
+          </details>
+          <details className="help-topic">
             <summary>Bars and metre</summary>
+            <p>
+              <b>To remove a bar</b>: right-click (or hold) its beat numbers and choose Remove bar;
+              the bar turns red before it goes. Or select bars (tap a bar’s numbers twice, drag on
+              along the numbers for more) and tap Remove bars in the bar below, or press ⌫ twice:
+              once empties them, once more takes the bars away. ⇧⌫ removes the bars under the caret
+              or the selection at once. What comes after moves up; Undo brings it all back.
+            </p>
             <p>
               <b>Bars…</b> (at the caret, or “Add or remove bars…” in the settings) adds any number
               of bars before or after any bar, or removes a run of bars with what is in it; the

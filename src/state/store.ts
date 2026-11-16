@@ -156,6 +156,16 @@ export interface Toast {
   action?: { label: string; run: () => void };
 }
 
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  kind: 'tiles' | 'range' | 'caret' | 'bar';
+  bar: number;
+  k: number;
+  /** Opened by a finger held down: taps count only once that finger is up. */
+  touch: boolean;
+}
+
 export interface UiState {
   selection: ItemId[];
   anchor: ItemId | null;
@@ -215,6 +225,13 @@ export interface UiState {
   meterDialog: { at: number } | null;
   /** The bars dialog: add or remove bars anywhere. */
   barsDialog: boolean;
+  /**
+   * The context menu (right-click, long press, ⇧F10): where it opens (client px), what it is
+   * about, the bar that was pointed at (0-based) and the pulse there.
+   */
+  menu: ContextMenuState | null;
+  /** Bars about to be removed (0-based, first to last): tinted in the score as a warning. */
+  doomed: { a: number; b: number } | null;
   /** The row dialog: how many bars the row at this time holds. */
   rowDialog: { t: number } | null;
   /** The dialog that says where Play starts. */
@@ -298,6 +315,8 @@ export const useUiStore = create<UiState>((set) => ({
   markDialog: null,
   meterDialog: null,
   barsDialog: false,
+  menu: null,
+  doomed: null,
   rowDialog: null,
   startDialog: false,
   playStart: null,

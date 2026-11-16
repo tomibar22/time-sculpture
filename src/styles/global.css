@@ -2999,3 +2999,170 @@ button.now.start-btn.set b {
   font-family: var(--f-mono);
   letter-spacing: 0.04em;
 }
+
+/* ---------------------------------------------------------------- context menu */
+/* right-click, a long press, or ⇧F10 on the score: short, about what was pointed at */
+.ctx-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  touch-action: none;
+}
+.ctx {
+  position: fixed;
+  width: min(264px, calc(100vw - 16px));
+  max-height: min(78dvh, calc(100dvh - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 12px 40px rgb(0 0 0 / 0.22),
+    0 2px 8px rgb(0 0 0 / 0.1);
+  animation: ctx-in 0.12s ease-out;
+}
+@keyframes ctx-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctx {
+    animation: none;
+  }
+}
+.ctx-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 2px 10px 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.ctx-title span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ctx button {
+  background: transparent;
+  border-radius: 10px;
+  font-weight: 400;
+}
+.ctx button.ctx-back-btn {
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
+  margin-left: -6px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ctx-back-btn svg {
+  transform: rotate(90deg);
+}
+.ctx-quick {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.ctx-quick button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.66rem;
+  color: var(--fg);
+}
+.ctx-quick button span {
+  color: var(--muted);
+}
+.ctx-rows {
+  display: flex;
+  flex-direction: column;
+}
+.ctx-rows button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 10px;
+  text-align: left;
+  font-size: 0.92rem;
+}
+.ctx.by-touch .ctx-rows button {
+  min-height: 40px;
+}
+.ctx-rows hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 5px 4px;
+}
+.ctx-hint {
+  font-family: var(--f-body);
+  font-size: 0.78rem;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.ctx-more {
+  display: inline-flex;
+  color: var(--muted);
+}
+.ctx-more svg {
+  transform: rotate(-90deg);
+  width: 16px;
+  height: 16px;
+}
+.ctx button.danger,
+.ctx button.danger span {
+  background: transparent;
+  color: var(--land);
+}
+.ctx button:focus-visible {
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .ctx button:not(:disabled):hover {
+    background: var(--soft);
+  }
+  .ctx button.danger:not(:disabled):hover {
+    background: color-mix(in srgb, var(--land) 12%, transparent);
+  }
+}
+.ctx button:not(:disabled):active {
+  background: var(--soft);
+}
+/* coarse pointers have no keyboard beside them: no shortcut hints */
+@media (pointer: coarse) {
+  .ctx-hint {
+    display: none;
+  }
+}
+/* "Remove bars 2–3" in the range bar: quiet until wanted, red like every removal */
+.selbar-actions button.danger-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--land);
+}
+.selbar-actions button.danger-quiet svg {
+  width: 16px;
+  height: 16px;
+}

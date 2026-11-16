@@ -8,6 +8,7 @@ import { setCaret, setRange, closeSubdivision, pickBeats } from '../state/editin
 import { diveAt, zoomStep } from '../state/zoom';
 import { OVERVIEW_LEVELS, zoomLevels } from './rows';
 import { anchorAtPoint, restoreAnchor, view } from './view';
+import { openMenuAt } from './menu';
 import { useDocStore, useUiStore } from '../state/store';
 import type { BuildDir } from '../state/store';
 import { buildReveal } from '../state/stage';
@@ -125,6 +126,13 @@ function overviewPer(width: number, doc: Doc, perRow: number, fit: boolean): num
   return ls[ls.length - 1] ?? perRow;
 }
 
+/** Bars about to be removed, as a stretch of beats for drawing. */
+function doomedSpan(doc: Doc, d: { a: number; b: number } | null) {
+  if (!d) return null;
+  const map = E.barMap(doc.meter);
+  return { t0: map.barStarts[d.a] ?? 0, t1: map.barStarts[d.b + 1] ?? map.NB };
+}
+
 /** The beats picked in the band, as a set for drawing. */
 function pickedBeats(sel: { a: number; b: number } | null): ReadonlySet<number> | null {
   if (!sel) return null;
@@ -153,6 +161,11 @@ export function Score() {
   /** A drag that owns the touch: the page does not scroll under it. */
   const locked = useRef(false);
   const lastPt = useRef<{ x: number; y: number } | null>(null);
+  /** The context menu was opened by the finger that is still down (see `held` in dragTo / end). */
+  const held = useRef(false);
+  const holdAt = useRef({ x: 0, y: 0 });
+  const holdTimer = useRef<number | undefined>(undefined);
+  const pointerType = useRef('mouse');
   const scrollRaf = useRef(0);
   /** The last pointer was a finger: lines show their handles only next to a selected group. */
   const byTouch = useRef(
@@ -220,6 +233,7 @@ export function Score() {
         mainTempo: s.tempo,
         cursor: stage ? null : s.caret,
         range: stage ? null : s.range,
+        doomed: stage ? null : doomedSpan(doc, s.doomed),
         playhead: s.playhead,
         loop: stage ? null : s.loop,
         sweep,
@@ -514,6 +528,29 @@ export function Score() {
 
   /* ---------------------------------------------------------------- pointer down */
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    pointerType.current = e.pointerType;
+    held.current = false;
+    clearTimeout(holdTimer.current);
+    down(e);
+    // a finger held still anywhere but on a group (those have their own timer: they are picked
+    // up as well) opens the context menu
+    const gs = gesture.current;
+    if (e.pointerType !== 'touch' || !gs || gs.kind === 'press' || locked.current) return;
+    const [x0, y0] = point(e.clientX, e.clientY);
+    holdAt.current = { x: x0, y: y0 };
+    const cx = e.clientX;
+    const cy = e.clientY;
+    holdTimer.current = window.setTimeout(() => {
+      const now = gesture.current;
+      if (now !== gs || locked.current || (now.kind === 'sweep' && now.moved)) return;
+      const p = lastPt.current;
+      if (p && Math.hypot(p.x - cx, p.y - cy) > DRAG_THRESHOLD) return;
+      held.current = true;
+      sfx.lift();
+      openMenuAt(cx, cy, true);
+    }, LONG_PRESS_MS);
+  };
+  const down = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (e.button !== 0) return;
     const g = geo.current;
     if (!g) return;
@@ -780,6 +817,10 @@ export function Score() {
         setUi({ lifted: ui().selection });
         lock();
         sfx.lift();
+        // …and its menu opens; dragging on puts the menu away and moves the group
+        held.current = true;
+        holdAt.current = { x, y };
+        openMenuAt(e.clientX, e.clientY, true);
         return;
       }
       setUi({
@@ -885,6 +926,15 @@ export function Score() {
     const cv = canvasRef.current;
     if (!g || !gs || !cv) return;
     const [x, y] = point(cx, cy);
+
+    if (held.current) {
+      // the menu is open under a finger that is still down: a clear move puts it away and
+      // the drag goes on (a held group moves, a held place selects from there)
+      if (Math.hypot(x - holdAt.current.x, y - holdAt.current.y) <= DRAG_THRESHOLD * 1.5) return;
+      held.current = false;
+      setUi({ menu: null });
+      lock();
+    }
 
     if (gs.kind === 'sweep') {
       if (!gs.moved) {
@@ -1115,8 +1165,17 @@ export function Score() {
     gesture.current = null;
     locked.current = false;
     lastPt.current = null;
+    clearTimeout(holdTimer.current);
     if (!gs) return;
     const clearDrag = () => setUi({ preview: null, lifted: [] });
+    if (held.current) {
+      // the finger that opened the menu is up: the menu stays, nothing else happens
+      held.current = false;
+      if (gs.kind === 'press') clearTimeout(gs.timer);
+      if (ui().lifted.length || ui().preview) clearDrag();
+      request();
+      return;
+    }
 
     if (gs.kind === 'sweep') {
       if (!cancelled && !gs.moved) gs.tap();
@@ -1199,14 +1258,7 @@ export function Score() {
       clearTimeout(gs.timer);
       if (ui().lifted.length) setUi({ lifted: [] });
       if (cancelled) return;
-      if (gs.long) {
-        // a finger held on a group and let go without moving: select several from here
-        if (gs.touch && !ui().multi) {
-          setUi({ multi: true });
-          announce('Selecting several. Tap more groups.');
-        }
-        return;
-      }
+      if (gs.long) return;
       const now = performance.now();
       const { multi } = ui();
       if (
@@ -1256,7 +1308,13 @@ export function Score() {
             request();
           }
         }}
-        onContextMenu={(e) => e.preventDefault()}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          // a finger's long press is timed here (iOS sends no such event); this is the mouse
+          if (pointerType.current === 'touch') return;
+          end(true);
+          openMenuAt(e.clientX, e.clientY, false);
+        }}
       />
     </div>
   );

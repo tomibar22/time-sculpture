@@ -20,6 +20,9 @@ import {
   selectAll,
   duplicateRange,
   setPlayStart,
+  wholeBars,
+  cutBars,
+  barsLabel,
 } from '../state/actions';
 import {
   caretHome,
@@ -311,6 +314,7 @@ function CaretBar() {
           >
             Duplicate
           </button>
+          <RemoveBarsButton />
           <button type="button" onClick={() => openFill('browse')}>
             Browse fills
           </button>
@@ -539,6 +543,30 @@ function CaretBar() {
           : 'Type a number to write here; ⇧ arrows select a range (123 opens the number pad)'}
       </span>
     </div>
+  );
+}
+
+/** The range is exactly whole bars: take the bars themselves away, with what is in them (⇧⌫). */
+function RemoveBarsButton() {
+  const bars = wholeBars();
+  const set = useUiStore.getState().set;
+  if (!bars) return null;
+  const nBars = E.barMap(useDocStore.getState().doc.meter).barStarts.length;
+  const off = () => set({ doomed: null });
+  return (
+    <button
+      type="button"
+      className="danger-quiet"
+      title="Remove these bars, with what is in them: what comes after moves up (⇧⌫)"
+      disabled={bars.b - bars.a + 1 >= nBars}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && set({ doomed: bars })}
+      onPointerLeave={off}
+      onFocus={() => set({ doomed: bars })}
+      onBlur={off}
+      onClick={() => cutBars(bars.a, bars.b - bars.a + 1)}
+    >
+      <TrashIcon /> Remove {barsLabel(bars.a, bars.b)}
+    </button>
   );
 }
 

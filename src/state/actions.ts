@@ -713,6 +713,75 @@ export function addBars(atBar: number, n: number): boolean {
   return true;
 }
 
+/** The bars (0-based, first to last) that hold pulses [ka, kb) (or the pulse ka). */
+export function barsOfPulses(ka: number, kb = ka + 1): { a: number; b: number } {
+  const d = doc();
+  const grid = E.buildGrid(d.meter);
+  const map = E.barMap(d.meter);
+  const bar = (k: number) =>
+    map.barOf[E.beatOfPulse(grid, E.clamp(k, 0, grid.TS - 1))] ?? map.barStarts.length - 1;
+  return { a: bar(ka), b: bar(Math.max(ka, kb - 1)) };
+}
+
+/** The bars under the selected groups, the range or the caret; null = nothing is pointed at. */
+export function barsHere(): { a: number; b: number } | null {
+  const s = uiState();
+  const region = s.range ?? E.spanOf(doc(), s.selection);
+  if (region) return barsOfPulses(region.a, region.b);
+  return s.caret === null ? null : barsOfPulses(s.caret);
+}
+
+/** The pulses [a, b) of bars `a`..`b` (0-based, both included). */
+export function pulsesOfBars(a: number, b = a): { a: number; b: number } {
+  const d = doc();
+  const grid = E.buildGrid(d.meter);
+  const map = E.barMap(d.meter);
+  return {
+    a: grid.pre[map.barStarts[a] ?? 0] ?? 0,
+    b: grid.pre[map.barStarts[b + 1] ?? map.NB] ?? grid.TS,
+  };
+}
+
+/** The selected range, when it is exactly whole bars: those bars. */
+export function wholeBars(): { a: number; b: number } | null {
+  const r = uiState().range;
+  if (!r) return null;
+  const bars = barsOfPulses(r.a, r.b);
+  const p = pulsesOfBars(bars.a, bars.b);
+  return p.a === r.a && p.b === r.b ? bars : null;
+}
+
+export const barsLabel = (a: number, b: number) =>
+  a === b ? `bar ${a + 1}` : `bars ${a + 1}–${b + 1}`;
+
+/** Select bars `a`..`b` (0-based) as a range: what Delete bars, Copy, Fill… then work on. */
+export function selectBars(a: number, b = a): void {
+  const p = pulsesOfBars(a, b);
+  setUi({
+    range: p,
+    rangeAnchor: p.a,
+    caret: p.b,
+    selection: [],
+    anchor: null,
+    multi: false,
+  });
+  announce(`Selected ${barsLabel(a, b)}`);
+}
+
+/**
+ * Remove the bars under the selection, the range or the caret, with what is in them (⇧⌫):
+ * the time itself goes, and what comes after moves up.
+ */
+export function deleteBarsHere(): boolean {
+  const bars = barsHere();
+  if (!bars) {
+    sfx.nope();
+    toast('Put the caret in a bar, or select bars, to remove them');
+    return false;
+  }
+  return cutBars(bars.a, bars.b - bars.a + 1);
+}
+
 /** Remove `count` bars from bar `fromBar` (0-based), with what is in them. */
 export function cutBars(fromBar: number, count: number): boolean {
   const r = E.removeBars(doc(), fromBar, count);
@@ -724,7 +793,17 @@ export function cutBars(fromBar: number, count: number): boolean {
   if (!run(r, { label: `−${plural(count, 'bar')}`, select: 'none', sound: sfx.remove }))
     return false;
   const gone = r.report.removed.length;
-  toast(`${plural(count, 'bar')} removed${gone ? `, with ${plural(gone, 'group')}` : ''}`, {
+  // the caret stands where the bars were, so "what now" is in sight
+  const after = E.barMap(r.doc.meter);
+  const grid = E.buildGrid(r.doc.meter);
+  setUi({
+    caret: grid.pre[after.barStarts[fromBar] ?? after.NB] ?? grid.TS,
+    range: null,
+    rangeAnchor: null,
+    doomed: null,
+  });
+  const name = count === 1 ? `Bar ${fromBar + 1}` : `Bars ${fromBar + 1}–${fromBar + count}`;
+  toast(`${name} removed${gone ? `, with ${plural(gone, 'group')}` : ''}`, {
     undo: true,
   });
   return true;

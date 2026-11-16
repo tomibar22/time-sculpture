@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import * as E from '../engine';
 import {
   addBars,
+  barsHere,
   changeMetre,
   clearRowBars,
   cutBars,
@@ -12,7 +13,7 @@ import {
   setPlayStartBar,
   setRowBars,
 } from '../state/actions';
-import { caretPulse, selectedRegion } from '../state/editing';
+import { caretPulse } from '../state/editing';
 import { rowLayout } from '../score/rows';
 import { useDocStore, useUiStore } from '../state/store';
 
@@ -94,20 +95,6 @@ function Num(props: {
       </div>
     </div>
   );
-}
-
-/** The bars (0-based, first to last) under the selection, the range or the caret; null = none. */
-function barsHere(): { a: number; b: number } | null {
-  const doc = useDocStore.getState().doc;
-  const grid = E.buildGrid(doc.meter);
-  const map = E.barMap(doc.meter);
-  const region = selectedRegion();
-  const caret = caretPulse();
-  if (!region && caret === null) return null;
-  const ka = region ? region.a : caret!;
-  const kb = region ? Math.max(region.a, region.b - 1) : caret!;
-  const bar = (k: number) => map.barOf[E.beatOfPulse(grid, Math.min(k, grid.TS - 1))] ?? 0;
-  return { a: bar(ka), b: bar(kb) };
 }
 
 /* ------------------------------------------------------------------ metre */
@@ -241,7 +228,16 @@ export function BarsDialog() {
     setFrom(here ? here.a + 1 : n);
     setTo(here ? here.b + 1 : n);
   }, [open]);
-  const close = () => set({ barsDialog: false });
+  const close = () => set({ barsDialog: false, doomed: null });
+  // the bars that Remove would take are tinted in the score while that part is in use
+  const [aiming, setAiming] = useState(false);
+  useEffect(() => {
+    if (!open) return setAiming(false);
+    const n = E.barMap(useDocStore.getState().doc.meter).barStarts.length;
+    const lo = Math.min(from, n);
+    const hi = Math.max(lo, Math.min(to, n));
+    set({ doomed: aiming && hi - lo + 1 < n ? { a: lo - 1, b: hi - 1 } : null });
+  }, [open, aiming, from, to, set]);
   const max = E.isFree(meter) ? E.MAX_CYCLES * 2 : E.MAX_CYCLES;
   const b = Math.min(bar, nBars);
   const f = Math.min(from, nBars);
@@ -279,7 +275,11 @@ export function BarsDialog() {
         </button>
       </div>
       <h3 className="dialog-sub">Remove</h3>
-      <div className="dialog-row">
+      <div
+        className="dialog-row"
+        onFocus={() => setAiming(true)}
+        onPointerDown={() => setAiming(true)}
+      >
         <Num
           label="From bar"
           value={f}

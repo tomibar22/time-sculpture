@@ -130,3 +130,33 @@ export const SyncIcon = () => (
     <path d="M4 13a8 8 0 0 0 14.6 4.5M20 20v-3h-3" />
   </svg>
 );
+export const ScissorsIcon = () => (
+  <svg {...base}>
+    <circle cx="6" cy="6" r="2.5" />
+    <circle cx="6" cy="18" r="2.5" />
+    <path d="M8.2 7.5 20 18M8.2 16.5 20 6" />
+  </svg>
+);
+export const CopyIcon = () => (
+  <svg {...base}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+  </svg>
+);
+export const PasteIcon = () => (
+  <svg {...base}>
+    <path d="M9 5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+    <rect x="9" y="3" width="6" height="4" rx="1" />
+  </svg>
+);
+export const DuplicateIcon = () => (
+  <svg {...base}>
+    <rect x="4" y="4" width="11" height="11" rx="2" />
+    <path d="M19 9v9a2 2 0 0 1-2 2H9M9.5 7v5M7 9.500h5" />
+  </svg>
+);
+export const EraseIcon = () => (
+  <svg {...base}>
+    <path d="M8 19h11M5 14l8.500-8.500a1.500 1.500 0 0 1 2.100 0L19 8.900a1.500 1.500 0 0 1 0 2.100L11 19H8l-3-3a1.400 1.400 0 0 1 0-2z" />
+  </svg>
+);

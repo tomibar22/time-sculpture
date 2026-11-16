@@ -680,3 +680,35 @@ Tile text colour is picked per size colour by contrast (`inkFor`). Light --land/
 were darkened from the prototype to meet WCAG AA for text.
 Radii: panels 20 px, controls 12 px, tiles 9 px. Theme: follows system; `data-theme` on `<html>`
 overrides.
+
+### Context menu and removing bars (user request: bar deletion was not intuitive)
+
+- **Context menu** (`components/ContextMenu.tsx`, target chosen in `score/menu.ts`, state
+  `ui.menu {x, y, kind, bar, k, touch}`): right-click (mouse), a finger held 450 ms (iOS sends no
+  `contextmenu`, so Score times it: `held` / `holdTimer`), ⇧F10 / Menu key (`openMenuAtSelection`).
+  Pointing at something not selected selects it first. Kinds: `tiles` (a group: icon row Cut Copy
+  Paste Duplicate Remove, then Split / Merge / Reverse, Loop / Vary / Fill again, Total / Ending /
+  Subdivision, Select several), `range` (same icon row with Empty, Loop / Fill / Vary, marks,
+  "Remove bars" when it is whole bars), `caret` (empty time, silence, band: Paste, "Fill these N
+  pulses…" (`gapAt`), Play from here, phrase mark, line break, repeats, Modulate, Subdivision,
+  Select all), `bar` (the beat numbers). Every menu ends with "Bar N ›", one step in (`page`):
+  Select, Play from here, Add a bar before / after, Add or remove several… (BarsDialog), Metre
+  from here…, Bars in this row…, Remove bar. Keep it short: no submenus beyond that one page.
+- Touch: the menu opens while the finger is still down; a clear move (> 12 px) puts it away and
+  the drag goes on (a held group moves, as before). The finger's lift never activates an item
+  (`pressed`: a tap counts only after a press that began in the menu). Holding a group no longer
+  turns on "Select several" by itself (it is in the menu); a mouse held on a group still does.
+  By touch, Remove bar asks twice (first tap tints the bar, label gets "?"). Rows are 40 px by
+  touch, 34 px with a mouse; shortcut hints only for fine pointers.
+- While the menu is open the global keys are off (useKeyboard returns; Esc closes); the menu has
+  ↑ ↓ Home End, Esc, ← back from the bar page.
+- **Removing bars** (`cutBars`; helpers `barsHere`, `barsOfPulses`, `pulsesOfBars`, `wholeBars`,
+  `selectBars`, `deleteBarsHere` in actions.ts): (1) the menu's "Remove bar N"; (2) a range that
+  is exactly whole bars shows "Remove bar(s)" in the range bar (`RemoveBarsButton`); (3) ⌫ on such
+  a range empties it, keeps it selected and the toast offers "Remove the bar(s)"; ⌫ on whole bars
+  that are already empty removes them (like an empty line in a text); (4) ⇧⌫ removes the bars
+  under the selection / range / caret; (5) the Bars dialog as before. After a removal the caret
+  stands where the bars were and the toast names them ("Bar 2 removed", Undo).
+- `ui.doomed {a, b}` (bars, 0-based): the bars a removal would take, drawn as a red wash
+  (`DrawState.doomed`, beats) while the menu item or the range-bar button is hovered / focused /
+  asked, and while the Remove part of the Bars dialog is in use.
