@@ -13,6 +13,8 @@ import {
   changeRepeatTimes,
   openVolta,
   toggleTotalOver,
+  toggleRepeatOver,
+  repeatedOver,
   toggleRepeatEndAt,
   toggleRepeatStartAt,
   addBarAtStart,
@@ -236,6 +238,7 @@ export function SelectionBar() {
         <span className="selbar-sep" aria-hidden="true" />
         {/* marks on the score */}
         <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
+        <RepeatButton disabled={!sel.length || !E.isContiguous(idx)} />
         <button
           type="button"
           disabled={!sel.length || !E.isContiguous(idx)}
@@ -417,6 +420,7 @@ function CaretBar() {
           >
             Ending…
           </button>
+          <RepeatButton />
           <TotalButton />
           <button
             type="button"
@@ -655,6 +659,25 @@ function RemoveBarsButton() {
       onClick={() => cutBars(bars.a, bars.b - bars.a + 1)}
     >
       <TrashIcon /> Remove {barsLabel(bars.a, bars.b)}
+    </button>
+  );
+}
+
+/** |: at the start of the selection and :| at its end, in one tap (R); again takes them off. */
+function RepeatButton({ disabled = false }: { disabled?: boolean }) {
+  useDocStore((s) => s.version);
+  useUiStore((s) => s.range);
+  useUiStore((s) => s.selection);
+  const on = repeatedOver(selectedRegion());
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={on}
+      title="Repeat signs around the selection: |: at its start, :| at its end (R)"
+      onClick={() => toggleRepeatOver(selectedRegion())}
+    >
+      |: Repeat :|
     </button>
   );
 }

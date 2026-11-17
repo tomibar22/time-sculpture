@@ -85,3 +85,20 @@ test('[ and ] put repeat signs at the caret; undo takes them away', async ({ pag
   await page.keyboard.press('z');
   await expect(page.getByRole('button', { name: ':| End repeat' })).toBeVisible();
 });
+
+test('repeat signs around a selection in one tap, and off again', async ({ page }) => {
+  const s = await score(page);
+  // the first 3 3 2 (pulses 2–10): a range from the caret, shift-click to extend
+  await tap(page, at(s, P(2)));
+  await tap(page, at(s, P(10)), ['Shift']);
+  const btn = page.getByRole('button', { name: '|: Repeat :|' });
+  await btn.click();
+  await expect(page.getByTestId('announcer')).toHaveText(
+    'Repeat signs around the selection: it plays twice',
+  );
+  await expect(btn).toHaveAttribute('aria-pressed', 'true');
+  await btn.click();
+  await expect(page.getByTestId('announcer')).toHaveText('Repeat signs removed');
+  await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  await expectSeq(page, DEFAULT_SEQ);
+});

@@ -22,6 +22,8 @@ import {
   toggleRepeatEndAt,
   toggleRepeatStartAt,
   toggleTotalOver,
+  toggleRepeatOver,
+  repeatedOver,
   wholeBars,
 } from '../state/actions';
 import {
@@ -255,6 +257,12 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         run: () => toggleTotalOver(selectedRegion()),
       },
       {
+        label: repeatedOver(region) ? 'Remove the repeat' : 'Repeat |: :|',
+        hint: 'R',
+        disabled: !E.isContiguous(idx),
+        run: () => toggleRepeatOver(selectedRegion()),
+      },
+      {
         label: 'Ending…',
         hint: 'V',
         disabled: !E.isContiguous(idx),
@@ -293,6 +301,11 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         label: hasTotal ? 'Remove total' : 'Total',
         hint: 'G',
         run: () => toggleTotalOver(r),
+      },
+      {
+        label: repeatedOver(r) ? 'Remove the repeat' : 'Repeat |: :|',
+        hint: 'R',
+        run: () => toggleRepeatOver(r),
       },
       { label: 'Ending…', hint: 'V', run: () => openVolta(r) },
       { label: 'Subdivision…', hint: 'B', run: openSubdivision },

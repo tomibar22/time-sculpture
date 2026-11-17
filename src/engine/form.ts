@@ -288,6 +288,28 @@ export function toggleRepeatEnd(doc: Doc, k: number, times = 2): OpResult {
   return { doc: withMeterForm(doc, { repeatEnds: next }), report: report() };
 }
 
+/**
+ * Repeat the stretch [a, b): `|:` at its start and `:|` at its end, in one step (the signs
+ * already there are kept). When both are there already, both are taken away.
+ */
+export function toggleRepeatOver(doc: Doc, a: number, b: number): OpResult {
+  if (!Number.isInteger(a) || !Number.isInteger(b) || b <= a)
+    return { doc, report: fail('nothing-selected') };
+  const hasStart = repeatStartAt(doc, a);
+  const hasEnd = !!repeatEndAt(doc, b);
+  let d = doc;
+  for (const [has, step] of [
+    [hasStart, () => toggleRepeatStart(d, a)],
+    [hasEnd, () => toggleRepeatEnd(d, b)],
+  ] as const) {
+    if (has !== (hasStart && hasEnd)) continue; // add what is missing, or remove both
+    const r = step();
+    if (!r.report.ok) return { doc, report: r.report };
+    d = r.doc;
+  }
+  return { doc: d, report: report() };
+}
+
 /** How many times the passage that ends at pulse k is played (2…12). */
 export function setRepeatTimes(doc: Doc, k: number, times: number): OpResult {
   const t = at(doc, k);

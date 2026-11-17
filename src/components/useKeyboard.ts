@@ -47,7 +47,7 @@ import { swapNow, swapStep } from '../state/swap';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
-import { deleteBarsHere } from '../state/actions';
+import { deleteBarsHere, toggleRepeatOver } from '../state/actions';
 import { toggleOverview, zoomStep } from '../state/zoom';
 import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/stage';
 
@@ -352,6 +352,9 @@ export function useKeyboard() {
       if (e.key === '+' || e.key === '=') return onTilesHere(() => resizeSelection(1));
       if (e.key === '-' || e.key === '_') return onTilesHere(() => resizeSelection(-1));
       if (k === 'r' && e.shiftKey) return onTilesHere(reverseSelection);
+      // R: repeat signs around the selection or range, both at once
+      if (k === 'r' && !e.shiftKey)
+        return void (e.preventDefault(), toggleRepeatOver(selectedRegion()));
       if (k === 's') return onTilesHere(splitSelection);
       if (k === 'm') return onTilesHere(mergeSelection);
       if (k === 'd') {

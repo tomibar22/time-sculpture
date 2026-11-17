@@ -372,6 +372,10 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   tile's number steps aside (user bug report: signs hid tiles of one pulse). A lane of `LANE_H` above
   every row (`g.lane`, only when there is an ending or a ×3+) with ending brackets (closed when
   they end at an end sign) and "×N". `rowTop` is below the lane. Tapping a bracket edits it.
+- **Repeat over a selection in one tap** (user request): `toggleRepeatOver(doc, a, b)` (form.ts)
+  puts `|:` at a and `:|` at b in one undo step (a sign already there is kept); with both there it
+  removes both. UI: "|: Repeat :|" (pressed when on) in the tile and range bars, "Repeat |: :|" /
+  "Remove the repeat" in both menus, key **R** (⇧R is still backwards).
 - UI: caret bar `|: Start repeat` / `:| End repeat` / ×N stepper, `Ending…` in the range and
   tile bars (`VoltaDialog`, default passes from `defaultPasses`). Keys `[` `]` (physical
   Bracket keys), `V`, `+`/`−` on an end sign. File: `repeats` + derived `playOrder`.

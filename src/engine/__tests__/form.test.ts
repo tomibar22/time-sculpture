@@ -10,6 +10,7 @@ import {
   setRepeatTimes,
   setVolta,
   toggleRepeatEnd,
+  toggleRepeatOver,
   toggleRepeatStart,
 } from '../form';
 import { appendBars, prependBars, resizeMeter, setSubdivision, toggleMark } from '../ops/meter';
@@ -26,6 +27,25 @@ const ok = (r: { doc: Doc; report: { ok: boolean } }) => {
 };
 
 describe('repeats and endings', () => {
+  it('repeat over a stretch: both signs in one step, again takes both away', () => {
+    const d = ok(toggleRepeatOver(piece(), 4, 8));
+    expect(d.meter.repeatStarts).toEqual([4]);
+    expect(d.meter.repeatEnds).toEqual([{ at: 8, times: 2 }]);
+    expect(order(d)).toEqual([
+      [0, 4],
+      [4, 8],
+      [4, 8],
+      [8, 16],
+    ]);
+    const off = ok(toggleRepeatOver(d, 4, 8));
+    expect(off.meter.repeatStarts ?? []).toEqual([]);
+    expect(off.meter.repeatEnds ?? []).toEqual([]);
+    // one sign there already: the missing one is added, the other kept
+    const half = ok(toggleRepeatOver(ok(toggleRepeatStart(piece(), 4)), 4, 8));
+    expect(half.meter.repeatStarts).toEqual([4]);
+    expect(half.meter.repeatEnds).toEqual([{ at: 8, times: 2 }]);
+    expect(toggleRepeatOver(piece(), 4, 4).report.ok).toBe(false);
+  });
   it('without signs the piece plays once', () => {
     expect(order(piece())).toEqual([[0, 16]]);
   });

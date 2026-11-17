@@ -604,6 +604,22 @@ export function toggleRepeatEndAt(k: number): void {
   announce(had ? 'End repeat removed' : 'End repeat here: the passage plays twice');
 }
 
+/** R / "Repeat": |: at the start of the selection and :| at its end, in one go (or both off). */
+export function toggleRepeatOver(region: { a: number; b: number } | null): void {
+  if (!region || region.b <= region.a) {
+    sfx.nope();
+    return void toast('Select what is to be repeated first: tiles, or a range');
+  }
+  const both = E.repeatStartAt(doc(), region.a) && !!E.repeatEndAt(doc(), region.b);
+  const r = E.toggleRepeatOver(doc(), region.a, region.b);
+  if (!run(r, { label: both ? 'remove repeat' : 'repeat |: :|', select: 'keep' })) return;
+  announce(both ? 'Repeat signs removed' : 'Repeat signs around the selection: it plays twice');
+}
+
+/** Both repeat signs are around this stretch already. */
+export const repeatedOver = (region: { a: number; b: number } | null) =>
+  !!region && E.repeatStartAt(doc(), region.a) && !!E.repeatEndAt(doc(), region.b);
+
 /** Play the passage that ends at pulse k one time more or less (2…12 times in all). */
 export function changeRepeatTimes(k: number, delta: number): void {
   const cur = E.repeatEndAt(doc(), k);

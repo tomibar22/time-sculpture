@@ -407,6 +407,10 @@ export function Help() {
                   </dt>
                   <dd>backwards</dd>
                   <dt>
+                    <kbd>R</kbd>
+                  </dt>
+                  <dd>repeat signs around the selection, |: and :| at once (again: off)</dd>
+                  <dt>
                     <kbd>X</kbd>
                   </dt>
                   <dd>
