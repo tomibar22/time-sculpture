@@ -4,7 +4,7 @@ import type { Doc, ItemId, OpResult } from '../engine';
 import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import { announce, flash, reportSlide, run, select, splitSelection, toast } from '../state/actions';
-import { setCaret, setRange, closeSubdivision, pickBeats } from '../state/editing';
+import { setCaret, setRange, closeSubdivision, pickBeats, escape } from '../state/editing';
 import { diveAt, zoomStep } from '../state/zoom';
 import { OVERVIEW_LEVELS, zoomLevels } from './rows';
 import { anchorAtPoint, restoreAnchor, view } from './view';
@@ -283,6 +283,49 @@ export function Score() {
   const request = useCallback(() => {
     if (!frame.current) frame.current = requestAnimationFrame(draw);
   }, [draw]);
+
+  /*
+   * A mouse drag ends however the button is let go: also off the score (a release the canvas
+   * never hears of) and when the window loses the focus mid-drag (released outside it).
+   */
+  const endRef = useRef<(cancelled: boolean) => void>(() => {});
+  useEffect(() => {
+    const up = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' || !gesture.current) return;
+      pointers.current.delete(e.pointerId);
+      endRef.current(false);
+    };
+    const blur = () => {
+      if (gesture.current && pointerType.current !== 'touch') endRef.current(false);
+    };
+    // like a word processor: a click anywhere off the score that is not a control lets go of
+    // the selected range or tiles (a mouse on press; a finger on its tap, so a scroll does not)
+    const away = (target: EventTarget | null) => {
+      const el = target instanceof Element ? target : null;
+      if (!el || el.closest(KEEPS_SELECTION)) return;
+      const st = ui();
+      if (st.stage || (!st.range && !st.selection.length) || gesture.current) return;
+      escape();
+    };
+    let lastDown = 'mouse';
+    const press = (e: PointerEvent) => {
+      lastDown = e.pointerType;
+      if (e.pointerType !== 'touch' && e.button === 0) away(e.target);
+    };
+    const click = (e: MouseEvent) => {
+      if (lastDown === 'touch') away(e.target);
+    };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('blur', blur);
+    document.addEventListener('pointerdown', press);
+    document.addEventListener('click', click);
+    return () => {
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('blur', blur);
+      document.removeEventListener('pointerdown', press);
+      document.removeEventListener('click', click);
+    };
+  }, []);
 
   /* redraw on any store change, resize, theme change, fonts */
   useEffect(() => {
@@ -900,6 +943,12 @@ export function Score() {
     const g = geo.current;
     if (!g) return;
     if (gesture.current) {
+      // a mouse whose button is no longer down: it was let go where we never heard of it
+      // (outside the window, or after the capture was lost), so the drag ends here
+      if (e.pointerType !== 'touch' && e.buttons === 0) {
+        lift(e.pointerId);
+        return end(false);
+      }
       lastPt.current = { x: e.clientX, y: e.clientY };
       return dragTo(e.clientX, e.clientY);
     }
@@ -1306,6 +1355,8 @@ export function Score() {
     }
   };
 
+  endRef.current = end;
+
   return (
     <div className="score-wrap">
       <canvas
@@ -1322,6 +1373,10 @@ export function Score() {
         onPointerCancel={(e) => {
           lift(e.pointerId);
           end(true);
+        }}
+        onLostPointerCapture={(e) => {
+          // the drag lost its pointer (released elsewhere): a mouse's drag ends where it was
+          if (e.pointerType !== 'touch' && gesture.current && lift(e.pointerId)) end(false);
         }}
         onPointerLeave={() => {
           if (!gesture.current && hover.current) {
@@ -1340,6 +1395,27 @@ export function Score() {
     </div>
   );
 }
+
+/** What a press may land on without letting go of the selection: the score and every control. */
+const KEEPS_SELECTION = [
+  'canvas',
+  'button',
+  'a',
+  'input',
+  'select',
+  'textarea',
+  'label',
+  'summary',
+  'dialog',
+  '[role="dialog"]',
+  '[role="menu"]',
+  '[role="toolbar"]',
+  '[contenteditable]',
+  '.dock',
+  '.ctx',
+  '.ctx-back',
+  '.toast',
+].join(',');
 
 function plural(d: number, word = 'pulse') {
   const n = Math.abs(d);

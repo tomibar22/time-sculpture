@@ -187,6 +187,14 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   (⌥-click alone = caret); ⇧-drag extends the range; drag along the beat-number row (a ruler,
   click = caret); long-press then drag (touch) from where the press began. Plain drags on tiles
   still move them.
+- **A mouse drag always ends** (user bug report: let go outside the app, the selection went on
+  following the mouse): a move with no button held ends it (`e.buttons === 0`), as do
+  `lostpointercapture`, a `pointerup` anywhere in the window and the window losing focus
+  (`endRef` in Score.tsx).
+- **A click off the score lets go of the selection** (like a word processor): a press (mouse) or
+  a tap (finger, so a scroll does not) anywhere that is not the score or a control
+  (`KEEPS_SELECTION` in Score.tsx: buttons, fields, dialogs, menus, toolbars, the dock, the
+  context menu) runs `escape()`, which collapses the range or the tile selection to a caret.
 - The sequence line under the score is visually hidden (user request); it stays for screen
   readers and as the e2e `sequence` test id.
 
