@@ -1,4 +1,4 @@
-import { L, rowOf, rowTop } from './geometry';
+import { L, rowAtY, rowOf, rowTop } from './geometry';
 import type { Geo } from './geometry';
 
 /**
@@ -38,10 +38,7 @@ export function anchorAtPoint(clientX: number, clientY: number): Anchor | null {
   if (!g || !canvas) return null;
   const box = canvas.getBoundingClientRect();
   const y = clientY - box.top;
-  const r = Math.max(
-    0,
-    Math.min(g.R - 1, Math.floor((y - rowTop(g, 0) + g.stride / 2) / g.stride)),
-  );
+  const r = rowAtY(g, y);
   const row = g.rows[r]!;
   const x = Math.max(0, Math.min(row.nb, (clientX - box.left - L.margin) / row.bw));
   return { t: row.b0 + x, dy: y - rowTop(g, r), y: clientY };

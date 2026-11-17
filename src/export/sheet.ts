@@ -2,7 +2,7 @@ import * as E from '../engine';
 import type { Doc } from '../engine';
 import { PRINT_PALETTE } from '../score/colors';
 import { drawScore } from '../score/draw';
-import { geometry, L, rowTop } from '../score/geometry';
+import { blockTop, geometry, L } from '../score/geometry';
 import { buildPdf, canvasRgb } from './pdfWriter';
 
 /**
@@ -74,7 +74,6 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
   const contentW = PAGE.w - 2 * M.x;
   const scale = contentW / SCORE_W;
   const g = geometry(SCORE_W, doc, input.perRow, input.fitRows);
-  const rowH = g.stride * scale;
   const footerY = PAGE.h - M.bottom + 22;
 
   const pages: HTMLCanvasElement[] = [];
@@ -144,19 +143,22 @@ export async function renderSheet(input: SheetInput): Promise<HTMLCanvasElement[
 
   let r = 0;
   while (r < g.R) {
-    const fit = Math.max(1, Math.floor((PAGE.h - M.bottom - y + L.gapR * scale) / rowH));
-    const last = Math.min(g.R, r + fit);
+    // as many rows as fit on the page (rows with a names line are a little taller)
+    const room = (PAGE.h - M.bottom - y) / scale + L.gapR;
+    let last = r + 1;
+    while (last < g.R && blockTop(g, last + 1) - blockTop(g, r) <= room) last++;
+    const span = blockTop(g, last) - blockTop(g, r);
     c.save();
     c.translate(M.x, y);
     c.scale(scale, scale);
-    // a row's block starts with its lane (endings, repeat counts) when there is one
-    c.translate(0, -(rowTop(g, r) - g.lane) + L.top);
+    // a row's block starts with its lane (endings, repeat counts) and names line when there are
+    c.translate(0, -blockTop(g, r) + L.top);
     c.beginPath();
-    c.rect(-4, rowTop(g, r) - g.lane - L.top, g.w + 8, (last - r) * g.stride);
+    c.rect(-4, blockTop(g, r) - L.top, g.w + 8, span);
     c.clip();
     drawScore(c, g, state, P);
     c.restore();
-    y += (last - r) * rowH;
+    y += span * scale;
     r = last;
     if (input.crop) {
       // a picture: just the title and the rows that fit, with a little air below

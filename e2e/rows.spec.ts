@@ -88,10 +88,17 @@ test('P marks the start of a phrase at the caret, and again removes it', async (
   await tap(page, at(s, P(5))); // not on a beat: beat 2 +1/4
   await page.keyboard.press('p');
   await expect(page.getByTestId('announcer')).toHaveText('Phrase starts here');
+  // a new mark asks for its name; Esc leaves it without one
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Unmark phrase' })).toBeVisible();
   await page.keyboard.press('p');
   await expect(page.getByRole('button', { name: 'Phrase mark' })).toBeVisible();
   await page.getByRole('button', { name: 'Phrase mark' }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
   await page.keyboard.press('z');
   await expect(page.getByRole('button', { name: 'Phrase mark' })).toBeVisible();
 });

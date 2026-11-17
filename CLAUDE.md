@@ -351,11 +351,16 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   opens `MarkDialog`. Drawn in the score's ink (`P.fg`, never a tile colour): a thin line through
   the tiles and a flag in the number row (a small triangle, or a pill with the name). Saved as
   `phraseStarts` + `phraseNames`; printed in the PDF.
-- **Names stand above the beat numbers** (user request: they covered them): when any mark is
-  named, every row gets a names line of `NAMES_H` (geometry `g.names`, the lowest part of
-  `g.lane`; endings / modulations stay above it). The pill sits there with a stem down to the
-  mark's line (stopping above a beat's number); a tap on it opens `MarkDialog`. Unnamed marks
-  keep their small flag in the number row.
+- **Names stand above the beat numbers** (user request: they covered them), and **only the rows
+  that hold a named mark get the room**: rows have their own heights now. Geometry: `g.names[r]`
+  (`NAMES_H` or 0, under the lane), `g.tops[r]` (each row block's top; `tops[R]` = the end),
+  `rowTop` = tops + lane + names, `blockTop`, `rowHeight`, `rowAtY` (hit testing, zoom anchor);
+  `g.stride` is only the plain row's height. Never compute a row's y from `r * stride`. The PDF
+  fits rows to a page by `blockTop`. The pill has a stem down to the mark's line (stopping above
+  a beat's number); a tap on it opens `MarkDialog`. Unnamed marks keep their small flag.
+- **A new mark asks for its name** (user request): `togglePhraseMark` opens `MarkDialog` after
+  adding one (P, the caret bar, the menus); Esc leaves it unnamed. Esc with any dialog open never
+  reaches the app's own keys (it used to clear the caret under a just-opened dialog).
 
 ### Totals (engine/form.ts)
 
@@ -546,6 +551,9 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   silence" and "Fill randomly…", whose dialog picks the allowed sizes 1–9, `ui.fillSizes`;
   the toast offers "Another" roll). Clear lives in the Library.
 - Drag modes: Pulse / Beat / Place. Arrow keys follow the mode.
+- **Undo / redo keys work whatever has the focus** (⌘Z, ⇧⌘Z, ⌘Y; user request): handled before
+  the "typing" guard, so a focused slider, switch or select no longer swallows them; only a text
+  field (`isTextEntry`) keeps its own.
 - Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·

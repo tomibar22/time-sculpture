@@ -16,6 +16,8 @@ import { readPalette } from './colors';
 import type { Palette } from './colors';
 import { drawScore } from './draw';
 import {
+  rowHeight,
+  blockTop,
   geometry,
   hit,
   edgeSlot,
@@ -458,10 +460,10 @@ export function Score() {
       lastRow = r;
       const head = document.querySelector<HTMLElement>('.stage-head')?.offsetHeight ?? 0;
       const room = window.innerHeight - head;
-      const context = room >= 3 * g.stride && r > 0 ? 1 : 0;
+      const context = room >= 3 * rowHeight(g, r) && r > 0 ? 1 : 0;
       const pageTop = cv.getBoundingClientRect().top + window.scrollY;
       // the top row in view sits under the title line (at the top: the title is shown)
-      const top = r - context <= 0 ? 0 : pageTop + rowTop(g, r - context) - g.lane - head - 8;
+      const top = r - context <= 0 ? 0 : pageTop + blockTop(g, r - context) - head - 8;
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const y = E.clamp(top, 0, Math.max(0, max));
       if (Math.abs(y - window.scrollY) < 2) return;
@@ -478,8 +480,8 @@ export function Score() {
       const r = rowOf(g, Math.min(s.playhead, g.grid.NB - 1e-6));
       if (r === editRow || gesture.current) return;
       editRow = r;
-      const top = cv.getBoundingClientRect().top + rowTop(g, r) - g.lane;
-      const height = g.stride - L.gapR;
+      const top = cv.getBoundingClientRect().top + blockTop(g, r);
+      const height = rowHeight(g, r) - L.gapR;
       const dock = document.querySelector<HTMLElement>('.dock')?.offsetHeight ?? 0;
       const limit = window.innerHeight - dock;
       if (top >= 4 && top + height <= limit - 4) return;
@@ -651,7 +653,7 @@ export function Score() {
     for (let i = 0; i < sections.length; i++) {
       const p = xOf(g, sections[i]!.at);
       const top = rowTop(g, p.r);
-      if (p.r === h.r && y >= top - g.lane - 4 && y < top && x >= p.x - 4 && x <= p.x + 150) {
+      if (p.r === h.r && y >= blockTop(g, p.r) - 4 && y < top && x >= p.x - 4 && x <= p.x + 150) {
         setUi(
           sections[i]!.from === sections[i]!.to
             ? { meterDialog: { at: sections[i]!.at } }
@@ -674,7 +676,7 @@ export function Score() {
       const w = named ? 190 : 16;
       const top = rowTop(g, p.r);
       // a name sits on its own line above the numbers; a plain flag in the number row
-      const y0 = named ? top - g.names : top;
+      const y0 = named ? top - g.names[p.r]! : top;
       const y1 = named ? top : top + L.numH;
       if (p.r === h.r && y >= y0 && y <= y1 && x >= fx - 4 && x <= fx + w) {
         setUi({ markDialog: { k: E.nearestPulse(g.grid, t) } });
@@ -692,7 +694,7 @@ export function Score() {
       return;
     }
     // a click on an ending's bracket (in the lane above a row) opens it for editing
-    if (g.lane && y < rowTop(g, h.r) - g.names && y >= rowTop(g, h.r) - g.lane) {
+    if (g.lane && y < rowTop(g, h.r) - g.names[h.r]! && y >= blockTop(g, h.r)) {
       const voltas = doc.meter.voltas ?? [];
       const row = g.rows[h.r]!;
       const t = row.b0 + (x - L.margin) / row.bw;

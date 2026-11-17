@@ -53,6 +53,13 @@ import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/st
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.matches('input, textarea, select') || t.isContentEditable);
+/** A field that takes text (not a slider, checkbox or select): it keeps its own undo. */
+const isTextEntry = (t: EventTarget | null) =>
+  t instanceof HTMLElement &&
+  (t.matches('textarea') ||
+    t.isContentEditable ||
+    (t instanceof HTMLInputElement &&
+      !['range', 'checkbox', 'radio', 'button', 'submit', 'color'].includes(t.type)));
 const inDialog = (t: EventTarget | null) => t instanceof HTMLElement && !!t.closest('dialog');
 const isActivatable = (t: EventTarget | null) =>
   t instanceof HTMLElement && t.matches('button, summary, a, [role="button"]');
@@ -71,11 +78,28 @@ export function useKeyboard() {
 
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
+      // Esc with a dialog open closes the dialog and nothing else, even before its field has the
+      // focus (it used to clear the caret too, under a just-opened phrase-mark dialog)
+      if (e.key === 'Escape' && document.querySelector('dialog[open]')) return;
       // on the stage Space and Esc work even right after the tempo slider was moved
       const onSlider = e.target instanceof HTMLInputElement && e.target.type === 'range';
       const stageKey = (e.code === 'Space' || e.key === 'Escape') && useUiStore.getState().stage;
-      if (isTyping(e.target) && !(onSlider && (stageKey || e.code === 'Space'))) return;
       const mod = e.metaKey || e.ctrlKey;
+      // undo / redo (⌘Z, ⇧⌘Z, ⌘Y) work whatever has the focus (a slider, a switch, a select:
+      // the tempo slider kept them from working), except while typing in a text field, which
+      // has its own
+      if (
+        mod &&
+        !e.altKey &&
+        (e.code === 'KeyZ' || e.code === 'KeyY') &&
+        !isTextEntry(e.target) &&
+        !inDialog(e.target) &&
+        !useUiStore.getState().stage
+      ) {
+        e.preventDefault();
+        return e.code === 'KeyY' || e.shiftKey ? redo() : undo();
+      }
+      if (isTyping(e.target) && !(onSlider && (stageKey || e.code === 'Space'))) return;
       // letter shortcuts follow the physical key, so they work with any layout (e.g. Hebrew)
       const k = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const hasSel = useUiStore.getState().selection.length > 0;

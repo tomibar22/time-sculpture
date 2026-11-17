@@ -162,7 +162,7 @@ function Transport() {
             type="button"
             className="icon ghost"
             aria-label="Undo"
-            title="Undo (Z)"
+            title="Undo (⌘Z or Z)"
             disabled={!canUndo}
             onClick={undo}
           >
@@ -172,7 +172,7 @@ function Transport() {
             type="button"
             className="icon ghost"
             aria-label="Redo"
-            title="Redo (Y)"
+            title="Redo (⇧⌘Z or Y)"
             disabled={!canRedo}
             onClick={redo}
           >

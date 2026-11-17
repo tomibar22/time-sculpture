@@ -508,8 +508,10 @@ export function togglePhraseMark(k: number): void {
     sfx.nope();
     return void toast('A phrase mark needs to be inside the piece');
   }
-  run(r, { label: had ? 'unmark phrase' : 'phrase mark', select: 'keep' });
+  if (!run(r, { label: had ? 'unmark phrase' : 'phrase mark', select: 'keep' })) return;
   announce(had ? 'Phrase mark removed' : 'Phrase starts here');
+  // a new mark asks for its name at once (user request); closing leaves it without one
+  if (!had) setUi({ markDialog: { k } });
 }
 
 /** Name the phrase mark at pulse k ('' = no name), adding the mark if there is none. */

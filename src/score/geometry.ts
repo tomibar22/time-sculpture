@@ -44,14 +44,15 @@ export interface Geo {
   /** Beat width: the same in every row, so beats line up vertically like a score. */
   bw: number;
   stride: number;
-  /**
-   * Extra space above every row's numbers (0 when nothing needs it): the lane for endings,
-   * repeat counts and modulations on top, then (`names`) a line for the names of phrase marks
-   * right above the numbers. `lane` is the whole of it.
-   */
+  /** Extra space above every row for endings, repeat counts and modulations (0 when none). */
   lane: number;
-  /** The phrase-mark names' line, the lowest part of `lane` (0 when no mark is named). */
-  names: number;
+  /**
+   * Per row: the line for the names of phrase marks, right above its numbers (under the lane):
+   * `NAMES_H` in a row that holds a named mark, else 0 (user request: room only where a name is).
+   */
+  names: number[];
+  /** Per row (and one more, the end): where its block starts, its lane and names line included. */
+  tops: number[];
   /** Space under every row's band for totals (0 when the piece has none). */
   under: number;
   /** Each total's stacking level (0 = right under the band), index by index. */
@@ -97,15 +98,25 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
   const bw = (width - 2 * L.margin) / widest;
   // fitted rows stretch to the full width; otherwise every row shares one beat width
   for (const row of rows) row.bw = fit ? (width - 2 * L.margin) / row.nb : bw;
-  const names = hasMarkNames(doc) ? NAMES_H : 0;
-  const lane = (needsLane(doc) ? LANE_H : 0) + names;
+  const lane = needsLane(doc) ? LANE_H : 0;
   const totalLv = totalLevels(doc.meter.totals ?? []);
   const under = totalLv.length ? (Math.max(...totalLv) + 1) * TOTAL_H + 2 : 0;
   const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + under + L.gapR;
+  // the rows that hold a named phrase mark get a line for the name above their numbers
+  const names = rows.map(() => 0);
+  const marks = doc.meter.marks ?? [];
+  marks.forEach((t, i) => {
+    if (!doc.meter.markNames?.[i]) return;
+    let r = 0;
+    while (r + 1 < rows.length && rows[r + 1]!.b0 <= t + EPS) r++;
+    names[r] = NAMES_H;
+  });
+  const tops: number[] = [L.top];
+  for (let r = 0; r < rows.length; r++) tops.push(tops[r]! + stride + names[r]!);
   return {
     w: width,
     // room under the last row for the knobs of a caret or a range
-    h: L.top + rows.length * stride - L.gapR + 16,
+    h: tops[rows.length]! - L.gapR + 16,
     B,
     R: rows.length,
     rows,
@@ -113,6 +124,7 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
     stride,
     lane,
     names,
+    tops,
     under,
     totalLevels: totalLv,
     grid: buildGrid(doc.meter),
@@ -135,8 +147,18 @@ export function rowStartingAt(g: Geo, t: number): number {
 /** Right edge x of a row. */
 export const rowEndX = (g: Geo, r: number) => L.margin + g.rows[r]!.nb * g.rows[r]!.bw;
 
-/** Top of a row's number line (below the lane, when there is one). */
-export const rowTop = (g: Geo, r: number) => L.top + r * g.stride + g.lane;
+/** Top of a row's number line (below its lane and names line, when there are any). */
+export const rowTop = (g: Geo, r: number) => g.tops[r]! + g.lane + g.names[r]!;
+/** Top of a row's whole block: its lane (endings, modulations), then its names line. */
+export const blockTop = (g: Geo, r: number) => g.tops[r]!;
+/** A row's whole height, its lane, names line and the gap under it included. */
+export const rowHeight = (g: Geo, r: number) => g.tops[r + 1]! - g.tops[r]!;
+/** The row at height y (from the score's top): the gap under a row is split with the next. */
+export function rowAtY(g: Geo, y: number): number {
+  let r = 0;
+  while (r + 1 < g.R && y >= g.tops[r + 1]! - L.gapR / 2) r++;
+  return r;
+}
 export const tileY = (g: Geo, r: number) => rowTop(g, r) + L.numH + L.gap1;
 /** Top of the subdivision band under the tiles. */
 export const bandY = (g: Geo, r: number) => tileY(g, r) + L.tileH + L.bandGap;
@@ -161,7 +183,7 @@ export interface Hit {
 }
 
 export function hit(g: Geo, x: number, y: number): Hit {
-  const r = clamp(Math.floor((y - L.top + L.gapR / 2) / g.stride), 0, g.R - 1);
+  const r = rowAtY(g, y);
   const row = g.rows[r]!;
   const ry = y - rowTop(g, r);
   const raw = (x - L.margin) / row.bw;

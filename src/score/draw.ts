@@ -14,6 +14,7 @@ import type { ClickPattern, Doc, ItemId } from '../engine';
 import { inkFor, sizeColor } from './colors';
 import type { Palette } from './colors';
 import {
+  blockTop,
   boundaries,
   handlePos,
   KNOB_R,
@@ -663,7 +664,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   if (g.lane && (bm.sections.length > 1 || doc.meter.bars)) {
     bm.sections.forEach((sec, si) => {
       const p = xOf(g, sec.at);
-      const y = rowTop(g, p.r) - g.lane;
+      const y = blockTop(g, p.r);
       const modulation = sec.from !== sec.to;
       const bars = patternLabel(sec.pattern);
       const tempo =
@@ -781,7 +782,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     c.font = `700 11px ${BODY}`;
     const label = fitText(c, name, 180);
     const w = c.measureText(label).width + 12;
-    const ny = top - g.names + 2;
+    const ny = top - g.names[p.r]! + 2;
     const nx = Math.min(p.x - 1, rowEndX(g, p.r) + L.margin - 2 - w);
     c.globalAlpha = 0.55;
     // the stem stops above a beat's number, so the number stays clear
@@ -962,7 +963,7 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
       c.textAlign = 'right';
       c.textBaseline = 'middle';
       // just left of the sign, under a closing ending bracket's line and clear of its hook
-      c.fillText(`×${e.times}`, p.x - 7, rowTop(g, p.r) - g.lane + 11);
+      c.fillText(`×${e.times}`, p.x - 7, blockTop(g, p.r) + 11);
     }
   }
   if (!g.lane) return;
@@ -976,8 +977,8 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
       const t1 = Math.min(v.b, row.b0 + row.nb);
       const x0 = L.margin + (t0 - row.b0) * row.bw + (r === ra ? 2 : 0);
       const x1 = L.margin + (t1 - row.b0) * row.bw - (r === rb ? 2 : 0);
-      const top = rowTop(g, r) - g.lane + 2;
-      const bottom = rowTop(g, r) - g.names - 1;
+      const top = blockTop(g, r) + 2;
+      const bottom = rowTop(g, r) - g.names[r]! - 1;
       c.fillStyle = P.fg;
       c.fillRect(x0, top, x1 - x0, 1.5);
       if (r === ra) {

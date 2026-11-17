@@ -66,3 +66,25 @@ test('a caret where a row ends shows at both ends; its upper knob selects back f
   await drag(page, knobAt(s, 4, 0), knobAt(s, 3, 0));
   await expect(page.getByTestId('caretname')).toContainText('4 pulses');
 });
+
+test('⇧⌘Z redoes, also with the tempo slider in focus', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'keyboard');
+  await page.keyboard.press('3');
+  await expectSeq(page, '(2) 3 3 2 3 │ 3 (1) 3 2 4');
+  await page.getByRole('slider').first().focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expectSeq(page, DEFAULT_SEQ);
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await expectSeq(page, '(2) 3 3 2 3 │ 3 (1) 3 2 4');
+});
+
+test('a new phrase mark asks for its name at once', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(8)));
+  await page.getByRole('button', { name: 'Phrase mark' }).click();
+  const name = page.getByRole('textbox', { name: 'Name', exact: true });
+  await expect(name).toBeFocused();
+  await name.fill('Answer');
+  await name.press('Enter');
+  await expect(page.getByTestId('announcer')).toHaveText('Phrase mark: Answer');
+});
