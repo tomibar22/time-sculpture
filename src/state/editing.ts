@@ -1,5 +1,7 @@
 import * as E from '../engine';
-import type { GroupKind, GroupSpec } from '../engine';
+import type { GroupKind, GroupSpec, ItemId } from '../engine';
+import { rowOf } from '../score/geometry';
+import { view } from '../score/view';
 import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import {
@@ -514,4 +516,100 @@ export function subdivideBeats(beats: readonly number[], d: number): void {
   if (before.beatSel) return; // beats picked in the band stay picked: try another ratio
   if (before.range) setRange(a, b);
   else if (before.caret !== null && !before.selection.length) setCaret(a, { quiet: true });
+}
+
+/**
+ * ↑ ↓ : the caret goes to the row above or below, to the same place along the row, like a text
+ * caret (⇧ carries the range there). Above the first row is the very start, below the last the
+ * very end.
+ */
+export function caretRow(dir: -1 | 1, extend = false): void {
+  const g = view.geo;
+  if (!g) return;
+  const grid = E.buildGrid(doc().meter);
+  const s = ui();
+  const anchor = s.rangeAnchor ?? s.caret ?? defaultCaret();
+  const from = extend
+    ? s.range
+      ? s.range.a === anchor
+        ? s.range.b
+        : s.range.a
+      : anchor
+    : s.range
+      ? dir < 0
+        ? s.range.a
+        : s.range.b
+      : (s.caret ?? defaultCaret());
+  const t = grid.times[Math.min(from, grid.TS)]!;
+  // the very end belongs to the last row (it is where that row ends)
+  const r = from >= grid.TS ? g.rows.length - 1 : rowOf(g, t);
+  const to = r + dir;
+  let k: number;
+  if (to < 0) k = 0;
+  else if (to >= g.rows.length) k = grid.TS;
+  else {
+    const row = g.rows[to]!;
+    k = E.nearestPulse(grid, row.b0 + Math.min(t - g.rows[r]!.b0, row.nb));
+  }
+  if (k === from) return sfx.nope();
+  sfx.snap();
+  if (extend) setRange(anchor, k);
+  else setCaret(k);
+}
+
+/** PageUp / PageDown: the caret goes to the bar line before or after it. */
+export function caretBar(dir: -1 | 1): void {
+  const d = doc();
+  const grid = E.buildGrid(d.meter);
+  const s = ui();
+  const from = s.range ? (dir < 0 ? s.range.a : s.range.b) : (s.caret ?? defaultCaret());
+  const lines = [...E.barMap(d.meter).barStarts.map((b) => grid.pre[b]!), grid.TS];
+  const k = dir > 0 ? lines.find((x) => x > from) : [...lines].reverse().find((x) => x < from);
+  if (k === undefined) return sfx.nope();
+  sfx.snap();
+  setCaret(k);
+}
+
+/**
+ * The keys that work on tiles (S, M, D, + −, ⇧R) also work without selecting first. With a range,
+ * on the groups that begin in it. With only a caret, on the group that ends at the caret (the one
+ * just written), else the one the caret is in or before; and afterwards the caret stands after
+ * what was worked on, so writing goes straight on ("3 + D D" = 4 4 4).
+ */
+export function onTilesHere(op: () => void): void {
+  const s = ui();
+  if (s.selection.length) return op();
+  const items = doc().items;
+  const ids: ItemId[] = [];
+  const k = s.caret ?? defaultCaret();
+  let at = 0;
+  if (s.range) {
+    for (const x of items) {
+      if (x.kind === 'sound' && at >= s.range.a && at < s.range.b) ids.push(x.id);
+      at += x.n;
+    }
+  } else {
+    let ends: ItemId | null = null;
+    let holds: ItemId | null = null;
+    for (const x of items) {
+      if (x.kind === 'sound' && x.n > 0) {
+        if (at + x.n === k) ends = x.id;
+        if (at <= k && k < at + x.n) holds = x.id;
+      }
+      at += x.n;
+    }
+    const id = ends ?? holds;
+    if (id) ids.push(id);
+  }
+  if (!ids.length) {
+    sfx.nope();
+    return void toast('Nothing here: put the caret after a group, or select some');
+  }
+  setUi({ selection: ids, anchor: ids[0]!, range: null, rangeAnchor: null });
+  op();
+  if (s.range) return;
+  // only a caret: back to writing, after what was worked on
+  const left = ui().selection.length ? ui().selection : ids;
+  const span = E.spanOf(doc(), left);
+  setUi({ selection: [], anchor: null, multi: false, caret: span ? span.b : k });
 }

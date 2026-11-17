@@ -147,7 +147,7 @@ function Transport() {
         <button
           type="button"
           className="ghost tempo-num mono"
-          title="Tempo: tap it, or set it exactly"
+          title="Tempo: tap it, or set it exactly (⌥↑ ⌥↓)"
           aria-haspopup="dialog"
           onClick={() => set({ tempoDialog: true })}
         >

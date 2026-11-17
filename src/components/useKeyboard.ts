@@ -10,6 +10,7 @@ import {
   removeSelection,
   selectAll,
   toast,
+  announce,
   openModulation,
   toggleLineBreak,
   togglePhraseMark,
@@ -30,6 +31,9 @@ import {
   extendSelection,
   moveCaret,
   extendRange,
+  caretRow,
+  caretBar,
+  onTilesHere,
   paste,
   playFromCaret,
   resizeSelection,
@@ -39,6 +43,7 @@ import {
   typeDigit,
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
+import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
 import { deleteBarsHere } from '../state/actions';
@@ -162,6 +167,15 @@ export function useKeyboard() {
         if (e.code === 'Digit0') return toggleOverview();
         return zoomStep(e.code === 'Equal' || e.code === 'NumpadAdd' ? 1 : -1);
       }
+      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        // ⌥↑ ⌥↓ : the tempo, one faster or slower (⇧: five)
+        e.preventDefault();
+        const st = useUiStore.getState();
+        const step = (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 5 : 1);
+        const tempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, st.tempo + step));
+        st.set({ tempo });
+        return announce(`Tempo ${tempo}`);
+      }
       if (e.altKey) {
         // ⌥←/→ trim the end edge, ⌥⇧←/→ the start edge (preventDefault also stops Alt+← = Back)
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -185,12 +199,15 @@ export function useKeyboard() {
       }
       if (e.key === '?') {
         // the help, opened and brought into view
+        // the help, opened at the keys
         const help = document.querySelector<HTMLDetailsElement>('details.help-panel');
+        const keys = document.querySelector<HTMLDetailsElement>('#help-keys');
         if (help) {
           e.preventDefault();
           help.open = true;
-          help.scrollIntoView({ block: 'start', behavior: 'smooth' });
-          help.querySelector('summary')?.focus({ preventScroll: true });
+          if (keys) keys.open = true;
+          (keys ?? help).scrollIntoView({ block: 'start', behavior: 'smooth' });
+          (keys ?? help).querySelector('summary')?.focus({ preventScroll: true });
         }
         return;
       }
@@ -268,6 +285,29 @@ export function useKeyboard() {
         e.preventDefault();
         return caretHome(e.key === 'End');
       }
+      if (e.key === 'PageUp' || e.key === 'PageDown') {
+        e.preventDefault();
+        return caretBar(e.key === 'PageUp' ? -1 : 1);
+      }
+      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !hasSel) {
+        // like a text caret: to the row above or below (⇧ carries the range there)
+        e.preventDefault();
+        return caretRow(e.key === 'ArrowUp' ? -1 : 1, e.shiftKey);
+      }
+      // the panels: ⇧F fill (browse), L land, K the metronome (practice, click pattern, mix)
+      if (k === 'f' && e.shiftKey) return void (e.preventDefault(), openFill('browse'));
+      if (k === 'l' && !e.shiftKey) return void (e.preventDefault(), openFill('land'));
+      if (k === 'k' && !e.shiftKey) {
+        e.preventDefault();
+        const st = useUiStore.getState();
+        st.set({ practiceOpen: !st.practiceOpen });
+        // the keys go on inside it: its page tabs take the focus
+        if (!st.practiceOpen)
+          requestAnimationFrame(() =>
+            document.querySelector<HTMLElement>('.practice-tabs [aria-selected="true"]')?.focus(),
+          );
+        return;
+      }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const dir = e.key === 'ArrowLeft' ? -1 : 1;
         if (e.shiftKey) {
@@ -291,15 +331,16 @@ export function useKeyboard() {
       }
       // B: the ratios for the beats under the selection, the range or the caret alone
       if (k === 'b' && !mod && !e.altKey) return openSubdivision();
-      if (!hasSel) return;
-      if (e.key === '+' || e.key === '=') return resizeSelection(1);
-      if (e.key === '-' || e.key === '_') return resizeSelection(-1);
-      if (k === 'r' && e.shiftKey) return reverseSelection();
-      if (k === 's') splitSelection();
-      else if (k === 'm') mergeSelection();
-      else if (k === 'd') {
-        if (useUiStore.getState().range) duplicateRange();
-        else duplicateSelection();
+      // the keys that work on groups: on the selection, else on the groups of the range, else on
+      // the group at the caret (the one just written), and then writing goes on after it
+      if (e.key === '+' || e.key === '=') return onTilesHere(() => resizeSelection(1));
+      if (e.key === '-' || e.key === '_') return onTilesHere(() => resizeSelection(-1));
+      if (k === 'r' && e.shiftKey) return onTilesHere(reverseSelection);
+      if (k === 's') return onTilesHere(splitSelection);
+      if (k === 'm') return onTilesHere(mergeSelection);
+      if (k === 'd') {
+        if (useUiStore.getState().range) return duplicateRange();
+        return onTilesHere(duplicateSelection);
       }
     };
 

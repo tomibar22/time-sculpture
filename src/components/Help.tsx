@@ -359,16 +359,184 @@ export function Help() {
               groups.
             </p>
           </details>
-          <details className="help-topic">
+          <details className="help-topic" id="help-keys">
             <summary>Keys</summary>
             <p>
-              Space play · ⇧Space loop the selection, or play from the caret · Enter line break · P
-              phrase mark · T modulate · ← → move the selection or the caret · ⇧← ⇧→ select like
-              text · Home / End caret to the start or end · 1–9 type · Delete remove · M merge · S
-              split · D duplicate · + − resize · ⌥← ⌥→ trim · B subdivision · [ ] repeat signs · V
-              ending · ⇧V vary · ⇧R reverse · Z undo · Y or ⇧⌘Z redo · G total · ? this help · ⇧P
-              name a phrase mark · F stage · Esc clear
+              Nothing needs selecting first: a key works on the selection, else on the range, else
+              on the group at the caret. So “3 + D D” writes 4 4 4.
             </p>
+            <div className="keys">
+              <section>
+                <h4>Write</h4>
+                <dl>
+                  <dt>
+                    <kbd>1–9</kbd>
+                  </dt>
+                  <dd>write a group at the caret</dd>
+                  <dt>
+                    <kbd>+ −</kbd>
+                  </dt>
+                  <dd>the group just written (or the selection) a pulse longer / shorter</dd>
+                  <dt>
+                    <kbd>D</kbd>
+                  </dt>
+                  <dd>the same again: the group at the caret, the selection or the range</dd>
+                  <dt>
+                    <kbd>S</kbd> <kbd>M</kbd>
+                  </dt>
+                  <dd>split · merge</dd>
+                  <dt>
+                    <kbd>⇧R</kbd>
+                  </dt>
+                  <dd>backwards</dd>
+                  <dt>
+                    <kbd>⌫</kbd> <kbd>Del</kbd>
+                  </dt>
+                  <dd>remove the group before / after the caret; empty a range</dd>
+                  <dt>
+                    <kbd>⇧⌫</kbd>
+                  </dt>
+                  <dd>remove the bar</dd>
+                </dl>
+              </section>
+              <section>
+                <h4>Move about</h4>
+                <dl>
+                  <dt>
+                    <kbd>← →</kbd>
+                  </dt>
+                  <dd>the caret by a pulse (selected groups move instead)</dd>
+                  <dt>
+                    <kbd>↑ ↓</kbd>
+                  </dt>
+                  <dd>the caret to the row above / below</dd>
+                  <dt>
+                    <kbd>⌥← ⌥→</kbd>
+                  </dt>
+                  <dd>from group to group (selected groups: trim the end; with ⇧ the start)</dd>
+                  <dt>
+                    <kbd>PgUp</kbd> <kbd>PgDn</kbd>
+                  </dt>
+                  <dd>to the bar line before / after</dd>
+                  <dt>
+                    <kbd>Home</kbd> <kbd>End</kbd>
+                  </dt>
+                  <dd>to the very start / end</dd>
+                </dl>
+              </section>
+              <section>
+                <h4>Select</h4>
+                <dl>
+                  <dt>
+                    <kbd>⇧ + any of those</kbd>
+                  </dt>
+                  <dd>select like text</dd>
+                  <dt>
+                    <kbd>⌘A</kbd> or <kbd>⇧A</kbd>
+                  </dt>
+                  <dd>every group</dd>
+                  <dt>
+                    <kbd>Esc</kbd>
+                  </dt>
+                  <dd>let go: range → caret → nothing</dd>
+                  <dt>
+                    <kbd>⌘C ⌘X ⌘V</kbd>
+                  </dt>
+                  <dd>copy, cut, paste</dd>
+                </dl>
+              </section>
+              <section>
+                <h4>Listen</h4>
+                <dl>
+                  <dt>
+                    <kbd>Space</kbd>
+                  </dt>
+                  <dd>play / stop (a selection loops)</dd>
+                  <dt>
+                    <kbd>⇧Space</kbd>
+                  </dt>
+                  <dd>loop the selection, or play from the caret</dd>
+                  <dt>
+                    <kbd>⌥↑ ⌥↓</kbd>
+                  </dt>
+                  <dd>tempo one faster / slower (with ⇧: five)</dd>
+                  <dt>
+                    <kbd>K</kbd>
+                  </dt>
+                  <dd>the metronome: practice, click pattern, mix</dd>
+                </dl>
+              </section>
+              <section>
+                <h4>Shape the piece</h4>
+                <dl>
+                  <dt>
+                    <kbd>⇧F</kbd>
+                  </dt>
+                  <dd>fill: browse ways to fill the stretch</dd>
+                  <dt>
+                    <kbd>L</kbd>
+                  </dt>
+                  <dd>land a pattern</dd>
+                  <dt>
+                    <kbd>⇧V</kbd>
+                  </dt>
+                  <dd>vary</dd>
+                  <dt>
+                    <kbd>B</kbd>
+                  </dt>
+                  <dd>subdivision of the beats here</dd>
+                  <dt>
+                    <kbd>T</kbd>
+                  </dt>
+                  <dd>modulate</dd>
+                  <dt>
+                    <kbd>Enter</kbd>
+                  </dt>
+                  <dd>line break</dd>
+                  <dt>
+                    <kbd>P</kbd> <kbd>⇧P</kbd>
+                  </dt>
+                  <dd>phrase mark · name it</dd>
+                  <dt>
+                    <kbd>G</kbd>
+                  </dt>
+                  <dd>total</dd>
+                  <dt>
+                    <kbd>[ ]</kbd>
+                  </dt>
+                  <dd>repeat signs (+ − on an end sign: times)</dd>
+                  <dt>
+                    <kbd>V</kbd>
+                  </dt>
+                  <dd>ending</dd>
+                </dl>
+              </section>
+              <section>
+                <h4>Everything else</h4>
+                <dl>
+                  <dt>
+                    <kbd>Z</kbd> <kbd>Y</kbd>
+                  </dt>
+                  <dd>undo · redo (also ⌘Z, ⇧⌘Z)</dd>
+                  <dt>
+                    <kbd>⌥= ⌥− ⌥0</kbd>
+                  </dt>
+                  <dd>zoom in, out, the whole piece</dd>
+                  <dt>
+                    <kbd>F</kbd>
+                  </dt>
+                  <dd>stage</dd>
+                  <dt>
+                    <kbd>⇧F10</kbd>
+                  </dt>
+                  <dd>the menu for what is selected</dd>
+                  <dt>
+                    <kbd>?</kbd>
+                  </dt>
+                  <dd>these keys</dd>
+                </dl>
+              </section>
+            </div>
           </details>
           <details className="help-topic">
             <summary>Screen readers</summary>

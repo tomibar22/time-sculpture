@@ -78,7 +78,7 @@ export function PracticeButton() {
         className={`icon ghost count-btn${on ? ' on' : ''}`}
         aria-expanded={open}
         aria-haspopup="dialog"
-        title={`Practice: tempo, count-in, the tiles heard or silent, a click pattern and the mix${said ? ` (${said})` : ''}`}
+        title={`Practice: tempo, count-in, the tiles heard or silent, a click pattern and the mix (K)${said ? ` (${said})` : ''}`}
         data-testid="practice"
         onClick={() => set({ practiceOpen: !open })}
       >

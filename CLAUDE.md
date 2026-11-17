@@ -889,3 +889,20 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   held sideways: the Land hint line is visually hidden (the list needs the room).
 - A random-input run (keys, taps, drags, dock buttons; mouse and touch, ~6,000 actions over nine
   seeds) raised no exception. The script is not in the repo.
+
+### Keyboard workflow (desktop; user request: fast, smooth, intuitive)
+
+- **Nothing needs selecting first** (`onTilesHere` in editing.ts): S, M, D, + −, ⇧R work on the
+  selection, else on the sound groups that begin in the range (they become the selection), else
+  on **the group at the caret**: the one that ends there (just written), else the one the caret
+  is in. With only a caret the caret then stands after what was worked on and nothing stays
+  selected, so writing goes on: "3 + D D" = 4 4 4. (+ − on an end repeat sign still change its
+  times; D on a range is still `duplicateRange`.)
+- **↑ ↓** (`caretRow`): the caret to the same place in the row above / below (from `view.geo`
+  rows; past the first / last row = the very start / end); ⇧ carries the range. Not when groups
+  are selected. **PageUp / PageDown** (`caretBar`): the bar line before / after.
+- **⌥↑ ⌥↓** tempo ±1 (⇧: ±5). **⇧F** fill (browse), **L** land, **K** the practice popover (its
+  tabs take the focus; Esc closes). F alone is still the stage.
+- **?** opens the help at the Keys topic (`#help-keys`): keys in groups (Write, Move about,
+  Select, Listen, Shape the piece, Everything else) as `<kbd>` lists (`.keys`). Keep it in step
+  with useKeyboard.

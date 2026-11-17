@@ -182,3 +182,65 @@ test('long-press a tile, then drag, selects a range', async ({ page }) => {
   await page.keyboard.press('Backspace');
   await expectSeq(page, '(2) 1 (5) 2 │ 3 (1) 3 2 4'); // from pulse 3, where the press began
 });
+
+test('keys: write on without selecting; rows, bars, tempo and the panels by key', async ({
+  page,
+}) => {
+  await page.getByTestId('score').focus();
+  const seq = page.getByTestId('sequence');
+  // 3, a pulse longer, the same again: the keys work on the group just written
+  await page.keyboard.press('3');
+  await page.keyboard.press('+');
+  await page.keyboard.press('d');
+  await expect(seq).toContainText('3 3 2 4 4');
+  // and writing goes straight on after it
+  await page.keyboard.press('1');
+  await expect(seq).toContainText('3 3 2 4 4 1');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('s');
+  await expect(seq).toContainText('3 3 2 4 2 2');
+  await page.keyboard.press('z');
+  await page.keyboard.press('-');
+  await expect(seq).toContainText('3 3 2 4 3');
+  // a range: M merges the groups that begin in it
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('m');
+  await expect(seq).toContainText('(2) 6 2');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  // ↑ ↓ rows, PageUp / PageDown bar lines
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1 +1/4');
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1 +1/4');
+  await page.keyboard.press('PageDown');
+  await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1');
+  await page.keyboard.press('PageUp');
+  await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1');
+  await page.keyboard.press('Shift+ArrowDown');
+  await expect(page.getByTestId('caretname')).toContainText('16 pulses');
+  await page.keyboard.press('Escape');
+  // the tempo
+  await page.keyboard.press('Alt+ArrowUp');
+  await page.keyboard.press('Alt+Shift+ArrowUp');
+  await expect(page.locator('.tempo-num')).toContainText('78');
+  // the panels
+  await page.keyboard.press('l');
+  await expect(page.locator('.land')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Shift+KeyF');
+  await expect(page.locator('.fill-browse')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('k');
+  await expect(page.getByRole('dialog', { name: 'Practice' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Practice' })).toHaveCount(0);
+  // ? opens the help at the keys
+  await page.keyboard.press('?');
+  await expect(page.locator('#help-keys')).toHaveAttribute('open', '');
+});

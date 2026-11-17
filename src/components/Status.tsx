@@ -89,7 +89,7 @@ export function PieceState() {
       <button
         type="button"
         className="link-btn"
-        title="Fill the open space: shapes, every way, or at random"
+        title="Fill the open space: shapes, every way, or at random (⇧F)"
         onClick={() => openFill('browse')}
       >
         Fill it…
@@ -97,7 +97,7 @@ export function PieceState() {
       <button
         type="button"
         className="link-btn"
-        title="A pattern said again and again so that it ends exactly at the end of the open space: how many times, and from where"
+        title="A pattern said again and again so that it ends exactly at the end of the open space: how many times, and from where (L)"
         onClick={() => openFill('land')}
       >
         Land…
