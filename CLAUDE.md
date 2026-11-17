@@ -876,3 +876,16 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
 - **Land**: with an empty pattern, "Before it 3 3 2" (the ≤ 4 strokes written just before the
   region) and "Copied …" are offered as the pattern.
 - The Vary head keeps its name on phones ("Vary 8 pulses · bar 1, beat 1" + ✕).
+
+### Fourth round (varied places)
+
+- **B with only a caret** opens the ratios for the caret's beat (it was swallowed by the
+  "nothing selected" return in useKeyboard, though Help and the caret bar promised it).
+- **The row on trial is never under the Use bar**: `UseBar` scrolls the pressed row into view
+  (`scrollIntoView({block: 'nearest'})`; `.fill-main` has a `scroll-margin` for the bar and a
+  sticky head). Holds for Browse, Vary and Land.
+- The range bar's "Silence" is **Empty** (the word the context menu uses; nothing is called
+  silence in the UI). The modulation dialog keeps "♩ 72 → 48" on one line (`.nowrap`). Touch
+  held sideways: the Land hint line is visually hidden (the list needs the room).
+- A random-input run (keys, taps, drags, dock buttons; mouse and touch, ~6,000 actions over nine
+  seeds) raised no exception. The script is not in the repo.

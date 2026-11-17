@@ -4371,3 +4371,23 @@ button.pat-cell.one[aria-pressed='true'] {
     flex: 1 1 auto;
   }
 }
+
+/* a fill on trial is scrolled clear of the Use bar (foot) and of a sticky head (top) */
+.fillpanel .fill-list .fill-main {
+  scroll-margin: 64px 0 84px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+/* touch held sideways: the land panel is short, so its list gets the line the hint took */
+@media (pointer: coarse) and (orientation: landscape) {
+  .land .land-hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

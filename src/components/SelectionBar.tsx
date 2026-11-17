@@ -350,8 +350,12 @@ function CaretBar() {
           <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
             Select all
           </button>
-          <button type="button" onClick={() => deleteAtCaret(-1)}>
-            Silence
+          <button
+            type="button"
+            title="Empty this stretch: what is written in it goes (⌫)"
+            onClick={() => deleteAtCaret(-1)}
+          >
+            Empty
           </button>
           <button type="button" onClick={() => copyButton(false)}>
             Copy

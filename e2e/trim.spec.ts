@@ -49,3 +49,13 @@ test('B opens the ratios for the beats under the selection', async ({ page }) =>
   await expect(page.getByTestId('status')).toContainText('3:1 4:1');
   await expect(page.getByTestId('toast')).toContainText('Beats 1.1–1.2 now 3:1');
 });
+
+test('B with only a caret opens the ratios for the beat the caret is in', async ({ page }) => {
+  await page.getByTestId('score').focus();
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 4');
+  await page.keyboard.press('b');
+  await page.getByRole('button', { name: '2:1', exact: true }).click();
+  await expect(page.getByTestId('status')).toContainText('2:1 4:1');
+});

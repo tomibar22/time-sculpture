@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as E from '../engine';
 import { fillRegion } from '../state/fill';
 import { useDocStore } from '../state/store';
@@ -150,6 +150,17 @@ export function UseBar({
   onUse: () => void;
   onCancel: () => void;
 }) {
+  // the row on trial stays in sight: the bar lies over the foot of the list, and would hide it
+  const key = trying ? trying.sizes.join(' ') : '';
+  useEffect(() => {
+    if (!key) return;
+    const id = requestAnimationFrame(() =>
+      document
+        .querySelector('.fillpanel .fill-list .fill-main[aria-pressed="true"]')
+        ?.scrollIntoView({ block: 'nearest' }),
+    );
+    return () => cancelAnimationFrame(id);
+  }, [key]);
   // nothing on trial: no bar at all (the panel says nothing a tap does not show)
   if (!trying) return null;
   return (

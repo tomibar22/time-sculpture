@@ -112,8 +112,10 @@ export function ModulationDialog() {
           <b>
             {from}:1 = {to}:1
           </b>{' '}
-          · a new beat lasts {beatsLabel(ratio)} old beat{ratio === 1 ? '' : 's'} · ♩{' '}
-          {Math.round(beforeTempo * 10) / 10} → <b>{Math.round(afterTempo * 10) / 10}</b>
+          · a new beat lasts {beatsLabel(ratio)} old beat{ratio === 1 ? '' : 's'} ·{' '}
+          <span className="nowrap">
+            ♩ {Math.round(beforeTempo * 10) / 10} → <b>{Math.round(afterTempo * 10) / 10}</b>
+          </span>
         </p>
         <div className="lib-actions">
           <button
