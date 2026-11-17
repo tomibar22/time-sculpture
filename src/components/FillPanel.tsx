@@ -83,7 +83,9 @@ export function FillPanel() {
     <section className="fillpanel" aria-label="Fill">
       {tab === 'vary' && (
         <div className="fill-head">
-          <span className="fill-where">Vary {where}</span>
+          <span className="fill-where fill-title">
+            <b>Vary</b> {where}
+          </span>
           <button
             type="button"
             className="ghost icon"

@@ -254,6 +254,18 @@ export function Score() {
         reveal:
           stage && s.build && !s.playing ? reveal(doc, s.build.step, s.stagePrefs.buildDir) : null,
         pop: stage && s.build && popAlpha > 0 ? { id: s.buildPop!.id, alpha: popAlpha } : null,
+        clicks:
+          !stage && s.clickPat.on
+            ? {
+                pat: s.clickPat,
+                // not playing: the cycle starts in the bar where Play would start
+                phase:
+                  s.clickPhase ??
+                  -(E.barMap(doc.meter).barOf[Math.floor((s.playStart ?? 0) + 1e-6)] ?? 0),
+                beats: s.click || s.hushed,
+                ticks: s.ticks,
+              }
+            : null,
       },
       palette.current,
     );

@@ -114,6 +114,7 @@ export function Dock() {
 function Transport() {
   const playing = useUiStore((s) => s.playing);
   const tempo = useUiStore((s) => s.tempo);
+  const boost = useUiStore((s) => s.tempoBoost);
   const keypad = useUiStore((s) => s.keypad);
   const set = useUiStore((s) => s.set);
   const canUndo = useDocStore((s) => s.past.length > 0);
@@ -154,7 +155,7 @@ function Transport() {
           <span className="tempo-note-sm" aria-hidden="true">
             ♩
           </span>
-          {tempo}
+          {boost > 0 ? <b className="tempo-up">{tempo + boost}</b> : tempo}
         </button>
         <div className="undo-redo">
           <button

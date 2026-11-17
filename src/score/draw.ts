@@ -1,5 +1,6 @@
 import {
   barMap,
+  clickHeard,
   commonSubdivision,
   fromMain,
   patternLabel,
@@ -9,7 +10,7 @@ import {
   passesLabel,
   startOf,
 } from '../engine';
-import type { Doc, ItemId } from '../engine';
+import type { ClickPattern, Doc, ItemId } from '../engine';
 import { inkFor, sizeColor } from './colors';
 import type { Palette } from './colors';
 import {
@@ -81,6 +82,13 @@ export interface DrawState {
    */
   reveal?: { a: number; b: number } | null;
   pop?: { id: ItemId; alpha: number } | null;
+  /**
+   * A click pattern is on: the band shows the click as a rhythm of its own. A pulse that clicks
+   * has a head on its tick (the 1 red, a pulse picked by hand in the accent colour); one that is
+   * silent is faint. `phase` places the cycle of bars against the written bars (bar B is bar
+   * B + phase of the cycle); `beats` / `ticks` are the two switches of the mix.
+   */
+  clicks?: { pat: ClickPattern; phase: number; beats: boolean; ticks: boolean } | null;
 }
 
 /** How long (in beats) a group's ring keeps the extra weight of its onset. */
@@ -254,18 +262,47 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         labels.push({ x: xAt(gb) + 4, text: `${d}:1` });
       const kEnd = Math.min(pre[gb + 1]!, row.k1);
       const dense = bw / (pre[gb + 1]! - pre[gb]!) < 3;
+      // the click pattern: what this pulse gets ('usual' also covers the plain ticks)
+      const ck = s.clicks;
+      const heard = (j: number) => {
+        if (!ck) return 'usual';
+        const v = clickHeard(ck.pat, {
+          beatInBar: inBar(gb),
+          j,
+          d,
+          bar: (bm.barOf[gb] ?? 0) + ck.phase,
+        });
+        if (j === 0) return v && (isDown(gb) || ck.beats) ? v : null;
+        return v && ck.ticks ? v : null;
+      };
       for (let k = Math.max(pre[gb]!, row.k0); k < kEnd; k++) {
         const t = times[k]!;
         const x = xAt(t);
         if (dense && k !== pre[gb]) continue;
+        const v = heard(k - pre[gb]!);
+        const quiet = v ? 1 : 0.3;
         if (k === pre[gb]) {
           const down = isDown(gb);
           c.fillStyle = down ? P.land : P.fg;
-          c.globalAlpha = down ? 1 : 0.55;
+          c.globalAlpha = (down ? 1 : 0.55) * quiet;
           c.fillRect(x - (down ? 1 : 0.75), by, down ? 2 : 1.5, L.bandH);
+          if (ck && v) {
+            // a beat that clicks: a head on its line
+            c.globalAlpha = down ? 1 : 0.8;
+            c.beginPath();
+            c.arc(x, by + L.bandH - 4, 3.2, 0, Math.PI * 2);
+            c.fill();
+          }
+        } else if (v === 'picked') {
+          // a pulse picked by hand: a clear click, a clear mark
+          c.fillStyle = P.accent;
+          c.fillRect(x - 0.8, by, 1.6, L.bandH - 4);
+          c.beginPath();
+          c.arc(x, by + L.bandH - 4, 2.8, 0, Math.PI * 2);
+          c.fill();
         } else {
           c.fillStyle = odd || painting ? P.fg : P.muted;
-          c.globalAlpha = odd || painting ? 0.7 : 0.6;
+          c.globalAlpha = (odd || painting ? 0.7 : 0.6) * quiet;
           c.fillRect(x - 0.6, by, 1.2, L.bandH * 0.5);
         }
         c.globalAlpha = 1;

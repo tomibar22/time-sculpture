@@ -25,6 +25,8 @@ const INTERVAL_MS = 25;
 interface Slot {
   /** The bar of the click pattern's cycle this pulse is in (−1: no pattern). */
   bar: number;
+  /** Bars heard minus the bar's number in the piece: where the cycle stands against the score. */
+  phase: number;
   /** The tiles are silent this time round (practice). */
   hush: boolean;
   t: number;
@@ -76,6 +78,26 @@ const HOLD_S = 1.6;
 let regionOnce = false;
 const REGION_HOLD_S = 0.25;
 
+/** The tempo that sounds: the piece's, and what Speed up has added since Play (editor only). */
+const tempoNow = (): number => {
+  const ui = useUiStore.getState();
+  return ui.stage ? ui.tempo : ui.tempo + ui.tempoBoost;
+};
+
+/**
+ * The music has come round once more. Practice, Speed up: every so many rounds the tempo climbs a
+ * step, until it is where it was asked to go. The piece's own tempo is not touched (nothing is
+ * saved): the climb is an addition that Stop takes away again.
+ */
+function turned(): void {
+  round++;
+  const ui = useUiStore.getState();
+  const sp = ui.speedUp;
+  if (ui.stage || !sp.on || round % sp.every) return;
+  const now = ui.tempo + ui.tempoBoost;
+  if (now < sp.to) ui.set({ tempoBoost: Math.min(sp.to, now + sp.step) - ui.tempo });
+}
+
 /** Where Play starts (beats): the start the user set, or the top. Not on the stage. */
 const startFrom = () => {
   const ui = useUiStore.getState();
@@ -124,7 +146,7 @@ const soundMode = () => {
 function schedule(): void {
   if (endAt !== null) return;
   const ui = useUiStore.getState();
-  const beatDur = 60 / ui.tempo;
+  let beatDur = 60 / tempoNow();
   const now = audioNow();
   const sound = soundMode();
   const once = (ui.stage && !ui.stagePrefs.loop) || regionOnce;
@@ -161,10 +183,14 @@ function schedule(): void {
           plan.findIndex((p) => from >= p.a - EPS && from < p.b - EPS),
         );
         T = Math.max(from, plan[seg]!.a);
-        round++;
+        turned();
+        beatDur = 60 / tempoNow();
         continue;
       }
-      if (seg + 1 >= plan.length) round++;
+      if (seg + 1 >= plan.length) {
+        turned();
+        beatDur = 60 / tempoNow();
+      }
       seg = (seg + 1) % plan.length;
       T = plan[seg]!.a;
       continue;
@@ -198,7 +224,8 @@ function schedule(): void {
     const dur = span(ev.t0, ev.t1);
     if (ev.onset && sound === 'all' && !hush) playGroup(next, ev.onset.n, dur * ev.onset.n);
     const cyc = !ui.stage && ui.clickPat.on ? barsHeard % ui.clickPat.bars.length : -1;
-    queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur, hush, bar: cyc });
+    const phase = barsHeard - (barMap(doc.meter).barOf[ev.beat] ?? 0);
+    queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur, hush, bar: cyc, phase });
     next += dur;
     T = ev.t1;
   }
@@ -232,7 +259,9 @@ function frame(): void {
   if (current) {
     if (current.hush !== ui.hushed) ui.set({ hushed: current.hush });
     const bar = current.bar < 0 ? null : current.bar;
-    if (bar !== ui.clickBarNow) ui.set({ clickBarNow: bar });
+    const phase = bar === null ? null : current.phase;
+    if (bar !== ui.clickBarNow || phase !== ui.clickPhase)
+      ui.set({ clickBarNow: bar, clickPhase: phase });
     const p = Math.min(1, Math.max(0, (now - current.t) / current.dur));
     useUiStore.getState().set({ playhead: current.T0 + (current.T1 - current.T0) * p });
   }
@@ -267,6 +296,7 @@ export function startPlayback(
   endAt = null;
   countBar = 0;
   round = 0;
+  useUiStore.getState().set({ tempoBoost: 0 });
   barsHeard = 0;
   barsBegun = false;
   // count in (bars of the main beat) before the music starts: the stage's own setting, or the
@@ -310,6 +340,8 @@ export function stopPlayback(): void {
     loop: null,
     hushed: false,
     clickBarNow: null,
+    clickPhase: null,
+    tempoBoost: 0,
   });
 }
 

@@ -84,6 +84,21 @@ export function LandPanel() {
 
   const put = (next: number[]) => set({ landPattern: next });
   const copied = clip.filter((g) => g.kind === 'sound').map((g) => g.n);
+  /** The strokes written just before the stretch (four at most): a pattern to go on with. */
+  const before = (() => {
+    const out: number[] = [];
+    let at = 0;
+    for (const x of useDocStore.getState().doc.items) {
+      if (at >= region.a) break;
+      if (!E.isSpace(x) && x.kind === 'sound' && at + x.n <= region.a) out.push(x.n);
+      else out.length = 0;
+      at += x.n;
+    }
+    return out.slice(-4);
+  })();
+  const offers: [string, number[]][] = [];
+  if (before.length) offers.push(['Before it', before]);
+  if (copied.length) offers.push(['Copied', copied]);
   const tryIt = (l: E.PatternLanding) => {
     if (trying?.key === l.key) return write(l);
     setTrying(l);
@@ -135,16 +150,22 @@ export function LandPanel() {
           )}
         </span>
         {p > 0 && <span className="land-sum mono">= {p}</span>}
-        {copied.length > 0 && copied.join(' ') !== pattern.join(' ') && (
-          <button
-            type="button"
-            className="link-btn"
-            title="Use what was copied last as the pattern"
-            onClick={() => put(copied)}
-          >
-            Copied {copied.join(' ')}
-          </button>
-        )}
+        {!pattern.length &&
+          offers.map(([name, sizes]) => (
+            <button
+              key={name}
+              type="button"
+              className="link-btn"
+              title={
+                name === 'Copied'
+                  ? 'Use what was copied last as the pattern'
+                  : 'Use the strokes written just before this stretch as the pattern'
+              }
+              onClick={() => put(sizes)}
+            >
+              {name} {sizes.join(' ')}
+            </button>
+          ))}
         <button
           type="button"
           className="ghost icon"

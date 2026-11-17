@@ -848,3 +848,31 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
 - **Land**: the last tile falls "on the 1", "on beat N" or "after the stretch", whatever the end
   of the region is (`end` in LandPanel; the switch, the hint and the rows say the same). Rows
   read in full: the name of a way, then where it begins on a line of its own (`.land-cap`).
+
+### Third round: the click in the score, patterns to start from, speed up
+
+- **The click pattern shows in the band** (`DrawState.clicks {pat, phase, beats, ticks}`, only
+  while a pattern is on, not on the stage or in print): a pulse that clicks has a head on its
+  tick (the 1 red, a picked pulse in the accent colour with a full-height tick), a silent one is
+  faint (alpha × 0.3); untouched soft ticks look as always. `phase` places the cycle against the
+  written bars (bar B is bar B + phase of the cycle): not playing = the bar where Play starts is
+  bar 1 of the cycle; playing = `ui.clickPhase` (bars heard − the playing bar's number, from the
+  player's slots).
+- **What is set by hand is a clear click** (`clickHeard`): `sub[key]` present → its pulses are
+  `'picked'`, also when it is all of them (so the "and" of a beat of two can be picked); absent →
+  `base` (soft ticks, or nothing). `toggleClickPulse` drops the key again when a beat of a
+  ticking bar is full once more. `innerPicked(bar, beat, d)`.
+- **Patterns to start from** (`CLICK_PRESETS` in engine/click.ts; chips at the top of the Click
+  page, one line scrolling sideways): 2 and 4 ("Every other beat" when the bar is not of 4), Only
+  the 1, The 1 once in 4 bars, Off-beats (the middle of a beat; the last of three), Last pulse of
+  the beat, 2 bars on 2 off. Built for the piece's `barShape`; they replace the pattern and turn
+  the two switches of the mix on.
+- **Speed up** (`ui.speedUp {on, step, every, to}`, device pref; `SpeedUpRow` on the Practice
+  page, a sentence to fill in: "Faster by [4] every [2 times round] up to [120]"): `turned()` in
+  player.ts (where `round` goes up) adds to `ui.tempoBoost` every `every` rounds until tempo +
+  boost = `to`. **The piece's tempo is never changed** (no save, no sync): the player plays
+  `tempoNow()` = tempo + boost, the transport shows it in the accent colour (`.tempo-up`), Play
+  and Stop set the boost back to 0. Not on the stage.
+- **Land**: with an empty pattern, "Before it 3 3 2" (the ≤ 4 strokes written just before the
+  region) and "Copied …" are offered as the pattern.
+- The Vary head keeps its name on phones ("Vary 8 pulses · bar 1, beat 1" + ✕).

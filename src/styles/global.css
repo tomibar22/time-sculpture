@@ -4286,3 +4286,88 @@ button.pat-cell.one[aria-pressed='true'] {
     grid-template-columns: minmax(0, 1fr) 16rem;
   }
 }
+
+/* the click pattern: ways to start from, one line that scrolls sideways */
+.pat-presets {
+  display: flex;
+  gap: 6px;
+  margin: 0 -16px;
+  padding: 0 16px 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pat-presets::-webkit-scrollbar {
+  display: none;
+}
+.pat-presets button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--fg);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* practice: speed up, a sentence to fill in */
+.practice-speed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.practice-speed label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.practice-speed select,
+.practice-speed input {
+  height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--fg);
+  /* 16 px at least: iOS zooms into smaller fields */
+  font: 600 1rem var(--f-mono);
+}
+.practice-speed select {
+  font-family: var(--f-body);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.practice-speed input {
+  width: 4.2ch;
+  box-sizing: content-box;
+  text-align: center;
+}
+.practice-speed select:focus-visible,
+.practice-speed input:focus {
+  outline: 0;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+/* the tempo while Speed up has raised it */
+.tempo-up {
+  color: var(--accent);
+}
+
+/* Vary keeps its head on phones too: its name and what it varies, then Close */
+.fill-title b {
+  color: var(--fg);
+  font-family: var(--f-display);
+}
+@media (max-width: 560px) {
+  .fillpanel .fill-where.fill-title {
+    display: block;
+    flex: 1 1 auto;
+  }
+}

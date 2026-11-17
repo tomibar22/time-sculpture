@@ -15,8 +15,8 @@ export interface ClickBar {
   /** Beats (0 = the 1) that are the other way round from `base`. */
   beats: number[];
   /**
-   * The pulses inside a beat that sound, by `subKey(beat, d)`: 1 … d−1. All of them = the usual
-   * soft ticks; some = those, as clear clicks; none = silence. Absent = as `base` says.
+   * The pulses inside a beat that were set by hand, by `subKey(beat, d)`: 1 … d−1. They sound as
+   * clear clicks (none = silence). Absent = as `base` says: the usual soft ticks, or nothing.
    */
   sub: Record<string, number[]>;
 }
@@ -60,10 +60,15 @@ export function clickHeard(
   const bar = p.bars[((at.bar % n) + n) % n];
   if (!bar) return 'usual';
   if (at.j === 0) return beatOn(bar, at.beatInBar) ? 'usual' : null;
-  const on = innerOn(bar, at.beatInBar, at.d);
-  if (on.length >= at.d - 1) return 'usual';
-  return on.includes(at.j) ? 'picked' : null;
+  // what was set by hand is a clear click; an untouched beat ticks softly, or not at all
+  const set = bar.sub[subKey(at.beatInBar, at.d)];
+  if (!set) return bar.base ? 'usual' : null;
+  return set.includes(at.j) ? 'picked' : null;
 }
+
+/** Were the pulses inside this beat (at ratio d) set by hand? Then they are clear clicks. */
+export const innerPicked = (bar: ClickBar, beat: number, d: number): boolean =>
+  !!bar.sub[subKey(beat, d)];
 
 const toggled = (a: number[], x: number) =>
   a.includes(x) ? a.filter((y) => y !== x) : [...a, x].sort((p, q) => p - q);
@@ -89,7 +94,10 @@ export function toggleClickPulse(
   const sub = { ...bar.sub };
   for (const b of beats.includes(beat) ? beats : [beat]) {
     const now = innerOn(bar, b, d);
-    if (now.includes(j) !== want) sub[subKey(b, d)] = toggled(now, j);
+    const next = now.includes(j) === want ? now : toggled(now, j);
+    // every pulse of a beat on again, in a bar that ticks: it is the plain soft ticking again
+    if (bar.base && next.length === d - 1) delete sub[subKey(b, d)];
+    else sub[subKey(b, d)] = next;
   }
   return { ...bar, sub };
 }
@@ -113,7 +121,9 @@ export function cleanClickPattern(raw: unknown): ClickPattern {
       for (const [k, v] of Object.entries(r.sub as object)) {
         const d = +k;
         if (Number.isInteger(d) && d >= 2 && d <= 8)
-          for (let b = 0; b < 13; b++) sub[subKey(b, d)] = ints(v, 1, d - 1);
+          // (all of a ratio's pulses meant the plain ticking: nothing to carry over)
+          if (ints(v, 1, d - 1).length < d - 1)
+            for (let b = 0; b < 13; b++) sub[subKey(b, d)] = ints(v, 1, d - 1);
       }
     const sounding = ints(r.bars, 0, every - 1);
     return {
@@ -146,3 +156,79 @@ export function withClickBars(p: ClickPattern, n: number): ClickPattern {
   while (bars.length < len) bars.push(clickBar(false));
   return { ...p, bars };
 }
+
+/** A pattern to start from. `shape` = for every beat of the bar, the ratios the piece has there. */
+export interface ClickPreset {
+  id: string;
+  name: (shape: number[][]) => string;
+  bars: (shape: number[][]) => ClickBar[];
+}
+
+/** A bar where only these beats click, and inside every beat only what `inner` gives. */
+function barOf(
+  shape: number[][],
+  beat: (b: number) => boolean,
+  inner: (d: number) => number[] = () => [],
+): ClickBar {
+  const bar = clickBar(false);
+  shape.forEach((ds, b) => {
+    if (beat(b)) bar.beats.push(b);
+    for (const d of ds) {
+      const on = inner(d).filter((j) => j >= 1 && j < d);
+      if (on.length) bar.sub[subKey(b, d)] = on;
+    }
+  });
+  return bar;
+}
+
+/**
+ * Ways of practising against a click that says less: the backbeat, the 1 alone (in every bar or
+ * once in four), the off-beats, the last pulse of every beat, and the click that goes away for
+ * two bars in four.
+ */
+export const CLICK_PRESETS: ClickPreset[] = [
+  {
+    id: 'backbeat',
+    name: (shape) => (shape.length === 4 ? '2 and 4' : 'Every other beat'),
+    bars: (shape) => [barOf(shape, (b) => b % 2 === 1)],
+  },
+  { id: 'one', name: () => 'Only the 1', bars: (shape) => [barOf(shape, (b) => b === 0)] },
+  {
+    id: 'one4',
+    name: () => 'The 1, once in 4 bars',
+    bars: (shape) => [
+      barOf(shape, (b) => b === 0),
+      clickBar(false),
+      clickBar(false),
+      clickBar(false),
+    ],
+  },
+  {
+    id: 'off',
+    name: () => 'Off-beats',
+    // the middle of a beat; in a beat of three, its last pulse (the swung "and")
+    bars: (shape) => [
+      barOf(
+        shape,
+        () => false,
+        (d) => (d % 2 === 0 ? [d / 2] : d === 3 ? [2] : []),
+      ),
+    ],
+  },
+  {
+    id: 'last',
+    name: () => 'Last pulse of the beat',
+    bars: (shape) => [
+      barOf(
+        shape,
+        () => false,
+        (d) => [d - 1],
+      ),
+    ],
+  },
+  {
+    id: 'gap',
+    name: () => '2 bars on, 2 off',
+    bars: () => [clickBar(true), clickBar(true), clickBar(false), clickBar(false)],
+  },
+];

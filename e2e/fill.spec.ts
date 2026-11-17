@@ -157,9 +157,14 @@ test('land a pattern: how many times it goes in, and from where, to end on the e
 
 test('land: a tihai shows its gap as a tile; the last tile can fall on the 1', async ({ page }) => {
   await page.getByRole('button', { name: 'Land…' }).first().click();
+  const list = page.getByRole('list', { name: 'Ways it lands' });
+  // an empty pattern offers the strokes written just before the open space
+  await page.getByRole('button', { name: 'Before it 3 3 2' }).click();
+  await expect(page.getByTestId('land-pattern')).toHaveText('332');
+  await expect(list.locator('.fill-main').first()).toContainText('×1');
+  await page.getByRole('button', { name: 'Clear' }).click();
   await page.getByTestId('land-2').click();
   await page.getByTestId('land-1').click();
-  const list = page.getByRole('list', { name: 'Ways it lands' });
   // 9 pulses, 2 1 with the last tile on the 1: 2 1 2 1 2 [1] takes 8, one pulse stays before it
   await page.getByTestId('land-on1').click();
   await expect(page.locator('.land')).toContainText('The last tile (1) falls after the stretch');

@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { stopPlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
-import { MIX_DEFAULT, useUiStore } from '../state/store';
-import type { Mix, MixChannel, TilesMode } from '../state/store';
+import { MIX_DEFAULT, SPEED_EVERY, SPEED_STEPS, useUiStore } from '../state/store';
+import type { Mix, MixChannel, SpeedUp, TilesMode } from '../state/store';
 import { ClickPatternSection } from './ClickPattern';
 import { MetronomeIcon } from './Icons';
 import { TempoField, useTapTempo } from './TempoDialog';
@@ -54,12 +54,18 @@ export function PracticeButton() {
   const pattern = useUiStore((s) => s.clickPat.on);
   const tab = useUiStore((s) => s.practiceTab);
   const mixed = useUiStore(mixChanged);
-  const on = countIn > 0 || tiles !== 'on' || pattern;
-  const marked = { practice: countIn > 0 || tiles !== 'on', click: pattern, mix: mixed };
+  const speeding = useUiStore((s) => s.speedUp.on);
+  const on = countIn > 0 || tiles !== 'on' || pattern || speeding;
+  const marked = {
+    practice: countIn > 0 || tiles !== 'on' || speeding,
+    click: pattern,
+    mix: mixed,
+  };
   const said = [
     countIn ? `count-in ${countIn === 1 ? '1 bar' : '2 bars'}` : '',
     tiles === 'off' ? 'tiles silent' : tiles === 'turns' ? 'tiles in turn' : '',
     pattern ? 'click pattern' : '',
+    speeding ? 'speeding up' : '',
   ]
     .filter(Boolean)
     .join(', ');
@@ -185,6 +191,7 @@ export function PracticeButton() {
                       : `${times(turns.on)} round with the tiles, then ${times(turns.off).toLowerCase()} with the click alone.`}
                   </p>
                 )}
+                <SpeedUpRow />
               </>
             )}
             {tab === 'click' && <ClickPatternSection />}
@@ -244,6 +251,114 @@ function TempoRow() {
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Speed up: the tempo climbs by itself while it plays, a step every so many times round, up to a
+ * tempo. Written as a sentence to fill in. The piece's tempo is not changed: Stop is the start
+ * again.
+ */
+function SpeedUpRow() {
+  const sp = useUiStore((s) => s.speedUp);
+  const tempo = useUiStore((s) => s.tempo);
+  const boost = useUiStore((s) => s.tempoBoost);
+  const set = useUiStore((s) => s.set);
+  const [draft, setDraft] = useState<string | null>(null);
+  const put = (next: Partial<SpeedUp>) => set({ speedUp: { ...sp, ...next } });
+  const commit = () => {
+    if (draft === null) return;
+    const v = parseInt(draft, 10);
+    if (Number.isFinite(v)) put({ to: clampTempo(v) });
+    setDraft(null);
+  };
+  const steps = Math.ceil((sp.to - tempo) / sp.step);
+  return (
+    <>
+      <div className="practice-row">
+        <span id="pr-speed">Speed up</span>
+        <button
+          type="button"
+          className="switch"
+          role="switch"
+          aria-checked={sp.on}
+          aria-labelledby="pr-speed"
+          data-testid="speed-up"
+          onClick={() =>
+            // switched on with a goal that is not ahead: aim a little above the tempo
+            put({ on: !sp.on, to: !sp.on && sp.to <= tempo ? clampTempo(tempo + 20) : sp.to })
+          }
+        >
+          <span className="switch-track" aria-hidden="true">
+            <span className="switch-knob" />
+          </span>
+        </button>
+      </div>
+      {sp.on && (
+        <>
+          <div className="practice-speed" role="group" aria-labelledby="pr-speed">
+            <label>
+              <span>
+                Faster by<span className="sr-only"> (beats per minute)</span>
+              </span>
+              <select value={sp.step} onChange={(e) => put({ step: +e.target.value })}>
+                {SPEED_STEPS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>
+                every<span className="sr-only"> so many times round</span>
+              </span>
+              <select value={sp.every} onChange={(e) => put({ every: +e.target.value })}>
+                {SPEED_EVERY.map((n) => (
+                  <option key={n} value={n}>
+                    {n === 1 ? 'time round' : `${n} times round`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>
+                up to<span className="sr-only"> this tempo</span>
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                maxLength={3}
+                data-testid="speed-to"
+                value={draft ?? String(sp.to)}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '');
+                  setDraft(digits);
+                  const v = parseInt(digits, 10);
+                  if (v >= MIN_TEMPO && v <= MAX_TEMPO) put({ to: v });
+                }}
+                onBlur={commit}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  e.preventDefault();
+                  commit();
+                }}
+              />
+            </label>
+          </div>
+          <p className="practice-note" data-testid="speed-said">
+            {boost > 0
+              ? `Now at ${tempo + boost}. Stop goes back to ${tempo}.`
+              : sp.to <= tempo
+                ? `The tempo is ${tempo} already: choose a faster one to go up to.`
+                : `From ${tempo} to ${sp.to} in ${steps} ${steps === 1 ? 'step' : 'steps'}, while it plays. Stop goes back to ${tempo}.`}
+          </p>
+        </>
+      )}
+    </>
   );
 }
 

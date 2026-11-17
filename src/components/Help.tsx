@@ -104,7 +104,9 @@ export function Help() {
               middle of a softened screen, then plays (a tap on the count stops), and can tick the
               subdivision too. <b>Tiles</b>: Silent leaves only the click, so the rhythm is yours to
               play; In turn plays so many times round with the tiles and so many with the click
-              alone (the score goes grey while they are silent).
+              alone (the score goes grey while they are silent). <b>Speed up</b> lets the tempo
+              climb while it plays, so many faster every so many times round, up to a tempo; the
+              piece’s own tempo is not changed, and Stop goes back to it.
             </p>
             <p>
               <b>Mix</b>: how loud the drum, the 1 of every bar, the other beats and the subdivision
@@ -117,8 +119,11 @@ export function Help() {
               single sixteenth in the whole bar (<b>Clear the bar</b>, then tap it). A pulse you
               pick sounds as a clear click. <b>Every beat</b> sets a dot in all the beats at once.
               <b>+</b> makes a cycle of bars, each with a pattern of its own (new bars are silent),
-              so the 1 can sound once in four bars. Switched off, the click is the plain one again
-              and the pattern is kept.
+              so the 1 can sound once in four bars. The chips at the top are patterns to start from
+              (2 and 4, only the 1, off-beats, two bars on and two off). While a pattern is on, the
+              band under the tiles shows it: a pulse that clicks has a head on its tick, a silent
+              one is faint, so you see where the click falls against what you wrote. Switched off,
+              the click is the plain one again and the pattern is kept.
             </p>
             <p>
               Play starts at the caret when there is one (Esc removes it; then Play starts at the
@@ -133,8 +138,9 @@ export function Help() {
               there. The group that sounds lights up as it goes. Select tiles (or a range) and press
               ⇧Space, or ↻ Loop: that stretch plays round and round, to hear it or practise over it;
               change it while it loops and you hear the change. Tap the tempo number for exact steps
-              and <b>Tap the beat</b>. In Options you can turn off the click on the beats (the 1
-              always sounds) and the subdivision ticks.
+              and <b>Tap the beat</b>, or type it. The click on the beats and the subdivision ticks
+              can be turned off in the metronome’s Mix (or in Options); the 1 of a bar always
+              sounds.
             </p>
           </details>
           <details className="help-topic">
@@ -260,17 +266,18 @@ export function Help() {
           <details className="help-topic">
             <summary>Fill</summary>
             <p>
-              Fill randomly or Browse fills work on the selected range or tiles (or on the open
-              space): choose the sizes, then roll, or browse every way to fill it, sorted by tiles,
-              the beat, syncopation, variety or evenness. Pointing at an option previews it. Browse
-              opens on fills with a shape: repeats, growing patterns, pyramids, refrains, even
-              spreads, cadences, mirrors, and the <b>tihai</b>: a phrase said three times with the
-              same tile between, so the third time ends exactly on the 1. <b>All shapes</b> lists a
-              few fills of every kind under its name, with the way to all of that kind; ↑ ↓ walk the
-              list. <b>Known rhythms</b> are fills with a name (tresillo, cinquillo, the claves,
-              bossa, bembé, aksak), at any breadth that fits; <b>Rotating</b> starts a cell one
-              group later each time. <b>From the piece</b> takes what is written just before the
-              region, and the opening, and says it again there: as it is, backwards, turned.
+              <b>Fill it…</b> (beside what is left to go) works on the selected range or tiles, or
+              on the open space: choose the sizes, then browse every way to fill it, as a list or as
+              a map. A tap tries a fill in the score and Play loops the stretch so it is heard; Use
+              writes it. Surprise (the dice) writes one at random. Browse opens on fills with a
+              shape: repeats, growing patterns, pyramids, refrains, even spreads, cadences, mirrors,
+              and the <b>tihai</b>: a phrase said three times with the same tile between, so the
+              third time ends exactly on the 1. <b>All shapes</b> lists a few fills of every kind
+              under its name, with the way to all of that kind; ↑ ↓ walk the list.{' '}
+              <b>Known rhythms</b> are fills with a name (tresillo, cinquillo, the claves, bossa,
+              bembé, aksak), at any breadth that fits; <b>Rotating</b> starts a cell one group later
+              each time. <b>From the piece</b> takes what is written just before the region, and the
+              opening, and says it again there: as it is, backwards, turned.
             </p>
             <p>
               <b>Tiles</b> narrows the fills to those with a set number of tiles. Almost right? Tap
@@ -288,7 +295,9 @@ export function Help() {
               times, 3 times… with the place where it must begin; as a tihai (three times, the gap a
               tile of its own between them) or any number of times with a gap; and shaped: worn
               away, built up, broad then as written, running through. Tap one to see and hear it in
-              the score, Use to write it. What is before its first tile stays as it is.
+              the score, Use to write it. What is before its first tile stays as it is. With an
+              empty pattern, <b>Before it</b> takes the strokes written just before the stretch, and
+              <b>Copied</b> what was copied last.
             </p>
             <p>
               <b>Last tile on the 1</b>: as in a tihai, the pattern’s last tile begins exactly where
@@ -300,11 +309,12 @@ export function Help() {
             <summary>Vary</summary>
             <p>
               Select a run of groups (or a range) and press Vary… (⇧V): the same stretch of time
-              said another way. Backwards, starting from another group, growing or shrinking, halves
-              swapped, joined in pairs, every group halved, only the attacks, every other one
-              silent, or shuffled. Pointing at one previews it; everything around the passage stays
-              where it is, so it still lands on 1. A tap tries a variation in the score; Use writes
-              it. From here varies what is there now.
+              said another way. Nearby (a line nudged, two neighbours swapped), reordered
+              (backwards, starting from another group, halves swapped), broader or denser (joined in
+              pairs, every group halved), or shuffled. Tap groups first to lock them in place.
+              Pointing at one previews it; everything around the passage stays where it is, so it
+              still lands on 1. A tap tries a variation in the score; Use writes it. From here
+              varies what is there now.
             </p>
           </details>
           <details className="help-topic">

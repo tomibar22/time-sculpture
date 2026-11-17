@@ -11,7 +11,7 @@ import type {
   ItemId,
 } from '../engine';
 
-import { DEFAULT_TEMPO, defaultDoc } from './defaults';
+import { DEFAULT_TEMPO, defaultDoc, MAX_TEMPO, MIN_TEMPO } from './defaults';
 
 export type MoveMode = 'pulse' | 'beat' | 'place';
 export type Theme = 'system' | 'light' | 'dark';
@@ -73,7 +73,19 @@ export interface DevicePrefs {
   mix: Mix;
   /** The click as a rhythm of its own: which beats, pulses and bars have it (engine/click.ts). */
   clickPat: ClickPattern;
+  /** Practice: the tempo climbs while it plays (see SpeedUp). */
+  speedUp: SpeedUp;
 }
+
+/** The tempo climbs by itself: `step` faster every `every` times round, until it is `to`. */
+export interface SpeedUp {
+  on: boolean;
+  step: number;
+  every: number;
+  to: number;
+}
+export const SPEED_STEPS = [1, 2, 3, 4, 5, 6, 8, 10];
+export const SPEED_EVERY = [1, 2, 3, 4, 6, 8];
 
 /** The mixer: the drum (tiles), the 1 of every bar, the other beats, the subdivision ticks. */
 export interface Mix {
@@ -124,6 +136,15 @@ function loadPrefs(): Partial<DevicePrefs> {
       out.mix = m;
     }
     if (p.clickPat) out.clickPat = cleanClickPattern(p.clickPat);
+    if (p.speedUp && typeof p.speedUp === 'object') {
+      const u = p.speedUp as Partial<SpeedUp>;
+      out.speedUp = {
+        on: u.on === true,
+        step: SPEED_STEPS.includes(u.step as number) ? u.step! : 4,
+        every: SPEED_EVERY.includes(u.every as number) ? u.every! : 2,
+        to: Number.isInteger(u.to) ? Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, u.to!)) : 120,
+      };
+    }
     if (p.moveMode === 'pulse' || p.moveMode === 'beat' || p.moveMode === 'place')
       out.moveMode = p.moveMode;
     if (Array.isArray(p.fillSizes)) {
@@ -291,6 +312,9 @@ export interface UiState {
   countSub: boolean;
   mix: Mix;
   clickPat: ClickPattern;
+  speedUp: SpeedUp;
+  /** While playing with Speed up: how much faster than the piece's tempo it is by now. */
+  tempoBoost: number;
   /** While playing: this time round the tiles are silent (the score goes grey). */
   hushed: boolean;
   /** The practice popover beside Play (count-in, tiles heard or silent). */
@@ -299,6 +323,11 @@ export interface UiState {
   practiceTab: 'practice' | 'click' | 'mix';
   /** While playing with a click pattern: the bar of its cycle that sounds now. */
   clickBarNow: number | null;
+  /**
+   * While playing with a click pattern: bars heard minus the playing bar's number, so the score
+   * can show which bar of the cycle every written bar is in this time round.
+   */
+  clickPhase: number | null;
   /** The docked subdivision row, for the beats picked in the band, or under the selection, range or caret. */
   subPanel: boolean;
   /** Beats picked in the subdivision band (first to last, both included): what the row works on. */
@@ -405,10 +434,13 @@ export const useUiStore = create<UiState>((set) => ({
   countSub: false,
   mix: { ...MIX_DEFAULT },
   clickPat: CLICK_PATTERN,
+  speedUp: { on: false, step: 4, every: 2, to: 120 },
+  tempoBoost: 0,
   hushed: false,
   practiceOpen: false,
   practiceTab: 'practice',
   clickBarNow: null,
+  clickPhase: null,
   subPanel: false,
   beatSel: null,
   modDialog: null,
@@ -460,7 +492,8 @@ useUiStore.subscribe((s, p) => {
     s.turns !== p.turns ||
     s.countSub !== p.countSub ||
     s.mix !== p.mix ||
-    s.clickPat !== p.clickPat
+    s.clickPat !== p.clickPat ||
+    s.speedUp !== p.speedUp
   )
     savePrefs({
       theme: s.theme,
@@ -475,5 +508,6 @@ useUiStore.subscribe((s, p) => {
       countSub: s.countSub,
       mix: s.mix,
       clickPat: s.clickPat,
+      speedUp: s.speedUp,
     });
 });

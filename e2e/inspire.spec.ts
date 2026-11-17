@@ -270,3 +270,38 @@ test('practice: a click pattern is a small sequencer of the bar, and of a cycle 
   await pop.getByRole('button', { name: 'Like bar 1' }).click();
   await expect(said).toHaveText('Bar 3: every beat.');
 });
+
+test('practice: a pattern to start from shows in the score; speed up climbs and Stop goes back', async ({
+  page,
+}) => {
+  const btn = page.getByTestId('practice');
+  const pop = page.getByRole('dialog', { name: 'Practice' });
+  await btn.click();
+  await pop.getByRole('tab', { name: 'Click' }).click();
+  await pop.getByTestId('click-pattern').click();
+  await pop.getByRole('button', { name: '2 and 4' }).click();
+  await expect(pop.getByTestId('click-said')).toHaveText('Beats 2 and 4.');
+  await pop.getByRole('button', { name: 'The 1, once in 4 bars' }).click();
+  await expect(pop).toContainText('A cycle of 4 bars');
+  await expect(pop.getByTestId('click-said')).toHaveText('Bar 1: beat 1.');
+  await pop.getByRole('button', { name: 'Off-beats' }).click();
+  await expect(pop.getByTestId('click-said')).toHaveText('No beat · the 3rd of 4 in every beat.');
+  await pop.getByTestId('click-pattern').click();
+  // speed up: 10 faster every time round, from 200 up to 230; the piece's tempo is not touched
+  await pop.getByRole('tab', { name: 'Practice' }).click();
+  await pop.getByTestId('practice-tempo').fill('200');
+  await pop.getByTestId('speed-up').click();
+  await pop.getByLabel(/Faster by/).selectOption('10');
+  await pop.getByLabel(/^every/).selectOption('1');
+  await pop.getByTestId('speed-to').fill('230');
+  await expect(pop.getByTestId('speed-said')).toContainText('From 200 to 230 in 3 steps');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  // two bars of four at 200 come round in 2.4 s
+  await expect(page.locator('.tempo-up')).toHaveText('210', { timeout: 6000 });
+  await expect(pop.getByTestId('speed-said')).toContainText('Now at 210');
+  await page.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(page.locator('.tempo-up')).toHaveCount(0);
+  await expect(pop.getByTestId('practice-tempo')).toHaveValue('200');
+  await page.keyboard.press('Escape');
+  await expect(btn).toContainText('speeding up');
+});

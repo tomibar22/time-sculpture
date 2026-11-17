@@ -84,6 +84,21 @@ export function ClickPatternSection() {
       )}
       {pat.on && (
         <>
+          <div className="pat-presets" role="group" aria-label="Start from a pattern">
+            {E.CLICK_PRESETS.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                className="chip"
+                onClick={() => {
+                  set({ clickPat: { on: true, bars: x.bars(shape) }, click: true, ticks: true });
+                  setShown(0);
+                }}
+              >
+                {x.name(shape)}
+              </button>
+            ))}
+          </div>
           <div className="pat-head">
             <span className="pat-lbl" id="pat-bars">
               {pat.bars.length === 1 ? 'Every bar the same' : `A cycle of ${pat.bars.length} bars`}
@@ -131,7 +146,7 @@ export function ClickPatternSection() {
             {shape.map((ds, b) =>
               ds.map((d, i) => {
                 const on = E.innerOn(bar, b, d);
-                const picked = on.length < d - 1;
+                const picked = E.innerPicked(bar, b, d);
                 return (
                   <div
                     className={`pat-beat${beatNow === b && (now === k || now === null) ? ' pat-now' : ''}`}
@@ -257,7 +272,7 @@ function said(bar: E.ClickBar, shape: number[][], k: number): string {
   shape.forEach((ds, b) =>
     ds.forEach((d) => {
       const on = E.innerOn(bar, b, d);
-      if (d < 2 || on.length >= d - 1) return;
+      if (d < 2 || !E.innerPicked(bar, b, d)) return;
       // an empty beat needs words only where the ticks would be expected
       if (!on.length && !bar.base) return;
       const what = on.length ? `the ${list(on.map((j) => nth(j + 1)))} of ${d}` : `nothing inside`;

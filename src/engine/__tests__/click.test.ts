@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CLICK_PATTERN,
+  CLICK_PRESETS,
   cleanClickPattern,
   clickBar,
   clickHeard,
@@ -44,11 +45,18 @@ describe('the click as a rhythm of its own', () => {
     // tapped again it goes everywhere, also where it was set by hand before
     expect(heard(pat(toggleClickPulse(all, 2, 3, 1, [0, 1, 2, 3])), 4, 3)).toBe('... ... ... ...');
   });
-  it('all the inner pulses of a beat are the usual soft ticks', () => {
+  it('what is set by hand is a clear click; an untouched beat ticks softly', () => {
+    // in a cleared bar, both inner pulses of a triplet picked are two clear clicks
     const bar = toggleClickPulse(toggleClickPulse(clickBar(false), 0, 3, 1), 0, 3, 2);
-    expect(heard(pat(bar), 1, 3)).toBe('.uu');
-    // from a full bar, one taken away leaves the others as picked clicks
-    expect(heard(pat(toggleClickPulse(clickBar(true), 0, 4, 2)), 1, 4)).toBe('up.p');
+    expect(heard(pat(bar), 1, 3)).toBe('.pp');
+    // the "and" of a beat of two can be picked too
+    expect(heard(pat(toggleClickPulse(clickBar(false), 0, 2, 1)), 1, 2)).toBe('.p');
+    // from a full bar, one taken away leaves the others as picked clicks…
+    const less = toggleClickPulse(clickBar(true), 0, 4, 2);
+    expect(heard(pat(less), 1, 4)).toBe('up.p');
+    // …and put back, the beat ticks softly as before
+    expect(heard(pat(toggleClickPulse(less, 0, 4, 2)), 1, 4)).toBe('uuuu');
+    expect(toggleClickPulse(less, 0, 4, 2).sub).toEqual({});
   });
   it('a cycle of bars, each with its own pattern, counted as heard', () => {
     const one = toggleClickBeat(clickBar(false), 0);
@@ -76,5 +84,27 @@ describe('the click as a rhythm of its own', () => {
     const old = cleanClickPattern({ on: true, off: [0], sub: { 4: [3] }, every: 2, bars: [0] });
     expect(heard(old, 2, 4, 0)).toBe('...p u..p');
     expect(heard(old, 2, 4, 1)).toBe('.... ....');
+  });
+  it('patterns to start from', () => {
+    const shape = [[4], [4], [4], [4]];
+    const make = (id: string) => pat(...CLICK_PRESETS.find((x) => x.id === id)!.bars(shape));
+    expect(heard(make('backbeat'), 4, 4)).toBe('.... u... .... u...');
+    expect(heard(make('one'), 4, 4)).toBe('u... .... .... ....');
+    expect(heard(make('off'), 4, 4)).toBe('..p. ..p. ..p. ..p.');
+    expect(heard(make('last'), 4, 4)).toBe('...p ...p ...p ...p');
+    expect([0, 1, 2, 3].map((bar) => heard(make('one4'), 1, 1, bar))).toEqual(['u', '.', '.', '.']);
+    expect([0, 1, 2, 3].map((bar) => heard(make('gap'), 1, 2, bar))).toEqual([
+      'uu',
+      'uu',
+      '..',
+      '..',
+    ]);
+    // triplets: the off-beat is the last of the three; in a beat of two it is the "and"
+    const triplets = pat(...CLICK_PRESETS.find((x) => x.id === 'off')!.bars([[3], [2]]));
+    expect(heard(triplets, 1, 3)).toBe('..p');
+    expect(clickHeard(triplets, at(1, 1, 2))).toBe('picked');
+    expect(CLICK_PRESETS.find((x) => x.id === 'backbeat')!.name([[4], [4], [4]])).toBe(
+      'Every other beat',
+    );
   });
 });
