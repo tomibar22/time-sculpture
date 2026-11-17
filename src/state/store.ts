@@ -9,6 +9,7 @@ import type {
   GroupKind,
   GroupSpec,
   ItemId,
+  LS,
 } from '../engine';
 
 import { DEFAULT_TEMPO, defaultDoc, MAX_TEMPO, MIN_TEMPO } from './defaults';
@@ -294,6 +295,10 @@ export interface UiState {
   landOn1: boolean;
   /** Land: only the ways that begin anywhere / on a beat / on a 1. */
   landFrom: 'any' | 'beat' | 'one';
+  /** Land: the pattern is built of sizes, or of long and short tiles ("L S S"). */
+  landMode: 'sizes' | 'ls';
+  /** Land: the long–short pattern being tried. */
+  landLS: LS[];
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
   fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo';
@@ -347,6 +352,11 @@ export interface UiState {
   menu: ContextMenuState | null;
   /** Bars about to be removed (0-based, first to last): tinted in the score as a warning. */
   doomed: { a: number; b: number } | null;
+  /**
+   * Swapping two stretches: the first one, marked (pulses) while the other one is chosen.
+   * Cleared by any change to the document, Esc and the swap itself.
+   */
+  swapA: { a: number; b: number } | null;
   /** The row dialog: how many bars the row at this time holds. */
   rowDialog: { t: number } | null;
   /** The dialog that says where Play starts. */
@@ -422,6 +432,8 @@ export const useUiStore = create<UiState>((set) => ({
   landPattern: [],
   landOn1: false,
   landFrom: 'any',
+  landMode: 'sizes',
+  landLS: [],
   fillSort: 'onbeat',
   fillShape: 'shapes',
   fillTiles: null,
@@ -450,6 +462,7 @@ export const useUiStore = create<UiState>((set) => ({
   barsDialog: false,
   menu: null,
   doomed: null,
+  swapA: null,
   rowDialog: null,
   startDialog: false,
   playStart: null,

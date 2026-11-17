@@ -156,6 +156,9 @@ export function escape(): void {
     setUi({ selection: [], anchor: null, multi: false });
     if (k !== null) setCaret(k, { quiet: true });
     announce('Selection cleared');
+  } else if (s.swapA) {
+    setUi({ swapA: null });
+    announce('Swap cancelled');
   } else if (s.caret !== null) {
     setUi({ caret: null, multi: false });
     announce('Caret removed');

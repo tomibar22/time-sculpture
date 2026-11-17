@@ -1,5 +1,6 @@
 import type { GroupSpec } from './ops/edit';
 import { formatGroups } from './ops/edit';
+import { longShortOf, realizeLS } from './longshort';
 
 /**
  * Variations of a passage: the same stretch of time said another way. Every variation has
@@ -17,10 +18,11 @@ export interface Variation {
   kind: VariationKind;
 }
 
-export type VariationKind = 'order' | 'weight' | 'nudge' | 'shuffle';
+export type VariationKind = 'order' | 'weight' | 'nudge' | 'shuffle' | 'longshort';
 
 export const VARIATION_KINDS: { id: VariationKind; label: string }[] = [
   { id: 'nudge', label: 'Nearby' },
+  { id: 'longshort', label: 'Same long and short' },
   { id: 'order', label: 'Reordered' },
   { id: 'weight', label: 'Broader / denser' },
   { id: 'shuffle', label: 'Shuffled' },
@@ -213,6 +215,14 @@ export function variations(
   };
 
   for (const v of nudges(base, lock)) put(v.groups, v.label, 'nudge');
+  // the same shape of long and short tiles with other sizes, the nearest first
+  if (!lock.size && base.every((g) => g.kind === 'sound')) {
+    const sizes = base.map((g) => g.n);
+    const shape = longShortOf(sizes);
+    if (shape)
+      for (const r of realizeLS(shape, T, { near: sizes, limit: 16 }))
+        put(r.sizes.map(sound), r.label, 'longshort');
+  }
   for (const t of TRANSFORMS.filter((t) => t.kind === 'order'))
     put(
       each((s) => t.f(s, rng)),

@@ -133,6 +133,12 @@ function doomedSpan(doc: Doc, d: { a: number; b: number } | null) {
   return { t0: map.barStarts[d.a] ?? 0, t1: map.barStarts[d.b + 1] ?? map.NB };
 }
 
+/** A pulse range as a stretch of beats, for drawing. */
+function pulseSpan(doc: Doc, r: { a: number; b: number }) {
+  const times = E.buildGrid(doc.meter).times;
+  return { t0: times[r.a] ?? 0, t1: times[r.b] ?? times[times.length - 1]! };
+}
+
 /** The beats picked in the band, as a set for drawing. */
 function pickedBeats(sel: { a: number; b: number } | null): ReadonlySet<number> | null {
   if (!sel) return null;
@@ -236,6 +242,7 @@ export function Score() {
         cursor: stage ? null : s.caret,
         range: stage ? null : s.range,
         doomed: stage ? null : doomedSpan(doc, s.doomed),
+        swapA: stage || !s.swapA ? null : pulseSpan(doc, s.swapA),
         playhead: s.playhead,
         loop: stage ? null : s.loop,
         sweep,

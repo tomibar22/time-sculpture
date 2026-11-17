@@ -2,7 +2,15 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { buildGrid } from '../grid';
 import { checkInvariants, docFrom, isSpace, makeMeter } from '../doc';
-import { clearRange, fillRange, insertAtPulse, sliceRange, spanOf, spaceRange } from '../ops/range';
+import {
+  clearRange,
+  fillRange,
+  insertAtPulse,
+  sliceRange,
+  spanOf,
+  spaceRange,
+  swapRanges,
+} from '../ops/range';
 import type { Doc } from '../types';
 import { sample, show, valid } from './helpers';
 
@@ -88,6 +96,28 @@ describe('insertAtPulse', () => {
   });
 });
 
+describe('swapRanges', () => {
+  it('swaps two stretches of the same size in place; open space between stays open', () => {
+    expect(swapRanges(sample(), { a: 2, b: 5 }, { a: 13, b: 16 }).report.reason).toBe('no-change');
+    const q = swapRanges(sample(), { a: 2, b: 8 }, { a: 16, b: 22 });
+    expect(show(q.doc)).toBe('(2) (1) 3 2 2 open 3 3 3 3 4');
+    valid(q.doc);
+  });
+  it('different lengths: what is between moves along, the outside stays', () => {
+    // 3 3 (2-8) with 2 (8-10): 2 3 3, the open space after untouched
+    const r = swapRanges(sample(), { a: 2, b: 8 }, { a: 8, b: 10 });
+    expect(show(r.doc)).toBe('(2) 2 3 3 open 3 3 (1) 3 2 4');
+    // the first 3 with the last 4: the middle moves one pulse later
+    const q = swapRanges(sample(), { a: 22, b: 26 }, { a: 2, b: 5 });
+    expect(show(q.doc)).toBe('(2) 4 3 2 open 3 3 (1) 3 2 3');
+    valid(q.doc);
+  });
+  it('refuses overlapping or empty stretches', () => {
+    expect(swapRanges(sample(), { a: 2, b: 8 }, { a: 5, b: 10 }).report.reason).toBe('overlap');
+    expect(swapRanges(sample(), { a: 2, b: 2 }, { a: 5, b: 10 }).report.ok).toBe(false);
+  });
+});
+
 const docArb: fc.Arbitrary<Doc> = fc
   .record({
     sizes: fc.array(fc.record({ n: fc.integer({ min: 1, max: 5 }), rest: fc.boolean() }), {
@@ -151,6 +181,34 @@ describe('range properties', () => {
           expect(buildGrid(r.doc.meter).TS).toBe(36);
         },
       ),
+      { numRuns: 400 },
+    );
+  });
+
+  it('swapRanges keeps the invariants, the outside, and puts each stretch in the other place', () => {
+    fc.assert(
+      fc.property(docArb, fc.array(fc.nat(36), { minLength: 4, maxLength: 4 }), (d, ps) => {
+        const [a, b, c, e] = [...ps].sort((x, y) => x - y) as [number, number, number, number];
+        if (a === b || c === e) return;
+        const r = swapRanges(d, { a: c, b: e }, { a, b });
+        expect(checkInvariants(r.doc)).toEqual([]);
+        if (!r.report.ok) return;
+        const outside = (o: number) => o < a || o >= e;
+        expect(onsets(r.doc).filter(outside)).toEqual(onsets(d).filter(outside));
+        const sl = (x: Doc, p: number, q: number) => sliceRange(x, p, q);
+        const sounds = (gs: { n: number; kind: string }[]) => {
+          const o: number[] = [];
+          let k = 0;
+          for (const g of gs) {
+            if (g.kind === 'sound') o.push(k);
+            k += g.n;
+          }
+          return o;
+        };
+        // the later stretch's onsets now open the passage, the earlier one's close it
+        expect(sounds(sl(r.doc, a, a + e - c))).toEqual(sounds(sl(d, c, e)));
+        expect(sounds(sl(r.doc, e - (b - a), e))).toEqual(sounds(sl(d, a, b)));
+      }),
       { numRuns: 400 },
     );
   });

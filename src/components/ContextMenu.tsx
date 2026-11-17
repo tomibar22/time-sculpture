@@ -37,6 +37,7 @@ import {
   setRange,
 } from '../state/editing';
 import { openFill } from '../state/fill';
+import { swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
 import type { ContextMenuState } from '../state/store';
 import { view } from '../score/view';
@@ -227,6 +228,12 @@ function Menu({ menu }: { menu: ContextMenuState }) {
             { label: 'Reverse', hint: '⇧R', run: reverseSelection },
           ] satisfies Row[])
         : []),
+      {
+        label: ui.swapA ? 'Swap with the marked stretch' : 'Swap with…',
+        hint: 'X',
+        disabled: !E.isContiguous(idx),
+        run: swapStep,
+      },
       'sep',
       { label: ui.playing ? 'Stop' : 'Loop', hint: '⇧Space', run: playFromCaret },
       {
@@ -276,6 +283,11 @@ function Menu({ menu }: { menu: ContextMenuState }) {
       { label: 'Fill…', run: () => openFill('browse') },
       { label: 'Vary…', hint: '⇧V', run: () => openFill('vary') },
       { label: 'Land a pattern…', run: () => openFill('land') },
+      {
+        label: ui.swapA ? 'Swap with the marked stretch' : 'Swap with…',
+        hint: 'X',
+        run: swapStep,
+      },
       'sep',
       {
         label: hasTotal ? 'Remove total' : 'Total',

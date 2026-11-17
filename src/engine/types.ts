@@ -136,6 +136,7 @@ export type FailReason =
   | 'not-adjacent'
   | 'no-change'
   | 'cannot-fill'
+  | 'overlap'
   | 'out-of-range';
 
 /** What an operation did, for user feedback (toasts, flashes, announcements). */

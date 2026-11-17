@@ -19,7 +19,10 @@ const HEADS: Record<E.LandingKind, [string, string]> = {
   tihai: ['Tihai', 'three times, a gap between'],
   gapped: ['With a gap', 'any number of times'],
   shape: ['Shaped', 'the pattern, transformed'],
+  even: ['Even', 'one size for the longs, one for the shorts'],
+  free: ['Free', 'longs (or shorts) of different sizes, once'],
 };
+const LS_WORD = { L: 'Long', S: 'Short' } as const;
 
 /**
  * Land a pattern (third tab of the fill panel): build a pattern of tiles, and see every way it
@@ -31,7 +34,11 @@ const HEADS: Record<E.LandingKind, [string, string]> = {
  * what is before its first tile stays as it is.
  */
 export function LandPanel() {
-  const pattern = useUiStore((s) => s.landPattern);
+  const sizesPattern = useUiStore((s) => s.landPattern);
+  const lsPattern = useUiStore((s) => s.landLS);
+  const mode = useUiStore((s) => s.landMode);
+  const ls = mode === 'ls';
+  const pattern = ls ? lsPattern : sizesPattern;
   const clip = useUiStore((s) => s.clipboard);
   const set = useUiStore((s) => s.set);
   const region = fillRegion();
@@ -42,8 +49,11 @@ export function LandPanel() {
   const version = useDocStore((s) => s.version);
   const R = region ? region.b - region.a : 0;
   const a = region?.a ?? 0;
-  const p = pattern.reduce((x, n) => x + n, 0);
-  const all = useMemo(() => E.patternLandings(R, pattern, { on1 }), [R, pattern, on1]);
+  const p = ls ? 0 : sizesPattern.reduce((x, n) => x + n, 0);
+  const all = useMemo(
+    () => (ls ? E.lsLandings(R, lsPattern, { on1 }) : E.patternLandings(R, sizesPattern, { on1 })),
+    [R, ls, lsPattern, sizesPattern, on1],
+  );
   /** Where each way begins, and whether that is a strong place. */
   const places = useMemo(() => {
     const d = useDocStore.getState().doc;
@@ -79,10 +89,11 @@ export function LandPanel() {
   useEffect(() => {
     setTrying(null);
     previewLanding(null);
-  }, [R, a, pattern, on1]);
+  }, [R, a, pattern, on1, ls]);
   if (!region) return <p className="lib-note">Select a stretch, or leave open space, first.</p>;
 
   const put = (next: number[]) => set({ landPattern: next });
+  const putLS = (next: E.LS[]) => set({ landLS: next });
   const copied = clip.filter((g) => g.kind === 'sound').map((g) => g.n);
   /** The strokes written just before the stretch (four at most): a pattern to go on with. */
   const before = (() => {
@@ -99,6 +110,11 @@ export function LandPanel() {
   const offers: [string, number[]][] = [];
   if (before.length) offers.push(['Before it', before]);
   if (copied.length) offers.push(['Copied', copied]);
+  /** The same, as long and short: the shape of what is written before, or of what was copied. */
+  const lsOffers = offers.flatMap(([name, sizes]) => {
+    const shape = E.longShortOf(sizes);
+    return shape ? [[name, shape] as [string, E.LS[]]] : [];
+  });
   const tryIt = (l: E.PatternLanding) => {
     if (trying?.key === l.key) return write(l);
     setTrying(l);
@@ -108,7 +124,7 @@ export function LandPanel() {
     setTrying(null);
     writeLanding(l);
   };
-  const lastTile = pattern[pattern.length - 1];
+  const lastTile = ls ? null : sizesPattern[sizesPattern.length - 1];
   /** Where the stretch ends, which is where the last tile falls: the 1, a beat, or neither. */
   const end = (() => {
     const d = useDocStore.getState().doc;
@@ -129,18 +145,48 @@ export function LandPanel() {
       ? `Tihai · gap ${l.gap}`
       : l.kind === 'gapped'
         ? `×${l.times} · gap ${l.gap}`
-        : l.kind === 'shape'
+        : l.kind === 'shape' || l.kind === 'free'
           ? l.name
-          : `×${l.times}`;
+          : l.kind === 'even'
+            ? `${l.name}${l.times > 1 ? ` ×${l.times}` : ''}`
+            : `×${l.times}`;
   let heading: E.LandingKind | null = null;
 
   return (
     <div className="land">
       <div className="land-pattern">
-        <span className="land-lbl">Pattern</span>
+        <div className="segs text land-mode" role="group" aria-label="Build the pattern of">
+          <button
+            type="button"
+            aria-pressed={!ls}
+            title="A pattern of sizes: 3 3 2"
+            onClick={() => set({ landMode: 'sizes' })}
+          >
+            123<span className="sr-only"> Sizes</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={ls}
+            title="A pattern of long and short tiles: L S S. Every way to give them sizes is shown."
+            data-testid="land-mode-ls"
+            onClick={() => set({ landMode: 'ls' })}
+          >
+            L·S<span className="sr-only"> Long and short</span>
+          </button>
+        </div>
         <span className="land-tiles" data-testid="land-pattern">
-          {pattern.length ? (
-            pattern.map((n, i) => (
+          {ls ? (
+            lsPattern.length ? (
+              lsPattern.map((x, i) => (
+                <i key={i} className={x === 'L' ? 'ls-long' : 'ls-short'} title={LS_WORD[x]}>
+                  {x}
+                </i>
+              ))
+            ) : (
+              <span className="dim">long, short…</span>
+            )
+          ) : sizesPattern.length ? (
+            sizesPattern.map((n, i) => (
               <i key={i} style={{ background: sizeColor(n), color: inkFor(sizeColor(n)) }}>
                 {n}
               </i>
@@ -151,7 +197,7 @@ export function LandPanel() {
         </span>
         {p > 0 && <span className="land-sum mono">= {p}</span>}
         {!pattern.length &&
-          offers.map(([name, sizes]) => (
+          (ls ? lsOffers : offers).map(([name, shape]) => (
             <button
               key={name}
               type="button"
@@ -161,9 +207,9 @@ export function LandPanel() {
                   ? 'Use what was copied last as the pattern'
                   : 'Use the strokes written just before this stretch as the pattern'
               }
-              onClick={() => put(sizes)}
+              onClick={() => (ls ? putLS(shape as E.LS[]) : put(shape as number[]))}
             >
-              {name} {sizes.join(' ')}
+              {name} {shape.join(' ')}
             </button>
           ))}
         <button
@@ -172,11 +218,16 @@ export function LandPanel() {
           aria-label="Remove the last tile of the pattern"
           title="Remove the last tile"
           disabled={!pattern.length}
-          onClick={() => put(pattern.slice(0, -1))}
+          onClick={() => (ls ? putLS(lsPattern.slice(0, -1)) : put(sizesPattern.slice(0, -1)))}
         >
           ⌫
         </button>
-        <button type="button" className="ghost" disabled={!pattern.length} onClick={() => put([])}>
+        <button
+          type="button"
+          className="ghost"
+          disabled={!pattern.length}
+          onClick={() => (ls ? putLS([]) : put([]))}
+        >
           Clear
         </button>
         <button
@@ -189,21 +240,41 @@ export function LandPanel() {
           <CloseIcon />
         </button>
       </div>
-      <div className="fill-sizes" role="group" aria-label="Add a tile to the pattern">
-        {SIZES.map((n) => (
-          <button
-            key={n}
-            type="button"
-            aria-label={`Add ${n}`}
-            data-testid={`land-${n}`}
-            disabled={p + n > R}
-            style={{ boxShadow: `inset 0 -3px 0 ${sizeColor(n)}, inset 0 0 0 1.5px var(--line)` }}
-            onClick={() => put([...pattern, n])}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
+      {ls ? (
+        <div className="fill-sizes land-ls" role="group" aria-label="Add a tile to the pattern">
+          {(['L', 'S'] as const).map((x) => (
+            <button
+              key={x}
+              type="button"
+              data-testid={`land-${x}`}
+              title={`Add a ${LS_WORD[x].toLowerCase()} tile (${x})`}
+              disabled={lsPattern.length >= 12}
+              onClick={() => putLS([...lsPattern, x])}
+            >
+              <i className={x === 'L' ? 'ls-long' : 'ls-short'} aria-hidden="true">
+                {x}
+              </i>
+              {LS_WORD[x]}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="fill-sizes" role="group" aria-label="Add a tile to the pattern">
+          {SIZES.map((n) => (
+            <button
+              key={n}
+              type="button"
+              aria-label={`Add ${n}`}
+              data-testid={`land-${n}`}
+              disabled={p + n > R}
+              style={{ boxShadow: `inset 0 -3px 0 ${sizeColor(n)}, inset 0 0 0 1.5px var(--line)` }}
+              onClick={() => put([...sizesPattern, n])}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="land-opts">
         <button
           type="button"
@@ -240,17 +311,23 @@ export function LandPanel() {
         </div>
       </div>
       <p className="lib-note land-hint" role="status">
-        {!pattern.length
-          ? `Build a pattern: every way it ends exactly on the end of these ${R} pulses is shown, with where it must begin.`
-          : !all.length
-            ? on1 && pattern.length === 1 && p <= R
-              ? `One tile alone, ${end}: nothing is left to write. Add a tile.`
-              : `The pattern (${p}) is longer than the stretch (${R}).`
-            : on1
-              ? `The last tile (${lastTile}) falls ${end}, right after these ${R} pulses, so it is not written.`
-              : `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
-                  R % p ? `, with ${R % p} left before it` : ', exactly'
-                }.`}
+        {ls
+          ? !pattern.length
+            ? `Build a shape of long and short tiles: every way to give them sizes that lands on the end of these ${R} pulses is shown.`
+            : !all.length
+              ? `No sizes make ${E.lsText(lsPattern)} land in ${R} pulses (sizes go up to ${E.MAX_LS_SIZE}).`
+              : `${E.lsText(lsPattern)}: every long longer than every short${on1 ? `; the last tile falls ${end}, not written` : ''}.`
+          : !pattern.length
+            ? `Build a pattern: every way it ends exactly on the end of these ${R} pulses is shown, with where it must begin.`
+            : !all.length
+              ? on1 && pattern.length === 1 && p <= R
+                ? `One tile alone, ${end}: nothing is left to write. Add a tile.`
+                : `The pattern (${p}) is longer than the stretch (${R}).`
+              : on1
+                ? `The last tile (${lastTile}) falls ${end}, right after these ${R} pulses, so it is not written.`
+                : `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
+                    R % p ? `, with ${R % p} left before it` : ', exactly'
+                  }.`}
         {all.length > 0 && !rows.length
           ? ` None of the ${all.length} ways begins ${from === 'beat' ? 'on a beat' : 'on a 1'}.`
           : ''}

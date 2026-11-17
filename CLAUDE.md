@@ -48,6 +48,7 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/move.ts      reorder (Place), slide (Pulse/Beat), stepDelta, clampSlide
   ops/meter.ts     setSubdivision, resizeMeter
   ops/bars.ts      setBars (metre / bar patterns), insertBars, removeBars, setRowSize
+  longshort.ts     long–short shapes ("L S S"): parseLS, longShortOf, realizeLS, lsLandings
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
                    copyGroups, formatGroups / parseGroups ("3 (2) 4"), trimEdge
 src/state/         Zustand store: document (undo/redo) + ui; actions.ts, editing.ts (caret)
@@ -366,7 +367,9 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   from the previous end / the top. `playOrder(meter)` → stretches `{a, b, pass}` as heard:
   inside a repeat, endings that don't list the pass are cut out; endings after an end sign are
   simply played (reached on the last pass). The player (`audio/player.ts`) walks these stretches.
-- Drawing: thick+thin bar with dots through the tiles (card halo), and a lane of `LANE_H` above
+- Drawing: thick+thin bar with dots (card halo); **at a row's edge the sign stands in the row's
+  gutter** (clear of the tiles), inside a row it is slim and sits on the line, and a narrow
+  tile's number steps aside (user bug report: signs hid tiles of one pulse). A lane of `LANE_H` above
   every row (`g.lane`, only when there is an ending or a ×3+) with ending brackets (closed when
   they end at an end sign) and "×N". `rowTop` is below the lane. Tapping a bracket edits it.
 - UI: caret bar `|: Start repeat` / `:| End repeat` / ×N stepper, `Ending…` in the range and
@@ -906,3 +909,24 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
 - **?** opens the help at the Keys topic (`#help-keys`): keys in groups (Write, Move about,
   Select, Listen, Shape the piece, Everything else) as `<kbd>` lists (`.keys`). Keep it in step
   with useKeyboard.
+
+### Swap, long and short (user requests)
+
+- **Swap two stretches** (`swapRanges` in ops/range.ts, state/swap.ts): select a stretch, Swap…
+  (X; tile bar, range bar, both menus) marks it (`ui.swapA`, pulses; drawn dashed, `DrawState.swapA`);
+  the selection bar becomes `SwapBar` ("Swap them", ⇤ ⇥ for a range, ✕ cancels); select the
+  other stretch (tiles or range) and Swap them / X / Enter. The passage from the first start to
+  the last end is rewritten with `fillRange`: later stretch, what was between, earlier stretch;
+  open space wholly between them stays open (`reopen`). Fails on overlap (`'overlap'`). After it,
+  the first stretch is selected at its new place. Any document change or Esc clears `swapA`.
+- **Long and short** (engine/longshort.ts): `LS = 'L' | 'S'`. `realizeLS(p, total, {near,
+  evenOnly, limit})` = every sizing (1–16) with every long > every short (DFS with bounds, capped);
+  even ones (one size per kind, "4 : 2") first, ratio nearest 2:1 first; `near` sorts by
+  distance to given sizes. `longShortOf(sizes)` splits at the widest ratio step (null if all
+  equal). `parseLS` reads L/S, long/short, — ·, א/ק.
+- Land panel: a "123 | L·S" switch (`ui.landMode`, `ui.landLS`); in L·S the size row becomes
+  Long / Short buttons (keys L and S while it is open), "Before it" / "Copied" offer their shape,
+  and `lsLandings(R, p, {on1})` lists kinds `even` (said as many times as fit, filling exactly
+  first) and `free` (once, filling exactly). Same rows, Try/Use, Begins and "Last tile on the 1".
+- Vary: kind `longshort` ("Same long and short · L L S", second group): the passage's shape
+  sized again, nearest first (only without locks and rests).

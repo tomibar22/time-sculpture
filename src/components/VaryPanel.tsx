@@ -250,7 +250,15 @@ export function VaryPanel() {
           if (!vs.length) return null;
           return (
             <Fragment key={k.id}>
-              <li className="fill-group">{k.label}</li>
+              <li className="fill-group">
+                {k.label}
+                {k.id === 'longshort' && (
+                  <span className="land-group-note">
+                    {' '}
+                    {E.lsText(E.longShortOf(base.map((g) => g.n)) ?? [])}
+                  </span>
+                )}
+              </li>
               {vs.map((v) => (
                 <li key={v.key}>
                   <VaryRow

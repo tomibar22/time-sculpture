@@ -235,6 +235,15 @@ export function Help() {
             </p>
           </details>
           <details className="help-topic">
+            <summary>Swap two stretches</summary>
+            <p>
+              Select a stretch (tiles or a range) and choose <b>Swap…</b> (X, also in the menu): it
+              is marked with a dashed line. Select the other stretch and choose <b>Swap them</b> (X
+              or Enter): each goes to the other’s place. When they differ in length, what lies
+              between them moves along; everything before and after keeps its time. Esc cancels.
+            </p>
+          </details>
+          <details className="help-topic">
             <summary>Undo by touch</summary>
             <p>
               A double tap with two fingers undoes; a double tap with three fingers redoes. The
@@ -304,6 +313,13 @@ export function Help() {
               the stretch ends, so it is not written (the 1 is that stroke). <b>Begins</b> keeps
               only the ways that start on a beat, or on a 1.
             </p>
+            <p>
+              <b>L·S</b> builds the pattern of long and short tiles instead of sizes (tap Long and
+              Short, or press L and S): “L S S”. Every way to give them sizes is listed, every long
+              longer than every short: <b>Even</b> (one size for the longs and one for the shorts, 4
+              : 2, said as many times as fit) and <b>Free</b> (the longs or the shorts of different
+              sizes, filling the stretch once).
+            </p>
           </details>
           <details className="help-topic">
             <summary>Vary</summary>
@@ -311,10 +327,11 @@ export function Help() {
               Select a run of groups (or a range) and press Vary… (⇧V): the same stretch of time
               said another way. Nearby (a line nudged, two neighbours swapped), reordered
               (backwards, starting from another group, halves swapped), broader or denser (joined in
-              pairs, every group halved), or shuffled. Tap groups first to lock them in place.
-              Pointing at one previews it; everything around the passage stays where it is, so it
-              still lands on 1. A tap tries a variation in the score; Use writes it. From here
-              varies what is there now.
+              pairs, every group halved), or shuffled. <b>Same long and short</b> hears the passage
+              as long and short tiles (3 3 2 is L L S) and gives other sizes with that shape. Tap
+              groups first to lock them in place. Pointing at one previews it; everything around the
+              passage stays where it is, so it still lands on 1. A tap tries a variation in the
+              score; Use writes it. From here varies what is there now.
             </p>
           </details>
           <details className="help-topic">
@@ -389,6 +406,13 @@ export function Help() {
                     <kbd>⇧R</kbd>
                   </dt>
                   <dd>backwards</dd>
+                  <dt>
+                    <kbd>X</kbd>
+                  </dt>
+                  <dd>
+                    swap: marks the selection, then swaps it with the next one you select (X or
+                    Enter)
+                  </dd>
                   <dt>
                     <kbd>⌫</kbd> <kbd>Del</kbd>
                   </dt>

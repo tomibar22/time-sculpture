@@ -43,6 +43,7 @@ import {
   typeDigit,
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
+import { swapNow, swapStep } from '../state/swap';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
@@ -272,6 +273,12 @@ export function useKeyboard() {
         if (caret !== null && E.repeatEndAt(useDocStore.getState().doc, caret))
           return changeRepeatTimes(caret, e.key === '+' || e.key === '=' ? 1 : -1);
       }
+      // X: swap two stretches (the first X marks the selection, the second swaps with it)
+      if (k === 'x' && !e.shiftKey) return void (e.preventDefault(), swapStep());
+      if (e.key === 'Enter' && useUiStore.getState().swapA && !isActivatable(e.target)) {
+        e.preventDefault();
+        return void swapNow();
+      }
       if (e.key === 'Enter' && !isActivatable(e.target)) {
         // a line break at the caret (or where the selection starts), like in a text editor
         const st = useUiStore.getState();
@@ -293,6 +300,15 @@ export function useKeyboard() {
         // like a text caret: to the row above or below (⇧ carries the range there)
         e.preventDefault();
         return caretRow(e.key === 'ArrowUp' ? -1 : 1, e.shiftKey);
+      }
+      // Land open on long and short: L and S build the pattern
+      {
+        const st = useUiStore.getState();
+        if (st.fillPanel === 'land' && st.landMode === 'ls' && (k === 'l' || k === 's')) {
+          e.preventDefault();
+          if (st.landLS.length < 12) st.set({ landLS: [...st.landLS, k === 'l' ? 'L' : 'S'] });
+          return;
+        }
       }
       // the panels: ⇧F fill (browse), L land, K the metronome (practice, click pattern, mix)
       if (k === 'f' && e.shiftKey) return void (e.preventDefault(), openFill('browse'));

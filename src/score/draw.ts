@@ -55,6 +55,8 @@ export interface DrawState {
   range?: { a: number; b: number } | null;
   /** A stretch (beats) about to be removed with its bars: tinted red as a warning. */
   doomed?: { t0: number; t1: number } | null;
+  /** The first stretch of a swap (beats), marked while the other one is chosen. */
+  swapA?: { t0: number; t1: number } | null;
   playhead: number | null;
   flash: { ids: ReadonlySet<ItemId>; alpha: number };
   focusedId: ItemId | null;
@@ -455,9 +457,19 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.font = `600 ${W > 26 ? 16 : 12}px ${MONO}`;
           c.textAlign = 'left';
           c.textBaseline = 'middle';
-          // a start-repeat sign over the tile's beginning pushes the number past its dots
-          const signHere = (doc.meter.repeatStarts ?? []).some((t) => Math.abs(t - seg.t0) < EPS_D);
-          const lx = X + (W > 26 ? 8 : 4) + (signHere ? 15 : 0);
+          // a start-repeat sign over the tile's beginning (inside a row; at a row's start it
+          // stands in the gutter) pushes the number past its dots
+          const signHere =
+            Math.abs(seg.t0 - g.rows[seg.r]!.b0) > EPS_D &&
+            (doc.meter.repeatStarts ?? []).some((t) => Math.abs(t - seg.t0) < EPS_D);
+          // and one at its end (inside a row) leaves a narrow tile's number at its very left
+          const row = g.rows[seg.r]!;
+          const endHere =
+            !signHere &&
+            W <= 26 &&
+            Math.abs(seg.t1 - row.b0 - row.nb) > EPS_D &&
+            (doc.meter.repeatEnds ?? []).some((e) => Math.abs(e.at - seg.t1) < EPS_D);
+          const lx = X + (signHere ? (W > 26 ? 12 : 9) : endHere ? 2 : W > 26 ? 8 : 4);
           c.fillText(seg.first ? String(x.n) : `…${x.n}`, lx, ty + L.tileH / 2);
           c.globalAlpha = 1;
         }
@@ -585,6 +597,28 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       c.fillRect(x0, top, x1 - x0, 2);
       c.fillRect(x0, top + h - 2, x1 - x0, 2);
       c.globalAlpha = 1;
+    }
+  }
+  if (s.swapA) {
+    // the stretch waiting to be swapped: a dashed outline round it, row by row, faintly tinted
+    for (let r = 0; r < g.R; r++) {
+      const row = g.rows[r]!;
+      const a = Math.max(s.swapA.t0, row.b0);
+      const b = Math.min(s.swapA.t1, row.b0 + row.nb);
+      if (b <= a + 1e-9) continue;
+      const x0 = L.margin + (a - row.b0) * row.bw;
+      const x1 = L.margin + (b - row.b0) * row.bw;
+      const ty = tileY(g, r);
+      c.fillStyle = P.sel;
+      c.globalAlpha = 0.1;
+      c.fillRect(x0, ty - 5, x1 - x0, L.tileH + 10);
+      c.globalAlpha = 1;
+      c.strokeStyle = P.sel;
+      c.lineWidth = 2;
+      c.setLineDash([5, 4]);
+      rr(c, x0 - 1, ty - 5, x1 - x0 + 2, L.tileH + 10, 10);
+      c.stroke();
+      c.setLineDash([]);
     }
   }
   if (s.range) {
@@ -854,38 +888,50 @@ export function endPoint(g: Geo, t: number): { x: number; r: number } {
  */
 function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): void {
   const { repeatStarts = [], repeatEnds = [], voltas = [] } = doc.meter;
-  const sign = (x: number, r: number, dir: 1 | -1) => {
+  // At a row's edge the sign stands in the row's gutter, clear of the tiles; inside a row it is
+  // slim and sits on the line, so even a tile of one pulse beside it stays in sight.
+  const sign = (x: number, r: number, dir: 1 | -1, edge: boolean) => {
     const ty = tileY(g, r);
     const y0 = ty - 3;
     const h = L.tileH + 6;
-    const bars: [number, number][] = [
-      [0, 3.5],
-      [6, 1.5],
-    ];
+    // distances from the line: into the piece inside a row, out into the gutter at an edge
+    const way = edge ? -dir : dir;
+    const bars: [number, number][] = edge
+      ? [
+          [12.5, 3.5],
+          [8.5, 1.5],
+        ]
+      : [
+          [-1.5, 3],
+          [3.5, 1.3],
+        ];
+    const dotX = x + way * (edge ? 4.5 : 7.5);
+    const dotR = edge ? 2.2 : 1.9;
     const dots = [ty + L.tileH * 0.36, ty + L.tileH * 0.64];
     for (const [colour, grow] of [
-      [P.card, 1.5],
+      [P.card, edge ? 1.5 : 1],
       [P.fg, 0],
     ] as const) {
       c.fillStyle = colour;
-      for (const [off, w] of bars) {
-        const x0 = dir === 1 ? x + off : x - off - w;
+      for (const [near, w] of bars) {
+        const x0 = way === 1 ? x + near : x - near - w;
         c.fillRect(x0 - grow, y0 - grow, w + 2 * grow, h + 2 * grow);
       }
       for (const dy of dots) {
         c.beginPath();
-        c.arc(x + dir * 12.5, dy, 2.4 + grow, 0, Math.PI * 2);
+        c.arc(dotX, dy, dotR + grow, 0, Math.PI * 2);
         c.fill();
       }
     }
   };
   for (const t of repeatStarts) {
     const p = xOf(g, t);
-    sign(p.x, p.r, 1);
+    sign(p.x, p.r, 1, Math.abs(t - g.rows[p.r]!.b0) < EPS_D);
   }
   for (const e of repeatEnds) {
     const p = endPoint(g, e.at);
-    sign(p.x, p.r, -1);
+    const row = g.rows[p.r]!;
+    sign(p.x, p.r, -1, Math.abs(e.at - row.b0 - row.nb) < EPS_D);
     if (e.times > 2 && g.lane) {
       c.font = `700 12px ${MONO}`;
       c.fillStyle = P.fg;

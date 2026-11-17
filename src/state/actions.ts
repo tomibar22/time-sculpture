@@ -47,6 +47,8 @@ function failMessage(r: Report, d: Doc): string | null {
       return 'Select neighbouring groups for this';
     case 'too-small':
       return "A group of 1 can't split";
+    case 'overlap':
+      return 'The two stretches overlap. Choose one beside the first.';
     case 'cannot-fill':
       return `Tray sizes can't fill ${free}. Stretch a group, or fill it with silence.`;
     default:
@@ -108,6 +110,8 @@ function pruneSelection(): void {
 useDocStore.subscribe((s, prev) => {
   if (s.doc === prev.doc) return;
   pruneSelection();
+  // a stretch marked for a swap was about the old document
+  if (uiState().swapA) setUi({ swapA: null });
   const TS = E.buildGrid(s.doc.meter).TS;
   const u = uiState();
   if (u.playStart !== null && u.playStart >= s.doc.meter.subdivision.length - E.EPS)

@@ -326,6 +326,11 @@ canvas.score:focus-visible {
   background: var(--card);
   padding: 6px 12px;
 }
+.selbar button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
 .selbar button[aria-pressed='true'] {
   background: var(--sel);
   color: var(--card);
@@ -3552,6 +3557,47 @@ canvas.score.hushed {
   .land-pattern button {
     padding: 0 8px;
   }
+}
+
+/* long and short: the pattern's own chips, wide and narrow, in the score's ink */
+.land-mode {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+.land-pattern .land-mode button {
+  min-height: 36px;
+  padding: 0 10px;
+  font: 600 0.8rem var(--f-mono);
+}
+.land-tiles i.ls-long,
+.land-tiles i.ls-short,
+.land-ls i {
+  font: 700 0.8rem/28px var(--f-mono);
+  background: var(--fg);
+  color: var(--card);
+  border-radius: 7px;
+}
+.land-tiles i.ls-long,
+.land-ls i.ls-long {
+  min-width: 48px;
+}
+.land-tiles i.ls-short,
+.land-ls i.ls-short {
+  min-width: 22px;
+  padding: 0 4px;
+  background: var(--muted);
+}
+.land .land-ls button {
+  font: 600 0.92rem var(--f-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 14px 0 8px;
+}
+.land-ls i {
+  display: inline-block;
+  text-align: center;
 }
 
 /* ---------------------------------------------------------------- land: options, groups */

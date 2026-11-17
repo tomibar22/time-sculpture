@@ -184,6 +184,81 @@ export function sliceRange(doc: Doc, a: number, b: number): GroupSpec[] {
 }
 
 /**
+ * Swap two stretches of the piece, like swapping two words in a sentence: what is in `x` goes
+ * where `y` was and the other way round. When they differ in length, what lies between them
+ * moves along by the difference; everything before the first and after the second keeps its
+ * place in time. A group cut at a stretch's edge follows the range conventions (its head stays,
+ * the part in the stretch is silence). The stretches must not overlap.
+ */
+export function swapRanges(
+  doc: Doc,
+  x: { a: number; b: number },
+  y: { a: number; b: number },
+): OpResult {
+  const TS = total(doc);
+  const r = (s: { a: number; b: number }) => ({
+    a: clamp(Math.round(s.a), 0, TS),
+    b: clamp(Math.round(s.b), 0, TS),
+  });
+  const [p, q] = [r(x), r(y)].sort((u, v) => u.a - v.a) as [
+    { a: number; b: number },
+    { a: number; b: number },
+  ];
+  if (p.b <= p.a || q.b <= q.a) return { doc, report: fail('nothing-selected') };
+  if (q.a < p.b) return { doc, report: fail('overlap') };
+  const now = sliceRange(doc, p.a, q.b);
+  const passage = joinSpecs([
+    ...sliceRange(doc, q.a, q.b),
+    ...sliceRange(doc, p.b, q.a),
+    ...sliceRange(doc, p.a, p.b),
+  ]);
+  if (
+    passage.length === now.length &&
+    passage.every((g, i) => g.n === now[i]!.n && g.kind === now[i]!.kind)
+  )
+    return { doc, report: fail('no-change') };
+  const out = fillRange(doc, p.a, q.b, passage);
+  // open space that lies between the two stays open space (moved along), not silence
+  const sp = spaceRange(doc);
+  if (!out.report.ok || sp.b <= sp.a || sp.a < p.b || sp.b > q.a) return out;
+  const shift = q.b - q.a - (p.b - p.a);
+  return { doc: reopen(out.doc, sp.a + shift, sp.b + shift), report: out.report };
+}
+
+/** Make [s, e), which lies inside one silence, the open space again (the old one is empty). */
+function reopen(doc: Doc, s: number, e: number): Doc {
+  let k = 0;
+  let nextId = doc.nextId;
+  const items: Item[] = [];
+  for (const x of doc.items) {
+    if (isSpace(x)) {
+      k += x.n;
+      continue;
+    }
+    if (x.kind === 'rest' && k <= s && e <= k + x.n) {
+      if (s > k) items.push({ ...x, n: s - k });
+      items.push({ id: SPACE_ID, kind: 'space', n: e - s });
+      if (k + x.n > e) items.push(group(`g${nextId++}`, k + x.n - e, 'rest'));
+    } else items.push(x);
+    k += x.n;
+  }
+  if (!items.some(isSpace)) return doc; // not inside one silence: leave it as it is
+  return { meter: doc.meter, items: syncSpace(items, total(doc)), nextId };
+}
+
+/** Neighbouring silences in a list of groups become one. */
+function joinSpecs(gs: readonly GroupSpec[]): GroupSpec[] {
+  const out: GroupSpec[] = [];
+  for (const g of gs) {
+    const last = out[out.length - 1];
+    if (g.kind === 'rest' && last?.kind === 'rest')
+      out[out.length - 1] = { n: last.n + g.n, kind: 'rest' };
+    else out.push(g);
+  }
+  return out;
+}
+
+/**
  * Insert groups at a pulse, like typing at a caret. At a boundary between groups this is a
  * normal insert (things move toward the open space to make room). Inside the open space, the
  * gap before the caret becomes silence and the groups start exactly at the caret. Inside a

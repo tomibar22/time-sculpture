@@ -3,7 +3,8 @@
  * stretch of R pulses ends (a calculator for tihais and for patterns that cross the beat).
  * Everything is counted back from the end: the answer is where to begin.
  */
-export type LandingKind = 'repeat' | 'tihai' | 'gapped' | 'shape';
+/** `even` and `free` are long–short ways (engine/longshort.ts). */
+export type LandingKind = 'repeat' | 'tihai' | 'gapped' | 'shape' | 'even' | 'free';
 
 export interface PatternLanding {
   kind: LandingKind;

@@ -40,6 +40,7 @@ import {
   playFromCaret,
 } from '../state/editing';
 import { openFill } from '../state/fill';
+import { cancelSwap, swapNow, swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
 import { CloseIcon, TrashIcon } from './Icons';
 import { PieceState } from './Status';
@@ -49,8 +50,10 @@ export function SelectionBar() {
   const selection = useUiStore((s) => s.selection);
   const multi = useUiStore((s) => s.multi);
   const clip = useUiStore((s) => s.clipboard);
+  const swapA = useUiStore((s) => s.swapA);
   const items = doc.items;
   const idx = E.selectedIndices(items, selection);
+  if (swapA) return <SwapBar A={swapA} />;
   if (!idx.length && !multi) return <CaretBar />;
 
   const sel = idx.map((i) => items[i]!);
@@ -180,6 +183,14 @@ export function SelectionBar() {
             Reverse
           </button>
         )}
+        <button
+          type="button"
+          disabled={!sel.length || !E.isContiguous(idx)}
+          title="Swap with another stretch: choose it next (X)"
+          onClick={swapStep}
+        >
+          Swap…
+        </button>
         <span className="selbar-sep" aria-hidden="true" />
         <button
           type="button"
@@ -243,6 +254,66 @@ export function SelectionBar() {
         </button>
         <Done label="Done, clear the selection" onClick={clearSelection} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Swapping: the first stretch is marked (dashed in the score); the bar asks for the other one
+ * and swaps once it is selected.
+ */
+function SwapBar({ A }: { A: { a: number; b: number } }) {
+  useDocStore((s) => s.version);
+  useUiStore((s) => s.selection);
+  const range = useUiStore((s) => s.range);
+  const B = selectedRegion();
+  const overlap = !!B && B.a < A.b && A.a < B.b;
+  const ready = !!B && !overlap;
+  return (
+    <div className="selbar caretbar swapbar" role="toolbar" aria-label="Swap">
+      <div className="selbar-head">
+        <span className="selname" data-testid="swapname">
+          <b>Swap</b>{' '}
+          <span className="dim">
+            {A.b - A.a} pulses from {describePulse(A.a)}
+            {B ? ` with ${B.b - B.a}` : ': now select the other'}
+          </span>
+        </span>
+        <PieceState />
+      </div>
+      <div className="selbar-actions">
+        <button
+          type="button"
+          className="primary"
+          disabled={!ready}
+          title="Each goes to the other's place (X or Enter)"
+          onClick={() => swapNow()}
+        >
+          Swap them
+        </button>
+        {range && (
+          <>
+            <button
+              type="button"
+              aria-label="Select one pulse less"
+              onClick={() => extendRange(-1)}
+            >
+              ⇤
+            </button>
+            <button type="button" aria-label="Select one pulse more" onClick={() => extendRange(1)}>
+              ⇥
+            </button>
+          </>
+        )}
+        <Done label="Cancel the swap" onClick={cancelSwap} />
+      </div>
+      <span className="hint">
+        {!B
+          ? 'Select the other stretch: tap a tile, or drag across a range. Esc cancels.'
+          : overlap
+            ? 'The two overlap: choose a stretch beside the marked one.'
+            : 'What lies between moves along when the two differ in length.'}
+      </span>
     </div>
   );
 }
@@ -313,6 +384,13 @@ function CaretBar() {
             onClick={duplicateRange}
           >
             Duplicate
+          </button>
+          <button
+            type="button"
+            title="Swap with another stretch: choose it next (X)"
+            onClick={swapStep}
+          >
+            Swap…
           </button>
           <RemoveBarsButton />
           <button type="button" onClick={() => openFill('browse')}>

@@ -20,3 +20,4 @@ export * from './form';
 export * from './vary';
 export * from './land';
 export * from './click';
+export * from './longshort';
