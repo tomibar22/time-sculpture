@@ -44,6 +44,8 @@ export function LandPanel() {
   const region = fillRegion();
   const beats = useRegionBeats();
   const [trying, setTrying] = useState<E.PatternLanding | null>(null);
+  /** The reason the last Long / Short press was refused, shown in the hint line. */
+  const [why, setWhy] = useState<string | null>(null);
   const on1 = useUiStore((s) => s.landOn1);
   const from = useUiStore((s) => s.landFrom);
   const version = useDocStore((s) => s.version);
@@ -88,12 +90,19 @@ export function LandPanel() {
   // another pattern or region: nothing is on trial any more
   useEffect(() => {
     setTrying(null);
+    setWhy(null);
     previewLanding(null);
   }, [R, a, pattern, on1, ls]);
   if (!region) return <p className="lib-note">Select a stretch, or leave open space, first.</p>;
 
   const put = (next: number[]) => set({ landPattern: next });
-  const putLS = (next: E.LS[]) => set({ landLS: next });
+  const putLS = (next: E.LS[]) => {
+    setWhy(null);
+    set({ landLS: next });
+  };
+  /** Why another tile of this kind does not fit: the shape would need more than the stretch. */
+  const full = (x: E.LS) =>
+    `No room for another ${LS_WORD[x].toLowerCase()} tile: ${E.lsText([...lsPattern, x])} needs at least ${E.lsMinLength([...lsPattern, x], on1)} pulses (a long is at least 2, a short at least 1)${on1 ? ', the last one not written' : ''}, and the stretch has ${R}.`;
   const copied = clip.filter((g) => g.kind === 'sound').map((g) => g.n);
   /** The strokes written just before the stretch (four at most): a pattern to go on with. */
   const before = (() => {
@@ -247,9 +256,16 @@ export function LandPanel() {
               key={x}
               type="button"
               data-testid={`land-${x}`}
-              title={`Add a ${LS_WORD[x].toLowerCase()} tile (${x})`}
-              disabled={lsPattern.length >= 12}
-              onClick={() => putLS([...lsPattern, x])}
+              title={
+                E.lsRoomFor(lsPattern, x, R, on1)
+                  ? `Add a ${LS_WORD[x].toLowerCase()} tile (${x})`
+                  : full(x)
+              }
+              aria-disabled={!E.lsRoomFor(lsPattern, x, R, on1)}
+              className={E.lsRoomFor(lsPattern, x, R, on1) ? undefined : 'no-room'}
+              onClick={() =>
+                E.lsRoomFor(lsPattern, x, R, on1) ? putLS([...lsPattern, x]) : setWhy(full(x))
+              }
             >
               <i className={x === 'L' ? 'ls-long' : 'ls-short'} aria-hidden="true">
                 {x}
@@ -311,23 +327,25 @@ export function LandPanel() {
         </div>
       </div>
       <p className="lib-note land-hint" role="status">
-        {ls
-          ? !pattern.length
-            ? `Build a shape of long and short tiles: every way to give them sizes that lands on the end of these ${R} pulses is shown.`
-            : !all.length
-              ? `No sizes make ${E.lsText(lsPattern)} land in ${R} pulses (sizes go up to ${E.MAX_LS_SIZE}).`
-              : `${E.lsText(lsPattern)}: every long longer than every short${on1 ? `; the last tile falls ${end}, not written` : ''}.`
-          : !pattern.length
-            ? `Build a pattern: every way it ends exactly on the end of these ${R} pulses is shown, with where it must begin.`
-            : !all.length
-              ? on1 && pattern.length === 1 && p <= R
-                ? `One tile alone, ${end}: nothing is left to write. Add a tile.`
-                : `The pattern (${p}) is longer than the stretch (${R}).`
-              : on1
-                ? `The last tile (${lastTile}) falls ${end}, right after these ${R} pulses, so it is not written.`
-                : `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
-                    R % p ? `, with ${R % p} left before it` : ', exactly'
-                  }.`}
+        {ls && why
+          ? why
+          : ls
+            ? !pattern.length
+              ? `Build a shape of long and short tiles: every way to give them sizes that lands on the end of these ${R} pulses is shown.`
+              : !all.length
+                ? `No sizes make ${E.lsText(lsPattern)} land in ${R} pulses (sizes go up to ${E.MAX_LS_SIZE}).`
+                : `${E.lsText(lsPattern)}: every long longer than every short${on1 ? `; the last tile falls ${end}, not written` : ''}.`
+            : !pattern.length
+              ? `Build a pattern: every way it ends exactly on the end of these ${R} pulses is shown, with where it must begin.`
+              : !all.length
+                ? on1 && pattern.length === 1 && p <= R
+                  ? `One tile alone, ${end}: nothing is left to write. Add a tile.`
+                  : `The pattern (${p}) is longer than the stretch (${R}).`
+                : on1
+                  ? `The last tile (${lastTile}) falls ${end}, right after these ${R} pulses, so it is not written.`
+                  : `${R} pulses to the end: ${p} goes in ${Math.floor(R / p)} times${
+                      R % p ? `, with ${R % p} left before it` : ', exactly'
+                    }.`}
         {all.length > 0 && !rows.length
           ? ` None of the ${all.length} ways begins ${from === 'beat' ? 'on a beat' : 'on a 1'}.`
           : ''}

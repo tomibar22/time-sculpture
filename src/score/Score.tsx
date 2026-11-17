@@ -669,10 +669,14 @@ export function Score() {
     for (let i = 0; i < marks.length; i++) {
       const t = marks[i]!;
       const p = xOf(g, Math.min(t, g.grid.NB - 1e-6));
-      const fx = p.x + (Math.abs(t - Math.round(t)) < 1e-9 ? 10 : 0);
-      const w = doc.meter.markNames?.[i] ? 190 : 16;
+      const named = !!doc.meter.markNames?.[i];
+      const fx = named ? p.x - 1 : p.x + (Math.abs(t - Math.round(t)) < 1e-9 ? 10 : 0);
+      const w = named ? 190 : 16;
       const top = rowTop(g, p.r);
-      if (p.r === h.r && y >= top && y <= top + L.numH && x >= fx - 4 && x <= fx + w) {
+      // a name sits on its own line above the numbers; a plain flag in the number row
+      const y0 = named ? top - g.names : top;
+      const y1 = named ? top : top + L.numH;
+      if (p.r === h.r && y >= y0 && y <= y1 && x >= fx - 4 && x <= fx + w) {
         setUi({ markDialog: { k: E.nearestPulse(g.grid, t) } });
         return;
       }
@@ -688,7 +692,7 @@ export function Score() {
       return;
     }
     // a click on an ending's bracket (in the lane above a row) opens it for editing
-    if (g.lane && y < rowTop(g, h.r) && y >= rowTop(g, h.r) - g.lane) {
+    if (g.lane && y < rowTop(g, h.r) - g.names && y >= rowTop(g, h.r) - g.lane) {
       const voltas = doc.meter.voltas ?? [];
       const row = g.rows[h.r]!;
       const t = row.b0 + (x - L.margin) / row.bw;

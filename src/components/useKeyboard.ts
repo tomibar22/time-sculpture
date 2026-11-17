@@ -45,7 +45,7 @@ import {
 import { useDocStore, useUiStore } from '../state/store';
 import { swapNow, swapStep } from '../state/swap';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
-import { openFill } from '../state/fill';
+import { fillRegion, openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
 import { deleteBarsHere, toggleDoubleBarAt, toggleRepeatOver } from '../state/actions';
 import { toggleOverview, zoomStep } from '../state/zoom';
@@ -312,7 +312,12 @@ export function useKeyboard() {
         const st = useUiStore.getState();
         if (st.fillPanel === 'land' && st.landMode === 'ls' && (k === 'l' || k === 's')) {
           e.preventDefault();
-          if (st.landLS.length < 12) st.set({ landLS: [...st.landLS, k === 'l' ? 'L' : 'S'] });
+          const x = k === 'l' ? 'L' : 'S';
+          const region = fillRegion();
+          const R = region ? region.b - region.a : 0;
+          if (E.lsRoomFor(st.landLS, x, R, st.landOn1)) st.set({ landLS: [...st.landLS, x] });
+          else
+            toast(`No room for another ${x === 'L' ? 'long' : 'short'} tile in these ${R} pulses`);
           return;
         }
       }

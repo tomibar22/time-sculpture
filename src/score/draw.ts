@@ -776,15 +776,24 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       c.fill();
       return;
     }
+    // a named mark: its name on the line above the beat numbers, never over them, joined to
+    // the mark's line by a short stem
     c.font = `700 11px ${BODY}`;
     const label = fitText(c, name, 180);
     const w = c.measureText(label).width + 12;
-    rr(c, fx, top + 2, w, 15, 4);
+    const ny = top - g.names + 2;
+    const nx = Math.min(p.x - 1, rowEndX(g, p.r) + L.margin - 2 - w);
+    c.globalAlpha = 0.55;
+    // the stem stops above a beat's number, so the number stays clear
+    const stemEnd = onBeat ? top - 1 : lineTop;
+    c.fillRect(p.x - 0.75, ny + 15, 1.5, stemEnd - ny - 15);
+    c.globalAlpha = 1;
+    rr(c, nx, ny, w, 15, 4);
     c.fill();
     c.fillStyle = P.card;
     c.textAlign = 'left';
     c.textBaseline = 'middle';
-    c.fillText(label, fx + 6, top + 10);
+    c.fillText(label, nx + 6, ny + 8);
   });
 
   drawTotals(c, g, doc, P, s.reveal ?? null);
@@ -968,7 +977,7 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
       const x0 = L.margin + (t0 - row.b0) * row.bw + (r === ra ? 2 : 0);
       const x1 = L.margin + (t1 - row.b0) * row.bw - (r === rb ? 2 : 0);
       const top = rowTop(g, r) - g.lane + 2;
-      const bottom = rowTop(g, r) - 1;
+      const bottom = rowTop(g, r) - g.names - 1;
       c.fillStyle = P.fg;
       c.fillRect(x0, top, x1 - x0, 1.5);
       if (r === ra) {

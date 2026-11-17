@@ -51,3 +51,18 @@ test('land a long–short shape: every way to give it sizes', async ({ page }) =
   await first.click();
   await expect(seq(page)).toContainText('2 1 1 2 1 1 2 1 1 2 1 1');
 });
+
+test('long–short: tiles can be added while they fit; the refusal says why', async ({ page }) => {
+  // the open space of the default piece: 9 pulses
+  await page.getByRole('button', { name: 'Land…' }).first().click();
+  await page.getByTestId('land-mode-ls').click();
+  await page.getByTestId('land-L').click();
+  for (let i = 0; i < 7; i++) await page.getByTestId('land-S').click();
+  await expect(page.getByTestId('land-pattern')).toHaveText('LSSSSSSS');
+  // marked as not available, but a tap still says why
+  await expect(page.getByTestId('land-S')).toHaveAttribute('aria-disabled', 'true');
+  await page.getByTestId('land-S').click({ force: true });
+  await expect(page.getByTestId('land-pattern')).toHaveText('LSSSSSSS');
+  await expect(page.locator('.land-hint')).toContainText('No room for another short tile');
+  await expect(page.locator('.land-hint')).toContainText('the stretch has 9');
+});

@@ -351,6 +351,11 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   opens `MarkDialog`. Drawn in the score's ink (`P.fg`, never a tile colour): a thin line through
   the tiles and a flag in the number row (a small triangle, or a pill with the name). Saved as
   `phraseStarts` + `phraseNames`; printed in the PDF.
+- **Names stand above the beat numbers** (user request: they covered them): when any mark is
+  named, every row gets a names line of `NAMES_H` (geometry `g.names`, the lowest part of
+  `g.lane`; endings / modulations stay above it). The pill sits there with a stem down to the
+  mark's line (stopping above a beat's number); a tap on it opens `MarkDialog`. Unnamed marks
+  keep their small flag in the number row.
 
 ### Totals (engine/form.ts)
 
@@ -948,6 +953,10 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   Long / Short buttons (keys L and S while it is open), "Before it" / "Copied" offer their shape,
   and `lsLandings(R, p, {on1})` lists kinds `even` (said as many times as fit, filling exactly
   first) and `free` (once, filling exactly). Same rows, Try/Use, Begins and "Last tile on the 1".
+  No fixed cap on the pattern's length: Long / Short stay available while `lsRoomFor` (the
+  shortest writing, `lsMinLength`: a long ≥ 2 beside shorts, a short 1, minus the last tile with
+  "on the 1") fits the stretch; past that the button is dimmed (`aria-disabled`, `.no-room`) and
+  a tap (or the L / S key) says why in the hint line.
 - Vary: kind `longshort` ("Same long and short · L L S", second group): the passage's shape
   sized again, nearest first (only without locks and rests).
 

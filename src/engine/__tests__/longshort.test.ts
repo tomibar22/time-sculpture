@@ -89,3 +89,20 @@ describe('vary: the same long and short', () => {
     expect(vs.map((v) => v.key)).not.toContain('3 3 2');
   });
 });
+
+describe('room for one more tile', () => {
+  it('a long takes at least 2 once there are shorts, a short 1; the last on the 1 is free', async () => {
+    const { lsMinLength, lsRoomFor } = await import('../longshort');
+    expect(lsMinLength(P('L S S'))).toBe(4);
+    expect(lsMinLength(P('L L'))).toBe(2);
+    expect(lsMinLength(P('L S S'), true)).toBe(3);
+    expect(lsRoomFor(P('L S S'), 'S', 5)).toBe(true);
+    expect(lsRoomFor(P('L S S'), 'L', 5)).toBe(false);
+    // whenever there is room, some sizing really exists
+    for (const t of ['L S', 'L S S S', 'S L L', 'L L L S']) {
+      const p = P(t);
+      const R = lsMinLength(p);
+      expect(lsLandings(R, p).length).toBeGreaterThan(0);
+    }
+  });
+});

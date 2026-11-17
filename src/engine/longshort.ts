@@ -75,6 +75,21 @@ function describe(p: readonly LS[], sizes: readonly number[]): { even: boolean; 
   return { even, label: parts.join(' · ') };
 }
 
+/**
+ * The fewest pulses a shape can be written in: every long at least 2 and every short 1 when both
+ * kinds are there (a long must be longer), else 1 a tile. With `on1` the last tile is not
+ * written. Adding a tile is worth it only while this stays within the stretch.
+ */
+export function lsMinLength(p: readonly LS[], on1 = false): number {
+  const both = p.includes('L') && p.includes('S');
+  const written = on1 ? p.slice(0, -1) : p;
+  return written.reduce((a, x) => a + (both && x === 'L' ? 2 : 1), 0);
+}
+
+/** Can one more tile of this kind still be written in R pulses? */
+export const lsRoomFor = (p: readonly LS[], x: LS, R: number, on1 = false) =>
+  lsMinLength([...p, x], on1) <= R;
+
 export interface RealizeOptions {
   maxSize?: number;
   /** At most this many (after sorting). */

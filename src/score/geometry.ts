@@ -44,8 +44,14 @@ export interface Geo {
   /** Beat width: the same in every row, so beats line up vertically like a score. */
   bw: number;
   stride: number;
-  /** Extra space above every row for endings and repeat counts (0 when the piece has none). */
+  /**
+   * Extra space above every row's numbers (0 when nothing needs it): the lane for endings,
+   * repeat counts and modulations on top, then (`names`) a line for the names of phrase marks
+   * right above the numbers. `lane` is the whole of it.
+   */
   lane: number;
+  /** The phrase-mark names' line, the lowest part of `lane` (0 when no mark is named). */
+  names: number;
   /** Space under every row's band for totals (0 when the piece has none). */
   under: number;
   /** Each total's stacking level (0 = right under the band), index by index. */
@@ -61,6 +67,12 @@ export const TOTAL_H = 18;
 
 /** Height of the lane above the rows that holds ending brackets and "×3" repeat counts. */
 export const LANE_H = 18;
+
+/** Height of the line above the beat numbers that holds the names of phrase marks. */
+export const NAMES_H = 20;
+
+/** Does any phrase mark have a name (then every row gets a line for names)? */
+export const hasMarkNames = (doc: Doc) => (doc.meter.markNames ?? []).some((n) => !!n);
 
 /** Does the piece need the lane above its rows? */
 export const needsLane = (doc: Doc) =>
@@ -85,7 +97,8 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
   const bw = (width - 2 * L.margin) / widest;
   // fitted rows stretch to the full width; otherwise every row shares one beat width
   for (const row of rows) row.bw = fit ? (width - 2 * L.margin) / row.nb : bw;
-  const lane = needsLane(doc) ? LANE_H : 0;
+  const names = hasMarkNames(doc) ? NAMES_H : 0;
+  const lane = (needsLane(doc) ? LANE_H : 0) + names;
   const totalLv = totalLevels(doc.meter.totals ?? []);
   const under = totalLv.length ? (Math.max(...totalLv) + 1) * TOTAL_H + 2 : 0;
   const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + under + L.gapR;
@@ -99,6 +112,7 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
     bw,
     stride,
     lane,
+    names,
     under,
     totalLevels: totalLv,
     grid: buildGrid(doc.meter),
