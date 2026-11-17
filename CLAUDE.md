@@ -632,6 +632,8 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
 - **Knobs** (`handlePos` / `hitHandle` in geometry.ts, `knob` in draw.ts): the caret and both
   ends of a range have a knob under the band; dragging one extends the selection (the other end
   stays), across rows. They are hit before anything else. `noKnobs` hides them in print.
+- **A caret on a row break shows twice** (user request): at the end of the row above and the
+  start of the row below (same time), each with its knob; `hitHandle` takes either.
 - **The page holds still under a drag that is ours**: `lock()` sets `locked`; a non-passive
   native `touchmove` listener on the canvas calls `preventDefault()` while it is set
   (`touch-action: pan-y` alone lets the browser take over on the first vertical move and cancel

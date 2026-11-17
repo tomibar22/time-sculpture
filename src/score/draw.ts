@@ -640,14 +640,21 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     }
   } else if (s.cursor !== null && s.selection.size === 0) {
     const k = s.cursor;
-    const p = pulseAt(k, k >= TSp);
-    const ty = tileY(g, p.r);
-    c.fillStyle = P.sel;
-    c.fillRect(p.x - 1.5, ty - 6, 3, L.tileH + 12);
-    // small caps top and bottom, like a text caret
-    c.fillRect(p.x - 4.5, ty - 7, 9, 2.5);
-    c.fillRect(p.x - 4.5, ty + L.tileH + 4.5, 9, 2.5);
-    if (!s.noKnobs) knob(c, g, handlePos(g, k, k >= TSp), P);
+    // a caret where one row ends and the next begins is shown at both: the end of the row above
+    // and the start of the row below (the same place in time)
+    const t = g.grid.times[E_clamp(k, 0, TSp)]!;
+    const both = k > 0 && k < TSp && rowStartingAt(g, t) > 0;
+    const ends = both ? [false, true] : [k >= TSp];
+    for (const attachLeft of ends) {
+      const p = pulseAt(k, attachLeft);
+      const ty = tileY(g, p.r);
+      c.fillStyle = P.sel;
+      c.fillRect(p.x - 1.5, ty - 6, 3, L.tileH + 12);
+      // small caps top and bottom, like a text caret
+      c.fillRect(p.x - 4.5, ty - 7, 9, 2.5);
+      c.fillRect(p.x - 4.5, ty + L.tileH + 4.5, 9, 2.5);
+      if (!s.noKnobs) knob(c, g, handlePos(g, k, attachLeft), P);
+    }
   }
   /* ---------------- metric modulation: section markers and the main tempo's ghost grid */
   const mainBar = doc.meter.beatsPerCycle;

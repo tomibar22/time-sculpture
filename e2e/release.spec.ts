@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, P, ready, score, tap } from './helpers';
+import { at, DEFAULT_SEQ, drag, expectSeq, knobAt, P, ready, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -53,4 +53,16 @@ test('a click off the score lets go of the selected range, as in a word processo
   // the page around the score lets go of it
   await page.mouse.click(4, 300);
   await expect(page.getByTestId('caretname')).toContainText('Caret');
+});
+
+test('a caret where a row ends shows at both ends; its upper knob selects back from there', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'mouse');
+  const s = await score(page);
+  // the right gutter of the first row: the caret at the end of bar 1 (= the start of bar 2)
+  await page.mouse.click(s.x + s.w - 6, at(s, 0).y);
+  await expect(page.getByTestId('caretname')).toHaveText('Caret · bar 2, beat 1');
+  await drag(page, knobAt(s, 4, 0), knobAt(s, 3, 0));
+  await expect(page.getByTestId('caretname')).toContainText('4 pulses');
 });

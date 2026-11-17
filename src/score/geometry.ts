@@ -419,6 +419,12 @@ export function hitHandle(
     }
     return da <= db ? 'a' : 'b';
   }
-  if (caret !== null && dist(caret, caret >= g.grid.TS) !== Infinity) return 'caret';
+  // a caret on a row break is shown (and can be taken) at the end of one row and the start of
+  // the next
+  if (
+    caret !== null &&
+    (dist(caret, caret >= g.grid.TS) !== Infinity || dist(caret, true) !== Infinity)
+  )
+    return 'caret';
   return null;
 }
