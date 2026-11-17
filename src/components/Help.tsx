@@ -441,7 +441,7 @@ export function Help() {
                   </dt>
                   <dd>from group to group (selected groups: trim the end; with ⇧ the start)</dd>
                   <dt>
-                    <kbd>PgUp</kbd> <kbd>PgDn</kbd>
+                    <kbd>⌘← ⌘→</kbd>
                   </dt>
                   <dd>to the bar line before / after</dd>
                   <dt>

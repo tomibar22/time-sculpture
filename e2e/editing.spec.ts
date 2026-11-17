@@ -211,16 +211,16 @@ test('keys: write on without selecting; rows, bars, tempo and the panels by key'
   await expect(seq).toContainText('(2) 6 2');
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
-  // ↑ ↓ rows, PageUp / PageDown bar lines
+  // ↑ ↓ rows, ⌘← ⌘→ bar lines
   await page.keyboard.press('Home');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowDown');
   await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1 +1/4');
   await page.keyboard.press('ArrowUp');
   await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1 +1/4');
-  await page.keyboard.press('PageDown');
+  await page.keyboard.press('ControlOrMeta+ArrowRight');
   await expect(page.getByTestId('caretname')).toContainText('bar 2, beat 1');
-  await page.keyboard.press('PageUp');
+  await page.keyboard.press('ControlOrMeta+ArrowLeft');
   await expect(page.getByTestId('caretname')).toContainText('bar 1, beat 1');
   await page.keyboard.press('Shift+ArrowDown');
   await expect(page.getByTestId('caretname')).toContainText('16 pulses');

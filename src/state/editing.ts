@@ -560,7 +560,7 @@ export function caretRow(dir: -1 | 1, extend = false): void {
   else setCaret(k);
 }
 
-/** PageUp / PageDown: the caret goes to the bar line before or after it. */
+/** ⌘← / ⌘→: the caret goes to the bar line before or after it. */
 export function caretBar(dir: -1 | 1): void {
   const d = doc();
   const grid = E.buildGrid(d.meter);

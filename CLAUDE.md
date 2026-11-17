@@ -182,7 +182,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   `sliceRange` copies a range (cut heads become silence).
 - Keys: ← → caret by pulse (or move tiles when tiles are selected); ⌥← ⌥→ caret tile to tile
   (trim when tiles are selected); ⇧ arrows extend the range (⌥⇧ by tile); ⇧-click range; ⌥-click
-  caret inside a tile; Home/End/⌘← → ends; Esc collapses to a caret, then removes it.
+  caret inside a tile; Home/End ends, ⌘← ⌘→ bar lines; Esc collapses to a caret, then removes it.
 - **Drag to select a range** (`sweep` gesture in Score.tsx): press in the open space or a row's
   gutter and drag (any pointer; a tap still places the caret); ⌥-drag anywhere, even over tiles
   (⌥-click alone = caret); ⇧-drag extends the range; drag along the beat-number row (a ruler,
@@ -946,7 +946,7 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   times; D on a range is still `duplicateRange`.)
 - **↑ ↓** (`caretRow`): the caret to the same place in the row above / below (from `view.geo`
   rows; past the first / last row = the very start / end); ⇧ carries the range. Not when groups
-  are selected. **PageUp / PageDown** (`caretBar`): the bar line before / after.
+  are selected. **⌘← / ⌘→** (`caretBar`; user request, instead of PageUp / PageDown): the bar line before / after; Home / End the very ends.
 - **⌥↑ ⌥↓** tempo ±1 (⇧: ±5). **⇧F** fill (browse), **L** land, **K** the practice popover (its
   tabs take the focus; Esc closes). F alone is still the stage.
 - **?** opens the help at the Keys topic (`#help-keys`): keys in groups (Write, Move about,

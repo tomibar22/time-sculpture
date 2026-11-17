@@ -176,9 +176,10 @@ export function useKeyboard() {
           pendingPaste = window.setTimeout(() => paste(), 60);
           return;
         }
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.altKey && !e.shiftKey) {
+          // ⌘← ⌘→: the caret to the bar line before / after (Home / End go to the very ends)
           e.preventDefault();
-          return caretHome(e.key === 'ArrowRight');
+          return caretBar(e.key === 'ArrowLeft' ? -1 : 1);
         }
         return;
       }
@@ -321,10 +322,6 @@ export function useKeyboard() {
       if (e.key === 'Home' || e.key === 'End') {
         e.preventDefault();
         return caretHome(e.key === 'End');
-      }
-      if (e.key === 'PageUp' || e.key === 'PageDown') {
-        e.preventDefault();
-        return caretBar(e.key === 'PageUp' ? -1 : 1);
       }
       if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !hasSel) {
         // like a text caret: to the row above or below (⇧ carries the range there)
