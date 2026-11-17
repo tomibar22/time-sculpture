@@ -24,12 +24,13 @@ export function Help() {
             <summary>Select</summary>
             <p>
               Tap a group. Shift-click selects a range, Ctrl or ⌘-click adds one. ⌘A or ⇧A (or
-              Select all) selects every group; Esc clears the selection. <b>By touch:</b> select
-              first, then edit. A finger dragged sideways over the score selects a stretch of time
-              and never moves or resizes anything; drag the knob under either end of the selection
-              (or under the caret) to carry it on, across rows too. The page holds still under such
-              a drag and scrolls by itself near the edges; a swipe that starts up or down scrolls.
-              “Select several” lets you tap groups, or sweep a finger over them, to add them.
+              Select all) selects every group; Esc, or a click off the score, clears the selection.
+              Select first, then edit: a drag over the score (mouse or finger) selects a stretch of
+              time, starting anywhere, on a group, a line or empty time, and never moves or resizes
+              anything; drag the knob under either end of the selection (or under the caret) to
+              carry it on, across rows too. The page holds still under such a drag and scrolls by
+              itself near the edges; a swipe that starts up or down scrolls. “Select several” lets
+              you tap groups, or sweep a finger over them, to add them.
             </p>
           </details>
           <details className="help-topic">
@@ -40,26 +41,19 @@ export function Help() {
               silences shrink, sounding groups are shortened, and the time it leaves behind becomes
               silence. With <b>Place</b>, dragging reorders groups instead and the others make room.
               The arrow keys follow the same choice. Several selected groups move together, even
-              when they are not neighbours. By touch, drag a group that is already selected, or hold
-              a finger on any group until it is picked up and drag on; drag from inside a selected
-              range to move the groups in it.
+              when they are not neighbours. Drag a group that is already selected (select it first),
+              or by touch hold a finger on any group until it is picked up and drag on; drag from
+              inside a selected range to move the groups in it.
             </p>
           </details>
           <details className="help-topic">
-            <summary>Reshape</summary>
+            <summary>Resize</summary>
             <p>
-              Drag the line between two groups. Drag a green edge into the open space to stretch. To
-              merge, select neighbouring groups and press Merge. By touch, lines reshape only next
-              to a selected group (elsewhere a drag from a line selects from exactly there).
-            </p>
-          </details>
-          <details className="help-topic">
-            <summary>Trim</summary>
-            <p>
-              Select one group: grips appear on its edges. Drag a grip to make the group longer or
-              shorter on that side; its other edge stays put. Whatever it runs into gives way, and
-              time it lets go of becomes silence. Keys: ⌥← ⌥→ move the end edge, ⌥⇧← ⌥⇧→ the start
-              edge (by a pulse, or by a beat in Beat mode).
+              Groups are not stretched by dragging. + and − (or −1 and +1) make the selected group,
+              or the one just written, a pulse shorter or longer. ⌥← ⌥→ move its end edge, ⌥⇧← ⌥⇧→
+              its start edge (by a pulse, or by a beat in Beat mode): its other edge stays put,
+              whatever it runs into gives way, and time it lets go of becomes silence. To merge,
+              select neighbouring groups and press Merge.
             </p>
           </details>
           <details className="help-topic">
@@ -586,10 +580,6 @@ export function Help() {
           <span>
             <i className="lg opn" />
             open space
-          </span>
-          <span>
-            <i className="lg edg" />
-            stretch edge
           </span>
           <span>
             <i className="lg sl" />

@@ -29,20 +29,29 @@ test('type on the number pad, then undo and redo', async ({ page }) => {
   await expectSeq(page, '(2) 3 3 2 2 │ 3 (1) 3 2 4');
 });
 
-test('reshape the line between two groups', async ({ page }) => {
+test('a drag from a line selects a range from exactly there (lines are not dragged)', async ({
+  page,
+}) => {
   const s = await score(page);
-  await drag(page, at(s, P(5)), at(s, P(6)));
-  await expectSeq(page, '(2) 4 2 2 │ 3 (1) 3 2 4');
+  await drag(page, at(s, P(5)), at(s, P(10)));
+  await page.keyboard.press('Backspace');
+  // the emptied stretch touches the open space, so it becomes open space
+  await expectSeq(page, '(2) 3 │ 3 (1) 3 2 4');
 });
 
-test('stretch an edge into the open space', async ({ page }) => {
+test('a drag over a group that is not selected selects a range; it never moves it', async ({
+  page,
+}) => {
   const s = await score(page);
-  await drag(page, at(s, P(10)), at(s, P(12)));
-  await expectSeq(page, '(2) 3 3 4 │ 3 (1) 3 2 4');
+  await drag(page, at(s, P(3.4)), at(s, P(8)));
+  await expect(page.getByTestId('caretname')).toContainText('5 pulses');
+  await expectSeq(page, DEFAULT_SEQ);
 });
 
-test('slide by pulse: the next sound is shortened, silence fills behind', async ({ page }) => {
+test('slide by pulse: select, then drag; the next sound is shortened', async ({ page }) => {
   const s = await score(page);
+  await tap(page, at(s, P(3.5)));
+  await page.waitForTimeout(400); // not a double click
   await drag(page, at(s, P(3.5)), at(s, P(4.5)));
   await expectSeq(page, '(3) 3 2 2 │ 3 (1) 3 2 4');
   await expect(page.getByTestId('toast')).toContainText('shortened');
@@ -61,6 +70,8 @@ test('reorder in Place mode', async ({ page }) => {
   await openSetup(page);
   await page.getByRole('button', { name: 'Place', exact: true }).click();
   const s = await score(page);
+  await tap(page, at(s, P(3)));
+  await page.waitForTimeout(400);
   await drag(page, at(s, P(3)), at(s, P(31.5)));
   await expectSeq(page, '(2) 3 2 │ 3 (1) 3 2 4 3');
 });

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, drag, expectSeq, P, score, tap, ready } from './helpers';
+import { at, DEFAULT_SEQ, expectSeq, P, score, tap, ready } from './helpers';
 
 // Default: (2) 3 3 2 │ 3 (1) 3 2 4 — the first 3 spans pulses 2–5.
 
@@ -7,27 +7,6 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await ready(page);
   await expectSeq(page, DEFAULT_SEQ);
-});
-
-test('drag the end grip of a selected group to lengthen it', async ({ page }) => {
-  const s = await score(page);
-  await tap(page, at(s, P(3.5)));
-  await drag(page, at(s, P(5)), at(s, P(7)));
-  await expectSeq(page, '(2) 5 1 2 │ 3 (1) 3 2 4');
-});
-
-test('drag the end grip back to shorten it: silence fills in', async ({ page }) => {
-  const s = await score(page);
-  await tap(page, at(s, P(3.5)));
-  await drag(page, at(s, P(5)), at(s, P(3)));
-  await expectSeq(page, '(2) 1 (2) 3 2 │ 3 (1) 3 2 4');
-});
-
-test('drag the start grip to lengthen it to the left', async ({ page }) => {
-  const s = await score(page);
-  await tap(page, at(s, P(3.5)));
-  await drag(page, at(s, P(2)), at(s, P(1)));
-  await expectSeq(page, '(1) 4 3 2 │ 3 (1) 3 2 4');
 });
 
 test('⌥ arrows trim the end, ⌥⇧ arrows the start', async ({ page }) => {

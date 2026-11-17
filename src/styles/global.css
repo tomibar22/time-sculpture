@@ -177,11 +177,11 @@ button[aria-disabled='true'] {
   opacity: 0.4;
   cursor: default;
 }
-button:focus-visible,
-summary:focus-visible,
-input:focus-visible {
-  outline: 2.5px solid var(--accent);
-  outline-offset: 2px;
+/* no focus frames anywhere (user request: they flashed up round whatever was being used, the
+   score above all); a field being typed in keeps its own look, a menu row its background */
+:focus,
+:focus-visible {
+  outline: none;
 }
 button.primary {
   background: var(--accent);
@@ -273,11 +273,6 @@ canvas.score {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-}
-canvas.score:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
-  outline-offset: 6px;
-  border-radius: 6px;
 }
 .status {
   font-size: 0.92rem;
@@ -1423,10 +1418,6 @@ button.link-btn {
   touch-action: none;
   cursor: crosshair;
   overflow: hidden;
-}
-.fill-map:focus-visible {
-  outline: 2.5px solid var(--accent);
-  outline-offset: 2px;
 }
 .fill-dot {
   position: absolute;
@@ -3142,7 +3133,7 @@ button.now.start-btn.set b {
   color: var(--land);
 }
 .ctx button:focus-visible {
-  outline-offset: -2px;
+  background: var(--soft);
 }
 @media (hover: hover) {
   .ctx button:not(:disabled):hover {

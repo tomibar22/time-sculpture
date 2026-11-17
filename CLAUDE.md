@@ -273,8 +273,7 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
 - Trim one edge of a group like a DAW clip; the opposite edge stays fixed in time. Growing eats
   into neighbours (space, rests, sounds; used-up = covered), shrinking leaves silence (joins a
   neighbouring rest/space, else a new rest). Property-tested.
-- UI: a single selected group shows grips on its edges (they win over line handles there).
-  Keys: ⌥←/→ end edge, ⌥⇧←/→ start edge; by pulse, or beat line in Beat mode. A run of selected
+- UI: no grips (removed, see the last section). Keys: ⌥←/→ end edge, ⌥⇧←/→ start edge; by pulse, or beat line in Beat mode. A run of selected
   groups trims its outer edges.
 
 ### Score layout (src/score/rows.ts)
@@ -942,3 +941,19 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   first) and `free` (once, filling exactly). Same rows, Try/Use, Begins and "Last tile on the 1".
 - Vary: kind `longshort` ("Same long and short · L L S", second group): the passage's shape
   sized again, nearest first (only without locks and rests).
+
+### Select first, then edit, for every pointer; no focus frames (user requests)
+
+- **No drag-resizing** (it kept getting in the way of selecting): line handles and trim grips
+  are gone for mouse and touch (`showHandles: false`, `grips: null`; the `boundary` / `trim`
+  gestures were removed from Score.tsx). Resizing is + − / −1 +1 and the ⌥-arrow trims
+  (`trimEdge`, `reshapeLine`, `stretchEdge` stay in the engine). A press on a line is a `sweep`
+  from exactly that line (a tap = caret there).
+- **The touch rule now holds for the mouse too**: a drag over anything not selected (group, line,
+  empty time) selects a pulse range; only a group that is already selected (or the groups of a
+  selected range) moves. A mouse held still then dragged still sweeps; "Select several" + a drag
+  paints groups in (not after the mouse's own long press). Cursor: `grab` only over a selected
+  group, `text` elsewhere on the tiles.
+- **No focus frames anywhere** (`:focus, :focus-visible { outline: none }` in global.css; no
+  `focusedId` ring in the score). Text fields keep their editing look; context-menu rows show
+  keyboard focus as a background.

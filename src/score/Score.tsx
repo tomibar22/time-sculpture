@@ -3,7 +3,7 @@ import * as E from '../engine';
 import type { Doc, ItemId, OpResult } from '../engine';
 import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
-import { announce, flash, reportSlide, run, select, splitSelection, toast } from '../state/actions';
+import { announce, reportSlide, run, select, splitSelection, toast } from '../state/actions';
 import { setCaret, setRange, closeSubdivision, pickBeats, escape } from '../state/editing';
 import { diveAt, zoomStep } from '../state/zoom';
 import { OVERVIEW_LEVELS, zoomLevels } from './rows';
@@ -21,7 +21,6 @@ import {
   edgeSlot,
   hitBoundary,
   hitHandle,
-  hitTrimGrip,
   itemAt,
   L,
   rowOf,
@@ -30,7 +29,7 @@ import {
   totalAt,
   xOf,
 } from './geometry';
-import type { Boundary, Geo } from './geometry';
+import type { Geo } from './geometry';
 
 const LONG_PRESS_MS = 450;
 /** How long a group's entrance lasts in a stage build. */
@@ -46,29 +45,6 @@ const DRAG_THRESHOLD = 8;
 
 type Gesture =
   | { kind: 'lane'; beats: Set<number> }
-  | {
-      kind: 'boundary';
-      b: Boundary;
-      base: Doc;
-      result: OpResult | null;
-      /** A finger reshapes only next to a selected group; otherwise its drag selects a range. */
-      armed: boolean;
-      x0: number;
-      y0: number;
-      touch: boolean;
-    }
-  | {
-      kind: 'trim';
-      base: Doc;
-      id: ItemId;
-      side: 'start' | 'end';
-      edge: number;
-      result: OpResult | null;
-      delta: number;
-      x0: number;
-      y0: number;
-      touch: boolean;
-    }
   | {
       kind: 'press';
       id: ItemId;
@@ -152,7 +128,6 @@ export function Score() {
   /** Practice: the tiles are silent this time round, and look it. */
   const hushed = useUiStore((st) => st.hushed);
   const gesture = useRef<Gesture | null>(null);
-  const hover = useRef<string | null>(null);
   const palette = useRef<Palette | null>(null);
   const geo = useRef<Geo | null>(null);
   const width = useRef(0);
@@ -233,9 +208,9 @@ export function Score() {
         selection: new Set(stage ? [] : s.selection),
         lifted: new Set(s.lifted),
         picked: gs?.kind === 'lane' ? gs.beats : stage ? null : pickedBeats(s.beatSel),
-        activeBoundary: gs?.kind === 'boundary' ? gs.b.key : null,
-        hoverBoundary: hover.current,
-        showHandles: !stage && gs?.kind !== 'slide' && gs?.kind !== 'place',
+        activeBoundary: null,
+        hoverBoundary: null,
+        showHandles: false,
         armed: byTouch.current ? new Set(s.selection) : null,
         playStart: stage ? null : s.playStart,
         mainTempo: s.tempo,
@@ -252,12 +227,10 @@ export function Score() {
             ? 'Tap a number to begin'
             : 'Type a number to begin',
         flash: { ids: new Set(s.flash.ids), alpha: flashAlpha },
-        focusedId: stage ? null : s.focusedId,
-        grips:
-          !stage && s.selection.length === 1 && gs?.kind !== 'slide' && gs?.kind !== 'place'
-            ? s.selection[0]!
-            : null,
-        activeGrip: gs?.kind === 'trim' ? gs.side : null,
+        // no focus frames (user request): the group the keyboard is on is not ringed
+        focusedId: null,
+        grips: null,
+        activeGrip: null,
         reveal:
           stage && s.build && !s.playing ? reveal(doc, s.build.step, s.stagePrefs.buildDir) : null,
         pop: stage && s.build && popAlpha > 0 ? { id: s.buildPop!.id, alpha: popAlpha } : null,
@@ -792,48 +765,14 @@ export function Score() {
     }
     // anything else lets go of the beats picked in the band
     if (ui().beatSel) closeSubdivision();
-    // a single selected group shows trim grips on its edges; they win over the line handles
-    const sel = E.selectedIndices(doc.items, ui().selection);
-    if (sel.length === 1) {
-      const si = sel[0]!;
-      const side = hitTrimGrip(g, doc.items, si, x, y, touch);
-      if (side) {
-        const s0 = E.startOf(doc.items, si);
-        gesture.current = {
-          kind: 'trim',
-          base: doc,
-          id: doc.items[si]!.id,
-          side,
-          edge: side === 'end' ? s0 + doc.items[si]!.n : s0,
-          result: null,
-          delta: 0,
-          x0: x,
-          y0: y,
-          touch,
-        };
-        sfx.lift();
-        request();
-        return;
-      }
-    }
+    // a line between groups: a tap puts the caret on it, a drag selects a range that starts
+    // exactly there (tiles are never stretched by dragging: + − and ⌥ arrows resize them)
     const b = hitBoundary(g, doc.items, x, y, touch);
     if (b) {
-      // a finger reshapes a line only next to a group that is selected (select, then edit);
-      // otherwise a drag from a line selects a range that starts exactly on it
-      const selected = new Set(ui().selection);
-      const near = [doc.items[b.i], b.kind === 'line' ? doc.items[b.i + 1] : undefined];
-      const armed = !touch || near.some((it) => it && selected.has(it.id));
-      gesture.current = {
-        kind: 'boundary',
-        b,
-        base: doc,
-        result: null,
-        armed,
-        x0: x,
-        y0: y,
-        touch,
-      };
-      request();
+      gesture.current = sweep(b.slot, x, y, touch, () => {
+        sfx.snap();
+        setCaret(b.slot);
+      });
       return;
     }
     // the very start and end of the piece (and the end of a short row) take the caret
@@ -960,11 +899,10 @@ export function Score() {
     const st = ui();
     const sel = E.selectedIndices(doc.items, st.selection);
     const knob = !sel.length && hitHandle(g, st.range, st.range ? null : st.caret, x, y);
-    const grip =
-      h.zone === 'tiles' && sel.length === 1 ? hitTrimGrip(g, doc.items, sel[0]!, x, y) : null;
-    const b = h.zone === 'tiles' && !grip ? hitBoundary(g, doc.items, x, y) : null;
     const i = itemAt(g, doc.items, x, y);
     const ruler = h.zone === 'tiles' && !h.outside && y < rowTop(g, h.r) + L.numH;
+    const selected = i >= 0 && st.selection.includes(doc.items[i]!.id);
+    // a selected group can be picked up; everywhere else a drag selects, like text
     cv.style.cursor = knob
       ? 'ew-resize'
       : ruler
@@ -973,20 +911,11 @@ export function Score() {
           ? 'cell'
           : h.zone === 'totals'
             ? 'pointer'
-            : b || grip
-              ? 'ew-resize'
-              : i >= 0 && doc.items[i]!.kind === 'sound'
-                ? e.altKey
-                  ? 'text'
-                  : 'grab'
-                : i >= 0
-                  ? 'text'
-                  : 'default';
-    const key = b?.key ?? null;
-    if (key !== hover.current) {
-      hover.current = key;
-      request();
-    }
+            : selected && !e.altKey
+              ? 'grab'
+              : i >= 0 || h.zone === 'tiles'
+                ? 'text'
+                : 'default';
   };
 
   /** The gesture in progress follows the pointer (also called while the score scrolls itself). */
@@ -1055,49 +984,6 @@ export function Score() {
       return;
     }
 
-    if (gs.kind === 'boundary') {
-      const { base, b } = gs;
-      if (gs.touch) {
-        const c = claim(gs.x0, gs.y0, x, y, true);
-        if (c === 'scroll') return drop();
-        if (c === 'wait') return;
-        if (!gs.armed) {
-          // not next to a selected group: the drag selects, from this line on
-          gesture.current = {
-            kind: 'sweep',
-            anchor: b.slot,
-            x0: gs.x0,
-            y0: gs.y0,
-            moved: true,
-            tap: () => {},
-            touch: true,
-          };
-          return dragTo(cx, cy);
-        }
-      } else lock();
-      const k = slotAt(g, x, y);
-      const s0 = E.startOf(base.items, b.i);
-      const item = base.items[b.i]!;
-      let result: OpResult;
-      if (b.kind === 'line') {
-        const total = item.n + base.items[b.i + 1]!.n;
-        result = E.reshapeLine(base, item.id, E.clamp(k - s0, 1, total - 1));
-      } else {
-        result = E.stretchEdge(base, item.id, b.kind === 'edgeR' ? k - s0 : s0 + item.n - k);
-      }
-      const prev = gs.result?.report.ok ? gs.result.doc : base;
-      const nextDoc = result.report.ok ? result.doc : base;
-      if (nextDoc !== prev) {
-        gs.result = result.report.ok ? result : null;
-        setUi({ preview: nextDoc });
-        sfx.snap();
-        const it = nextDoc.items[b.i];
-        if (b.kind === 'line' && it) announce(`${it.n} and ${nextDoc.items[b.i + 1]!.n}`);
-        else if (it) announce(`${it.n}, ${E.freePulses(nextDoc)} open`);
-      }
-      return;
-    }
-
     if (gs.kind === 'press') {
       const c = gs.long && gs.touch ? 'ours' : claim(gs.x0, gs.y0, x, y, gs.touch);
       if (c === 'wait') return;
@@ -1111,8 +997,10 @@ export function Score() {
       // a mouse held still and then dragged selects a range from where the press began; so
       // does a finger dragged over a group that is not selected (select first, then move:
       // nothing is moved or resized by a drag that only meant to select)
-      if ((!gs.touch && gs.long) || (gs.touch && !gs.long && !gs.wasSelected && !inRange)) {
-        if (gs.touch && st.multi) {
+      if ((!gs.touch && gs.long) || (!gs.long && !gs.wasSelected && !inRange)) {
+        // selecting several (not the mouse's own long press that just turned it on): a drag
+        // over groups adds them
+        if (st.multi && !gs.long) {
           gesture.current = {
             kind: 'paint',
             base: st.selection,
@@ -1167,30 +1055,6 @@ export function Score() {
       lock();
       setUi({ lifted: ids, preview: base });
       return dragTo(cx, cy);
-    }
-
-    if (gs.kind === 'trim') {
-      const { base, id, side, edge } = gs;
-      const c = claim(gs.x0, gs.y0, x, y, gs.touch, gs.touch ? DRAG_THRESHOLD : 0);
-      if (c === 'scroll') return drop();
-      if (c === 'wait') return;
-      const gridB = E.buildGrid(base.meter);
-      const t = hit(g, x, y).t;
-      // Beat mode moves the edge from beat line to beat line
-      const k =
-        ui().moveMode === 'beat'
-          ? gridB.pre[E.clamp(Math.round(t), 0, gridB.NB)]!
-          : E.nearestPulse(gridB, E.clamp(t, 0, gridB.NB));
-      const delta = side === 'end' ? k - edge : edge - k;
-      if (delta === gs.delta) return;
-      gs.delta = delta;
-      const r = E.trimEdge(base, id, side, delta);
-      gs.result = r.report.ok ? r : null;
-      setUi({ preview: gs.result?.doc ?? base });
-      sfx.snap();
-      const it = (gs.result?.doc ?? base).items.find((z) => z.id === id);
-      if (it) announce(`${it.n} pulses`);
-      return;
     }
 
     if (gs.kind === 'slide') {
@@ -1258,40 +1122,6 @@ export function Score() {
     if (gs.kind === 'lane') {
       request();
       if (!cancelled) pickBeats(Math.min(...gs.beats), Math.max(...gs.beats));
-      return;
-    }
-    if (gs.kind === 'boundary') {
-      clearDrag();
-      if (cancelled) return;
-      if (!gs.result) {
-        // a tap on a line or an edge places the text caret there
-        sfx.snap();
-        setCaret(gs.b.slot);
-        return;
-      }
-      const it = gs.result.doc.items[gs.b.i];
-      run(gs.result, {
-        label: gs.b.kind === 'line' ? 'reshape' : `stretch ${it ? E.describeItem(it) : ''}`,
-        select: 'keep',
-      });
-      return;
-    }
-    if (gs.kind === 'trim') {
-      clearDrag();
-      if (cancelled) return;
-      if (!gs.result) {
-        // a tap on a grip without dragging behaves like a tap on the tile
-        select(gs.id);
-        return;
-      }
-      if (run(gs.result, { label: `trim ${gs.side}`, select: [gs.id], sound: sfx.drop })) {
-        const r = gs.result.report;
-        flash(r.shortened);
-        const parts: string[] = [];
-        if (r.shortened.length) parts.push(`${plural(r.shortened.length, 'group')} shortened`);
-        if (r.covered.length) parts.push(`${plural(r.covered.length, 'group')} covered`);
-        if (parts.length) toast(`Trimmed. ${parts.join(', ')}.`, { undo: true });
-      }
       return;
     }
     if (gs.kind === 'slide') {
@@ -1377,12 +1207,6 @@ export function Score() {
         onLostPointerCapture={(e) => {
           // the drag lost its pointer (released elsewhere): a mouse's drag ends where it was
           if (e.pointerType !== 'touch' && gesture.current && lift(e.pointerId)) end(false);
-        }}
-        onPointerLeave={() => {
-          if (!gesture.current && hover.current) {
-            hover.current = null;
-            request();
-          }
         }}
         onContextMenu={(e) => {
           e.preventDefault();
