@@ -19,11 +19,14 @@ test('keep a fill, breed from it, and fill from the next generation', async ({ p
   await fillFold(page, 'Shape');
   await expect(page.getByRole('button', { name: /Mine/ })).toBeVisible();
   await page.getByRole('button', { name: /Breed/ }).click();
-  await fillFold(page, 'Shape');
-  await expect(page.getByRole('button', { name: /Generation 1/ })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  // on a phone the Shape fold closes by itself once the shape changes (an effect after the
+  // click), so on a slow machine it may still look open for a moment: look again until it is shut
+  const generation = page.getByRole('button', { name: /Generation 1/ });
+  await expect(async () => {
+    await fillFold(page, 'Shape');
+    await expect(generation).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await expect(generation).toHaveAttribute('aria-pressed', 'true');
   await list.locator('.fill-main').first().click();
   await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
