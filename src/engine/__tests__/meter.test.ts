@@ -76,7 +76,8 @@ describe('resizeMeter', () => {
   it('validates ranges', () => {
     const d = docFrom(m44, ['|']);
     expect(resizeMeter(d, 2, 2, 4).report.reason).toBe('out-of-range');
-    expect(resizeMeter(d, 4, 33, 4).report.reason).toBe('out-of-range');
+    expect(resizeMeter(d, 4, 33, 4).report.ok).toBe(true); // more than 32 bars is fine now
+    expect(resizeMeter(d, 4, 1000, 4).report.reason).toBe('out-of-range');
     expect(resizeMeter(d, 4, 2, 4).report.reason).toBe('no-change');
   });
 });

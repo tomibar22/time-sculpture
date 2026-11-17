@@ -34,6 +34,11 @@ import type { Geo } from './geometry';
 
 export interface DrawState {
   doc: Doc;
+  /**
+   * Only this stretch of the score (CSS px from its top) is on the canvas: rows outside it are
+   * skipped (a long piece is painted a screenful at a time). Absent = everything (print).
+   */
+  view?: { y0: number; y1: number } | null;
   selection: ReadonlySet<ItemId>;
   lifted: ReadonlySet<ItemId>;
   /** Beats picked in the subdivision band (being swept, or the ones the ratios row works on). */
@@ -175,7 +180,11 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   const inBar = (b: number) => (b >= bm.NB ? 0 : (bm.beatInBar[b] ?? 0));
   const isDown = (b: number) => inBar(b) === 0;
   const { times, pre } = g.grid;
+  /** Is row r (with the room above and below it) inside what the canvas holds? */
+  const seen = (r: number) =>
+    !s.view || (blockTop(g, r) - 40 < s.view.y1 && blockTop(g, r + 1) + 40 > s.view.y0);
   for (let r = 0; r < g.R; r++) {
+    if (!seen(r)) continue;
     const row = g.rows[r]!;
     const top = rowTop(g, r);
     const ty = tileY(g, r);
@@ -360,6 +369,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
       }
       const pop = s.pop?.id === x.id ? s.pop.alpha : 0;
       for (const seg of segments(g, a, x.n)) {
+        if (!seen(seg.r)) continue;
         const p0 = xOf(g, seg.t0);
         const p1x = L.margin + (seg.t1 - g.rows[seg.r]!.b0) * g.rows[seg.r]!.bw;
         const ty = tileY(g, seg.r) + dy;

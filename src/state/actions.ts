@@ -126,20 +126,17 @@ useDocStore.subscribe((s, prev) => {
   } else if (u.caret !== null && u.caret > TS) setUi({ caret: TS });
 });
 
+/** Undo and redo are silent (user request). */
 export function undo(): void {
-  if (useDocStore.getState().undo()) {
-    sfx.remove();
-    pruneSelection();
-    announce('Undone');
-  } else sfx.nope();
+  if (!useDocStore.getState().undo()) return;
+  pruneSelection();
+  announce('Undone');
 }
 
 export function redo(): void {
-  if (useDocStore.getState().redo()) {
-    sfx.add(3);
-    pruneSelection();
-    announce('Redone');
-  } else sfx.nope();
+  if (!useDocStore.getState().redo()) return;
+  pruneSelection();
+  announce('Redone');
 }
 
 /* ------------------------------------------------------------------ selection */

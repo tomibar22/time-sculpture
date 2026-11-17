@@ -66,7 +66,7 @@ e2e/               Playwright specs (iPhone 14 + desktop)
 
 ## Domain model (src/engine)
 
-- **Meter**: `beatsPerCycle` 3–13 (no denominator), `cycles` 1–32, `subdivision[beat]` 1–8 for
+- **Meter**: `beatsPerCycle` 3–13 (no denominator), `cycles` 1–999 (`MAX_CYCLES`; user request: no bar limit), `subdivision[beat]` 1–8 for
   every beat of the piece (length = beats × cycles).
 - **Grid**: pulse j of beat b (d pulses) starts at time `b + j/d` (beats). `TS` = Σ subdivisions.
   `times[TS] = NB`. Tempo is beats/min, so a beat always lasts the same; only density changes.
@@ -125,8 +125,9 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   export. Clicks are a soft woodblock; a limiter sits on the master. `ui.click` (Options) turns
   the beat click off; the landing (the 1) always sounds.
 - Interface sounds: dragging, stretching, trimming, selecting and moving the caret are silent
-  (user request; `snap` / `lift` / `drop` are no-ops). Typing a size plays its stroke softly;
-  remove, undo, a refused action and completing a piece still sound.
+  (user request; `snap` / `lift` / `drop` are no-ops), and so are **undo and redo** (user
+  request). Typing a size plays its stroke softly; remove, a refused action and completing a
+  piece still sound.
 - **Play with a selection**: Play / Space with tiles or a range selected (editor only) loops that
   stretch until Stop (user request; `togglePlayback` → `startPlayback(a, {a, b})`). `regionOnce`
   / `{once: true}` remain in player.ts, unused by Play.
@@ -438,6 +439,15 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   neighbouring silences are always one stretch, and **silence touching the open space becomes
   open space** (no onset moves; user request: after deleting tiles, "Browse fills…" for the
   emptied stretch should work as on an empty piece).
+
+### Painting a long score
+
+- The score canvas (`canvasRef`, `data-testid="score"`) is as tall as the piece and takes the
+  pointer and every coordinate, but holds no pixels. A second canvas (`paintRef`,
+  `.score-paint`, `pointer-events: none`, absolutely placed in `.score-wrap`) paints only what is
+  on screen plus a screen above and below (`painted` {y0, y1}; redrawn when a scroll nears its
+  edge), so any number of bars works (iPhone Safari paints no canvas over ~16.7 M pixels).
+  `DrawState.view` lets `drawScore` skip rows outside it. Print / PDF draw everything.
 
 ## Persistence
 

@@ -127,6 +127,15 @@ function pickedBeats(sel: { a: number; b: number } | null): ReadonlySet<number> 
 
 export function Score() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  /**
+   * The canvas that is painted: only the stretch of the score on screen (and a margin), laid
+   * over the full-height score canvas, which takes the pointer and gives every coordinate but
+   * holds no pixels. A canvas as tall as a long piece is more than a browser will paint (iPhone
+   * Safari stops at about 16.7 million pixels), so a piece may have any number of bars.
+   */
+  const paintRef = useRef<HTMLCanvasElement>(null);
+  /** The stretch of the score (CSS px from its top) the paint canvas holds now. */
+  const painted = useRef({ y0: 0, y1: 0 });
   /** Practice: the tiles are silent this time round, and look it. */
   const hushed = useUiStore((st) => st.hushed);
   const gesture = useRef<Gesture | null>(null);
@@ -179,19 +188,31 @@ export function Score() {
     geo.current = g;
     view.geo = g;
     view.canvas = cv;
+    const pc = paintRef.current;
+    if (!pc) return;
     const dpr = window.devicePixelRatio || 1;
     if (cv.style.height !== `${g.h}px`) cv.style.height = `${g.h}px`;
     // after a zoom: keep the point that was in focus where it was on the screen
     restoreAnchor(g, cv);
+    // paint what is on screen, and as much again above and below it
+    const box = cv.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const y0 = Math.max(0, Math.floor(-box.top - vh));
+    const y1 = Math.max(y0 + 1, Math.min(g.h, Math.ceil(vh - box.top + vh)));
+    painted.current = { y0, y1 };
     const W = Math.round(g.w * dpr);
-    const H = Math.round(g.h * dpr);
-    if (cv.width !== W || cv.height !== H) {
-      cv.width = W;
-      cv.height = H;
+    const H = Math.round((y1 - y0) * dpr);
+    if (pc.width !== W || pc.height !== H) {
+      pc.width = W;
+      pc.height = H;
     }
-    const c = cv.getContext('2d');
+    pc.style.width = `${g.w}px`;
+    pc.style.height = `${y1 - y0}px`;
+    pc.style.left = `${cv.offsetLeft}px`;
+    pc.style.top = `${cv.offsetTop + y0}px`;
+    const c = pc.getContext('2d');
     if (!c) return;
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.setTransform(dpr, 0, 0, dpr, 0, -y0 * dpr);
     palette.current ??= readPalette();
     const now = performance.now();
     const flashAlpha = s.flash.until > now ? (s.flash.until - now) / 1600 : 0;
@@ -206,6 +227,7 @@ export function Score() {
       g,
       {
         doc,
+        view: painted.current,
         stage,
         selection: new Set(stage ? [] : s.selection),
         lifted: new Set(s.lifted),
@@ -320,7 +342,21 @@ export function Score() {
     const mo = new MutationObserver(retheme);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     void document.fonts?.ready.then(request);
+    // scrolling: paint again when the screen nears the edge of what is painted
+    const onScroll = () => {
+      const box = cv.getBoundingClientRect();
+      const { y0, y1 } = painted.current;
+      const g = geo.current;
+      const top = Math.max(0, -box.top);
+      const bottom = Math.min(g?.h ?? 0, window.innerHeight - box.top);
+      const vh = window.innerHeight / 2;
+      if ((top < y0 + vh && y0 > 0) || (bottom > y1 - vh && y1 < (g?.h ?? 0))) request();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', request);
     return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', request);
       unsubs.forEach((u) => u());
       ro.disconnect();
       mq.removeEventListener('change', retheme);
@@ -1221,6 +1257,11 @@ export function Score() {
           end(true);
           openMenuAt(e.clientX, e.clientY, false);
         }}
+      />
+      <canvas
+        ref={paintRef}
+        className={hushed ? 'score-paint hushed' : 'score-paint'}
+        aria-hidden="true"
       />
     </div>
   );

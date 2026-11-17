@@ -18,6 +18,7 @@ import {
 import { appendBars, prependBars, resizeMeter, setSubdivision, toggleMark } from '../ops/meter';
 import { addSection, resizeBeats } from '../ops/sections';
 import type { Doc } from '../types';
+import { MAX_CYCLES } from '../grid';
 
 // 4 beats × 4 bars at 1:1, so pulse k is beat k
 const piece = () => docFrom(makeMeter(4, 4, 1), ['|']);
@@ -198,7 +199,8 @@ describe('bars before the beginning', () => {
     const n = ok(prependBars(d, 2));
     expect(sequence(n)).toEqual({ start: [], ending: ['4'] });
     expect(n.items[0]).toMatchObject({ kind: 'space', n: 8 });
-    expect(prependBars(d, 32).report.ok).toBe(false);
+    expect(prependBars(d, 40).report.ok).toBe(true); // past the old 32
+    expect(prependBars(d, MAX_CYCLES).report.ok).toBe(false);
   });
 
   it('modulations, breaks and marks move with the music', () => {
@@ -234,6 +236,7 @@ describe('bars after the end', () => {
     const n = ok(appendBars(d, 1));
     expect(n.meter.subdivision).toHaveLength(d.meter.subdivision.length + 3);
     expect(n.meter.cycles).toBe(d.meter.cycles + 1);
-    expect(appendBars(docFrom(makeMeter(4, 32, 1), ['|']), 1).report.ok).toBe(false);
+    expect(appendBars(docFrom(makeMeter(4, 32, 1), ['|']), 1).report.ok).toBe(true);
+    expect(appendBars(docFrom(makeMeter(4, MAX_CYCLES, 1), ['|']), 1).report.ok).toBe(false);
   });
 });

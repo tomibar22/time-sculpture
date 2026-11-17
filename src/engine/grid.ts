@@ -3,7 +3,8 @@ import type { Meter } from './types';
 export const MIN_BEATS = 3;
 export const MAX_BEATS = 13;
 export const MIN_CYCLES = 1;
-export const MAX_CYCLES = 32;
+/** Bars in a piece: no limit in practice (user request); a bound only so input stays sane. */
+export const MAX_CYCLES = 999;
 /** Longest pattern of bar sizes ("5 5 4"). */
 export const MAX_PATTERN = 8;
 /** Most bars a row may be asked to hold. */

@@ -257,6 +257,7 @@ button.icon {
 .score-wrap {
   /* the score reaches into the panel's padding: its row gutters are caret targets */
   margin: 0 -20px;
+  position: relative;
   overscroll-behavior: contain;
 }
 @media (max-width: 520px) {
@@ -3439,12 +3440,15 @@ button.now.start-btn.set b {
   }
 }
 /* this time round the tiles are silent: the score says so */
-canvas.score {
+/* the painted part of the score lies over the score itself, which takes the pointer */
+canvas.score-paint {
+  position: absolute;
+  pointer-events: none;
   transition:
     filter 0.25s,
     opacity 0.25s;
 }
-canvas.score.hushed {
+canvas.score-paint.hushed {
   filter: grayscale(0.92);
   opacity: 0.55;
 }
