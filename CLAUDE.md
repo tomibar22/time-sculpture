@@ -383,6 +383,13 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   puts `|:` at a and `:|` at b in one undo step (a sign already there is kept); with both there it
   removes both. UI: "|: Repeat :|" (pressed when on) in the tile and range bars, "Repeat |: :|" /
   "Remove the repeat" in both menus, key **R** (⇧R is still backwards).
+- **Section ends** (user request: mark where parts end): `meter.doubleBars` (times in beats,
+  0 < t ≤ NB) ride in `Form` like end signs (snapped, moved, cut by every meter op;
+  `formErrors` checks them); `toggleDoubleBar` / `doubleBarAt`. Drawn as an end sign without
+  dots (thin + thick; skipped where a `:|` stands). They never change playing. UI: "‖ Section
+  end" in the caret bar (at the caret) and in the tile / range bars (where the selection ends),
+  every menu ("Section end after it ‖" also on the bar page), key **\** (`toggleDoubleBarAt`).
+  File `sectionEnds`; MusicXML writes a light-heavy barline when it sits on a bar line.
 - UI: caret bar `|: Start repeat` / `:| End repeat` / ×N stepper, `Ending…` in the range and
   tile bars (`VoltaDialog`, default passes from `defaultPasses`). Keys `[` `]` (physical
   Bracket keys), `V`, `+`/`−` on an end sign. File: `repeats` + derived `playOrder`.

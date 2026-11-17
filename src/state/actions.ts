@@ -620,6 +620,22 @@ export function toggleRepeatOver(region: { a: number; b: number } | null): void 
 export const repeatedOver = (region: { a: number; b: number } | null) =>
   !!region && E.repeatStartAt(doc(), region.a) && !!E.repeatEndAt(doc(), region.b);
 
+/** \ / "‖ Section end": a double bar line at pulse k (the end of a part), or remove it. */
+export function toggleDoubleBarAt(k: number | null): void {
+  if (k === null) {
+    sfx.nope();
+    return void toast('Place the caret where the section ends');
+  }
+  const had = E.doubleBarAt(doc(), k);
+  const r = E.toggleDoubleBar(doc(), k);
+  if (!r.report.ok) {
+    sfx.nope();
+    return void toast('A section ends after some music: not at the very start');
+  }
+  run(r, { label: had ? 'remove section end' : 'section end ‖', select: 'keep' });
+  announce(had ? 'Section end removed' : 'Section end here');
+}
+
 /** Play the passage that ends at pulse k one time more or less (2…12 times in all). */
 export function changeRepeatTimes(k: number, delta: number): void {
   const cur = E.repeatEndAt(doc(), k);

@@ -20,6 +20,7 @@ import {
   toggleMulti,
   togglePhraseMark,
   toggleRepeatEndAt,
+  toggleDoubleBarAt,
   toggleRepeatStartAt,
   toggleTotalOver,
   toggleRepeatOver,
@@ -204,6 +205,15 @@ function Menu({ menu }: { menu: ContextMenuState }) {
       'sep',
       { label: 'Metre from here…', run: () => set({ meterDialog: { at: barStart } }) },
       { label: 'Bars in this row…', run: () => set({ rowDialog: { t: barStart } }) },
+      (() => {
+        const end = pulsesOfBars(bars.b).b;
+        return {
+          label: E.doubleBarAt(doc, end)
+            ? 'Remove the section end'
+            : `Section end after ${many ? 'them' : 'it'} ‖`,
+          run: () => toggleDoubleBarAt(end),
+        };
+      })(),
       'sep',
       removeBars,
     ];
@@ -263,6 +273,14 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         run: () => toggleRepeatOver(selectedRegion()),
       },
       {
+        label:
+          region && E.doubleBarAt(doc, region.b)
+            ? 'Remove the section end'
+            : 'Section end after it ‖',
+        hint: '\\',
+        run: () => toggleDoubleBarAt(selectedRegion()?.b ?? null),
+      },
+      {
         label: 'Ending…',
         hint: 'V',
         disabled: !E.isContiguous(idx),
@@ -306,6 +324,11 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         label: repeatedOver(r) ? 'Remove the repeat' : 'Repeat |: :|',
         hint: 'R',
         run: () => toggleRepeatOver(r),
+      },
+      {
+        label: E.doubleBarAt(doc, r.b) ? 'Remove the section end' : 'Section end after it ‖',
+        hint: '\\',
+        run: () => toggleDoubleBarAt(r.b),
       },
       { label: 'Ending…', hint: 'V', run: () => openVolta(r) },
       { label: 'Subdivision…', hint: 'B', run: openSubdivision },
@@ -376,6 +399,11 @@ function Menu({ menu }: { menu: ContextMenuState }) {
               label: E.repeatEndAt(doc, k) ? 'Remove :|' : ':| End repeat',
               hint: ']',
               run: () => toggleRepeatEndAt(k),
+            },
+            {
+              label: E.doubleBarAt(doc, k) ? 'Remove the section end' : '‖ Section end',
+              hint: '\\',
+              run: () => toggleDoubleBarAt(k),
             },
           ] satisfies Row[])
         : []),

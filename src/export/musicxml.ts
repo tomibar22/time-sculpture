@@ -153,6 +153,8 @@ export function musicXml(doc: Doc, title: string, tempo: number): string {
     (doc.meter.repeatEnds ?? []).filter((e) => isBarLine(e.at)).map((e) => [Math.round(e.at), e]),
   );
   const voltas = (doc.meter.voltas ?? []).filter((v) => isBarLine(v.a) && isBarLine(v.b));
+  // section ends on bar lines: a light-heavy double bar
+  const doubles = new Set((doc.meter.doubleBars ?? []).filter(isBarLine).map(Math.round));
   const names = doc.meter.markNames ?? [];
   const marks = (doc.meter.marks ?? []).map((t, i) => ({ t, name: names[i] ?? '' }));
 
@@ -212,7 +214,7 @@ export function musicXml(doc: Doc, title: string, tempo: number): string {
     // right barline: an end repeat, the end of an ending, the final bar
     const end = ends.get(b1);
     const vEnd = voltas.find((v) => Math.round(v.b) === b1);
-    const final = bar === bm.barStarts.length - 1;
+    const final = bar === bm.barStarts.length - 1 || doubles.has(b1);
     if (end || vEnd || final) {
       lines.push('      <barline location="right">');
       if (end || final) lines.push('        <bar-style>light-heavy</bar-style>');

@@ -128,6 +128,7 @@ const moveForm = (meter: Meter, starts: (t: number) => number, ends: (t: number)
     repeatStarts: f.repeatStarts.map(starts),
     repeatEnds: f.repeatEnds.map((e) => ({ ...e, at: ends(e.at) })),
     voltas: f.voltas.map((v) => ({ ...v, a: starts(v.a), b: ends(v.b) })),
+    doubleBars: f.doubleBars.map(ends),
     totals: f.totals.map((v) => ({ a: starts(v.a), b: ends(v.b) })),
   };
   return form;
@@ -314,6 +315,7 @@ export function removeBars(doc: Doc, fromBar: number, count: number): OpResult {
     repeatStarts: f.repeatStarts.map(starts),
     repeatEnds: f.repeatEnds.map((e) => ({ ...e, at: ends(e.at) })),
     voltas: f.voltas.map((v) => ({ ...v, a: span(v.a), b: span(v.b) })),
+    doubleBars: f.doubleBars.map(ends),
     totals: f.totals.map((v) => ({ a: span(v.a), b: span(v.b) })),
   });
 

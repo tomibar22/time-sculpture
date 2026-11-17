@@ -11,6 +11,8 @@ import {
   setVolta,
   toggleRepeatEnd,
   toggleRepeatOver,
+  toggleDoubleBar,
+  doubleBarAt,
   toggleRepeatStart,
 } from '../form';
 import { appendBars, prependBars, resizeMeter, setSubdivision, toggleMark } from '../ops/meter';
@@ -25,6 +27,24 @@ const ok = (r: { doc: Doc; report: { ok: boolean } }) => {
   expect(checkInvariants(r.doc)).toEqual([]);
   return r.doc;
 };
+
+describe('section ends', () => {
+  it('a double bar line goes on and off, never at the very start; it does not change playing', () => {
+    const d = ok(toggleDoubleBar(piece(), 8));
+    expect(d.meter.doubleBars).toEqual([8]);
+    expect(doubleBarAt(d, 8)).toBe(true);
+    expect(order(d)).toEqual([[0, 16]]);
+    expect(ok(toggleDoubleBar(ok(toggleDoubleBar(d, 16)), 16)).meter.doubleBars).toEqual([8]);
+    expect(ok(toggleDoubleBar(d, 8)).meter.doubleBars).toBeUndefined();
+    expect(toggleDoubleBar(d, 0).report.ok).toBe(false);
+  });
+  it('moves with the music when bars are added before it, and goes when its bar is cut', () => {
+    const d = ok(toggleDoubleBar(piece(), 8));
+    expect(ok(prependBars(d, 1)).meter.doubleBars).toEqual([12]);
+    expect(ok(appendBars(d, 1)).meter.doubleBars).toEqual([8]);
+    expect(ok(resizeMeter(d, 4, 2, 1)).meter.doubleBars).toEqual([8]);
+  });
+});
 
 describe('repeats and endings', () => {
   it('repeat over a stretch: both signs in one step, again takes both away', () => {

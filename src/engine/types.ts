@@ -62,6 +62,11 @@ export interface Meter {
   readonly repeatEnds?: readonly RepeatEnd[];
   readonly voltas?: readonly Volta[];
   /**
+   * Section ends: a double bar line (thin and thick, a repeat end without its dots) that marks
+   * where a part of the piece ends. Times in beats (0 < t ≤ total), on pulses, ascending.
+   */
+  readonly doubleBars?: readonly number[];
+  /**
    * Totals: brackets under the score over [a, b) (beats, on pulses) that show how many pulses
    * they hold, to show the larger division a run of groups makes ("3 3 2" → 8). Ascending by a.
    */

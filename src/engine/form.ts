@@ -25,6 +25,8 @@ export interface Form {
   repeatStarts: readonly number[];
   repeatEnds: readonly RepeatEnd[];
   voltas: readonly Volta[];
+  /** Section ends (double bar lines), placed like end signs. */
+  doubleBars: readonly number[];
   /** Totals ride along with the form: they are spans of time that snap and move the same way. */
   totals: readonly Total[];
 }
@@ -33,6 +35,7 @@ export const formOf = (m: Meter): Form => ({
   repeatStarts: m.repeatStarts ?? [],
   repeatEnds: m.repeatEnds ?? [],
   voltas: m.voltas ?? [],
+  doubleBars: m.doubleBars ?? [],
   totals: m.totals ?? [],
 });
 
@@ -117,7 +120,15 @@ export function withForm(
   map: (t: number) => number = (t) => t,
   mapSpan: (t: number) => number = map,
 ): Meter {
-  const { repeatStarts: _s, repeatEnds: _e, voltas: _v, totals: _t, ...rest } = meter;
+  const {
+    repeatStarts: _s,
+    repeatEnds: _e,
+    voltas: _v,
+    totals: _t,
+    doubleBars: _d,
+    ...rest
+  } = meter;
+  void _d;
   void _s;
   void _e;
   void _v;
@@ -143,6 +154,13 @@ export function withForm(
     if (e.k <= 0 || e.k > grid.TS) continue;
     const at = grid.times[e.k]!;
     if (!ends.length || at - ends[ends.length - 1]!.at > EPS) ends.push({ at, times: e.times });
+  }
+
+  const doubles: number[] = [];
+  for (const k of (form.doubleBars ?? []).map((t) => snap(map(t))).sort((x, y) => x - y)) {
+    if (k <= 0 || k > grid.TS) continue;
+    const t = grid.times[k]!;
+    if (!doubles.length || t - doubles[doubles.length - 1]! > EPS) doubles.push(t);
   }
 
   const voltas: Volta[] = [];
@@ -178,6 +196,7 @@ export function withForm(
     ...(starts.length ? { repeatStarts: starts } : {}),
     ...(ends.length ? { repeatEnds: ends } : {}),
     ...(voltas.length ? { voltas } : {}),
+    ...(doubles.length ? { doubleBars: doubles } : {}),
     ...(totals.length ? { totals } : {}),
   };
 }
@@ -310,6 +329,21 @@ export function toggleRepeatOver(doc: Doc, a: number, b: number): OpResult {
   return { doc: d, report: report() };
 }
 
+/** A section end (double bar line) at pulse k, or remove the one there. */
+export function toggleDoubleBar(doc: Doc, k: number): OpResult {
+  const t = at(doc, k);
+  if (t === undefined || !Number.isInteger(k) || k <= 0)
+    return { doc, report: fail('out-of-range') };
+  const cur = doc.meter.doubleBars ?? [];
+  const next = cur.some((x) => same(x, t)) ? cur.filter((x) => !same(x, t)) : [...cur, t];
+  return { doc: withMeterForm(doc, { doubleBars: next }), report: report() };
+}
+
+export const doubleBarAt = (doc: Doc, k: number) => {
+  const t = at(doc, k);
+  return t !== undefined && (doc.meter.doubleBars ?? []).some((x) => same(x, t));
+};
+
 /** How many times the passage that ends at pulse k is played (2…12). */
 export function setRepeatTimes(doc: Doc, k: number, times: number): OpResult {
   const t = at(doc, k);
@@ -395,6 +429,11 @@ export function formErrors(meter: Meter): string[] {
     if (!Number.isInteger(e.times) || e.times < MIN_REPEAT || e.times > MAX_REPEAT)
       errs.push(`bad repeat count ${e.times}`);
     prev = e.at;
+  }
+  prev = 0;
+  for (const t of meter.doubleBars ?? []) {
+    if (!(t > prev + EPS) || t > g.NB + EPS || !onPulse(t)) errs.push(`bad double bar ${t}`);
+    prev = t;
   }
   prev = -1;
   for (const v of meter.voltas ?? []) {

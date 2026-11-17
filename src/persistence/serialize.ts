@@ -63,6 +63,8 @@ export interface SavedPiece {
    * (`pulses`, derived), to show the larger division a run of groups makes.
    */
   totals?: { fromBeat: number; toBeat: number; pulses: number }[];
+  /** Section ends (optional): times in beats of double bar lines that close a part. */
+  sectionEnds?: number[];
   /**
    * Metric modulations (optional): from local beat `atBeat`, a pulse of `from`:1 before equals a
    * pulse of `to`:1 after, and bars have `beatsPerBar` beats.
@@ -129,6 +131,7 @@ export function toSaved(
     subdivision: [...doc.meter.subdivision],
     ...(doc.meter.marks?.length ? { phraseStarts: [...doc.meter.marks] } : {}),
     ...(doc.meter.markNames ? { phraseNames: [...doc.meter.markNames] } : {}),
+    ...(doc.meter.doubleBars?.length ? { sectionEnds: [...doc.meter.doubleBars] } : {}),
     ...(doc.meter.totals?.length
       ? {
           totals: doc.meter.totals.map((v) => {
@@ -253,6 +256,9 @@ export function fromSaved(raw: unknown): Parsed {
       ? { bars: p.barPattern.map(Number) }
       : {}),
     ...readRepeats(p.repeats),
+    ...(Array.isArray(p.sectionEnds)
+      ? { doubleBars: p.sectionEnds.map(Number).filter(Number.isFinite) }
+      : {}),
   };
   let next = 1;
   const toItem = (g: unknown): Item => {

@@ -47,7 +47,7 @@ import { swapNow, swapStep } from '../state/swap';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
-import { deleteBarsHere, toggleRepeatOver } from '../state/actions';
+import { deleteBarsHere, toggleDoubleBarAt, toggleRepeatOver } from '../state/actions';
 import { toggleOverview, zoomStep } from '../state/zoom';
 import { buildStep, buildTo, enterStage, exitStage, setBuild } from '../state/stage';
 
@@ -249,6 +249,12 @@ export function useKeyboard() {
         }
         e.preventDefault();
         return togglePhraseMark(at);
+      }
+      if (e.code === 'Backslash' && !e.shiftKey) {
+        // \ : a section end (double bar line) at the caret, or where the selection ends
+        e.preventDefault();
+        const region = selectedRegion();
+        return toggleDoubleBarAt(region ? region.b : useUiStore.getState().caret);
       }
       if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
         // [ and ] : start / end repeat signs at the caret (or the selection's start / end)

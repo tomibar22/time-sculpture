@@ -11,6 +11,7 @@ import {
   toggleTotal,
   toggleRepeatEnd,
   toggleRepeatStart,
+  toggleDoubleBar,
 } from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
@@ -19,6 +20,12 @@ const doc = docFrom(makeMeter(4, 2, [4, 3, 4, 4, 2, 4, 4, 4]), [[2], 3, '|', 5, 
 const settings = { tempo: 96, perRow: 2 };
 
 describe('the Time Sculpture file (v2)', () => {
+  it('keeps section ends (double bar lines)', () => {
+    const d = toggleDoubleBar(doc, 15).doc;
+    const f = toSaved(d, 'Phrase', settings);
+    expect(f.sectionEnds).toEqual([4]);
+    expect(fromSaved(JSON.parse(JSON.stringify(f))).doc.meter.doubleBars).toEqual([4]);
+  });
   it('is plain and readable', () => {
     const f = toSaved(doc, 'Phrase', settings);
     expect(f).toMatchObject({

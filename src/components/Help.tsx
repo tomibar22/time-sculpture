@@ -401,6 +401,10 @@ export function Help() {
                   </dt>
                   <dd>backwards</dd>
                   <dt>
+                    <kbd>\</kbd>
+                  </dt>
+                  <dd>section end: a double bar line at the caret, or after the selection</dd>
+                  <dt>
                     <kbd>R</kbd>
                   </dt>
                   <dd>repeat signs around the selection, |: and :| at once (again: off)</dd>

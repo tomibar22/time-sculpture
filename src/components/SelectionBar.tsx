@@ -14,6 +14,7 @@ import {
   openVolta,
   toggleTotalOver,
   toggleRepeatOver,
+  toggleDoubleBarAt,
   repeatedOver,
   toggleRepeatEndAt,
   toggleRepeatStartAt,
@@ -239,6 +240,7 @@ export function SelectionBar() {
         {/* marks on the score */}
         <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
         <RepeatButton disabled={!sel.length || !E.isContiguous(idx)} />
+        <SectionEndButton disabled={!sel.length} />
         <button
           type="button"
           disabled={!sel.length || !E.isContiguous(idx)}
@@ -421,6 +423,7 @@ function CaretBar() {
             Ending…
           </button>
           <RepeatButton />
+          <SectionEndButton />
           <TotalButton />
           <button
             type="button"
@@ -601,6 +604,16 @@ function CaretBar() {
             {repeatEnd ? 'Remove :|' : ':| End repeat'}
           </button>
         )}
+        {caret! > 0 && (
+          <button
+            type="button"
+            aria-pressed={E.doubleBarAt(docNow, caret!)}
+            title="A double bar line here: the end of a section (\)"
+            onClick={() => toggleDoubleBarAt(caret!)}
+          >
+            ‖ Section end
+          </button>
+        )}
         {repeatEnd && (
           <div className="stepper repeat-times" role="group" aria-label="Times played">
             <button
@@ -659,6 +672,26 @@ function RemoveBarsButton() {
       onClick={() => cutBars(bars.a, bars.b - bars.a + 1)}
     >
       <TrashIcon /> Remove {barsLabel(bars.a, bars.b)}
+    </button>
+  );
+}
+
+/** A double bar line where the selection ends: the end of a section (\); again removes it. */
+function SectionEndButton({ disabled = false }: { disabled?: boolean }) {
+  useDocStore((s) => s.version);
+  useUiStore((s) => s.range);
+  useUiStore((s) => s.selection);
+  const region = selectedRegion();
+  const on = !!region && E.doubleBarAt(useDocStore.getState().doc, region.b);
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={on}
+      title="A double bar line where the selection ends: the end of a section (\)"
+      onClick={() => toggleDoubleBarAt(selectedRegion()?.b ?? null)}
+    >
+      ‖ Section end
     </button>
   );
 }

@@ -102,3 +102,26 @@ test('repeat signs around a selection in one tap, and off again', async ({ page 
   await expect(btn).toHaveAttribute('aria-pressed', 'false');
   await expectSeq(page, DEFAULT_SEQ);
 });
+
+test('a section end (double bar line) at the caret, kept after a reload, and taken off', async ({
+  page,
+}) => {
+  let s = await score(page);
+  await tap(page, at(s, P(8))); // the line before the 2, on beat 3
+  const btn = page.getByRole('button', { name: '‖ Section end' });
+  await btn.click();
+  await expect(page.getByTestId('announcer')).toHaveText('Section end here');
+  await expect(btn).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(600);
+  await page.reload();
+  await ready(page);
+  s = await score(page);
+  await tap(page, at(s, P(8)));
+  await expect(page.getByRole('button', { name: '‖ Section end' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: '‖ Section end' }).click();
+  await expect(page.getByTestId('announcer')).toHaveText('Section end removed');
+  await expectSeq(page, DEFAULT_SEQ);
+});

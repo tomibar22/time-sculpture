@@ -83,6 +83,15 @@ describe('MIDI export', () => {
 });
 
 describe('MusicXML export', () => {
+  it('writes a section end on a bar line as a light-heavy bar', () => {
+    const doc = E.toggleDoubleBar(docFrom(makeMeter(4, 3, 1), ['|']), 4).doc;
+    const d = parse(musicXml(doc, 'S', 72));
+    const ms = [...d.querySelectorAll('measure')];
+    expect(ms[0]!.querySelector('barline[location="right"] bar-style')?.textContent).toBe(
+      'light-heavy',
+    );
+    expect(ms[1]!.querySelector('barline')).toBeNull();
+  });
   it('writes bars whose notes add up, with ties across beats and tuplets', () => {
     // 3 beats, subdivisions 4 3 5: a group of 5 crosses from beat 1 into the triplet
     const doc = docFrom(makeMeter(3, 1, [4, 3, 5]), [5, 2, [1], '|', 4]);

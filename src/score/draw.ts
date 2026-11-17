@@ -890,7 +890,7 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
   const { repeatStarts = [], repeatEnds = [], voltas = [] } = doc.meter;
   // At a row's edge the sign stands in the row's gutter, clear of the tiles; inside a row it is
   // slim and sits on the line, so even a tile of one pulse beside it stays in sight.
-  const sign = (x: number, r: number, dir: 1 | -1, edge: boolean) => {
+  const sign = (x: number, r: number, dir: 1 | -1, edge: boolean, withDots = true) => {
     const ty = tileY(g, r);
     const y0 = ty - 3;
     const h = L.tileH + 6;
@@ -907,7 +907,7 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
         ];
     const dotX = x + way * (edge ? 4.5 : 7.5);
     const dotR = edge ? 2.2 : 1.9;
-    const dots = [ty + L.tileH * 0.36, ty + L.tileH * 0.64];
+    const dots = withDots ? [ty + L.tileH * 0.36, ty + L.tileH * 0.64] : [];
     for (const [colour, grow] of [
       [P.card, edge ? 1.5 : 1],
       [P.fg, 0],
@@ -927,6 +927,14 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
   for (const t of repeatStarts) {
     const p = xOf(g, t);
     sign(p.x, p.r, 1, Math.abs(t - g.rows[p.r]!.b0) < EPS_D);
+  }
+  // section ends: a double bar line (thin and thick), an end sign without its dots; an end
+  // repeat at the same place already draws it
+  for (const t of doc.meter.doubleBars ?? []) {
+    if (repeatEnds.some((e) => Math.abs(e.at - t) < EPS_D)) continue;
+    const p = endPoint(g, t);
+    const row = g.rows[p.r]!;
+    sign(p.x, p.r, -1, Math.abs(t - row.b0 - row.nb) < EPS_D, false);
   }
   for (const e of repeatEnds) {
     const p = endPoint(g, e.at);
