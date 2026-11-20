@@ -6,7 +6,10 @@ import {
   runsAll,
   speedBalances,
   speedFills,
+  otherWaysAcross,
   speedsAcross,
+  speedsAcrossLabel,
+  speedsAcrossOf,
   speedsLabel,
   withLadder,
 } from '../speeds';
@@ -108,5 +111,43 @@ describe('across the statements: the speeds change from one to the next', () => 
     expect(ls[0]!.name).toBe('Speeds 3 → 2 → 1 (faster and faster) · three times');
     const turn = ls.find((l) => l.name === 'Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)')!;
     expect(turn.lead).toBe(0);
+  });
+});
+
+describe('reading statements whose speeds differ', () => {
+  const turned = () => speedsAcross(PIECE).find((r) => r.label.includes('turning round'))!.sizes;
+  it('reads the turned-round piece back, with its path and closing', () => {
+    expect(speedsAcrossOf(turned())).toEqual({
+      k: 3,
+      n: 5,
+      vs: [
+        [3, 2, 1],
+        [2, 2, 2],
+        [1, 2, 3],
+      ],
+      closing: 3,
+      cut: false,
+      path: 'turning round',
+    });
+    expect(speedsAcrossLabel(turned())).toBe(
+      'Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round), 5 each, 3 closing',
+    );
+    expect(shapeOf(turned())?.family).toBe('speeds');
+    // three equal statements are plain speeds, not "across"
+    expect(speedsAcrossOf(PIECE)).toBeNull();
+    // the 8 bars alone: the last closing 3 is the 1
+    expect(speedsAcrossOf(turned().slice(0, -1))).toMatchObject({ cut: true, closing: 3 });
+  });
+  it('Vary on it offers the plain forms and the other ways across, the same length', () => {
+    const others = otherWaysAcross(turned());
+    expect(others.map((o) => o.label)).toContain(
+      'Speeds 3 → 2 → 1 (faster and faster), 5 strokes each, every time',
+    );
+    expect(others.find((o) => o.label.includes('faster and faster'))!.sizes).toEqual(PIECE);
+    for (const o of others) expect(sum(o.sizes)).toBe(99);
+  });
+  it('Browse builds them from the sizes 1 2 3', () => {
+    const fills = shapeFills(99, [1, 2, 3]).filter((f) => f.shape.label.includes('turning round'));
+    expect(fills.map((f) => f.sizes.join(' '))).toContain(turned().join(' '));
   });
 });

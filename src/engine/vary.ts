@@ -1,7 +1,7 @@
 import type { GroupSpec } from './ops/edit';
 import { formatGroups } from './ops/edit';
 import { longShortOf, realizeLS } from './longshort';
-import { speedBalances, speedsAcross } from './speeds';
+import { otherWaysAcross, speedBalances, speedsAcross } from './speeds';
 import {
   balanceName,
   gapTrades,
@@ -246,7 +246,10 @@ export function variations(
     for (const r of speeds) put(r.sizes.map(sound), r.label, 'balance');
     // a third level: the speeds changing from statement to statement, each the same length
     for (const r of speedsAcross(sizes)) put(r.sizes.map(sound), r.label, 'balance');
-    if (!speeds.length) {
+    // already changing across: the other ways across, and the plain forms
+    const across = otherWaysAcross(sizes);
+    for (const r of across) put(r.sizes.map(sound), r.label, 'balance');
+    if (!speeds.length && !across.length) {
       // one level down: the runs of the main size inside the cell (X | XX | XXX → 3 2 1, 2 2 2)
       const one = st && balanceName(st.xs) ? st : oneStatement(sizes);
       if (one) for (const r of innerBalances(one)) put(r.sizes.map(sound), r.label, 'balance');

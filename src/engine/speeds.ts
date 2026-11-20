@@ -221,6 +221,21 @@ export function speedFills(R: number, sizes: readonly number[], limit = 60): num
         seen.add(key);
         out.push(t);
       }
+    // three times, the speeds changing from one time to the next (3 2 1 | 2 2 2 | 1 2 3)
+    for (const c of [0, ...S])
+      for (const cut of c ? [false, true] : [false]) {
+        const room = R + (cut ? c : 0);
+        if (room % 3) continue;
+        const n = (room / 3 - c) / sum;
+        if (!Number.isInteger(n) || n < 3 || n > 8) continue;
+        for (const p of acrossPaths(l, 3)) {
+          const t = sayAcross({ k: 3, n, vs: p.vs, closing: c, cut }, p.vs);
+          const key = t.join(' ');
+          if (seen.has(key) || !speedsAcrossLabel(t)) continue;
+          seen.add(key);
+          out.push(t);
+        }
+      }
   }
   return out.sort((a, b) => a.length - b.length).slice(0, limit);
 }
@@ -241,4 +256,143 @@ export function speedsAcross(t: readonly number[]): { sizes: number[]; label: st
     ),
     label: `Speeds ${p.vs.map((v) => v.join(' ')).join(' | ')} (${p.name})`,
   }));
+}
+
+/* ------------------------------------------ reading statements that differ (across) */
+
+/** A passage read as k statements of one ladder whose speeds change from one to the next. */
+export interface SpeedsAcross {
+  k: number;
+  /** Strokes a speed. */
+  n: number;
+  /** Each statement's speeds (3 2 1 | 2 2 2 | 1 2 3). */
+  vs: number[][];
+  /** The closing stroke of every statement (0 = none). */
+  closing: number;
+  /** The last closing stroke is not written (it is the 1). */
+  cut: boolean;
+  /** The way the speeds change ("turning round"). */
+  path: string;
+}
+
+const eqv = (a: readonly number[], b: readonly number[]) =>
+  a.length === b.length && a.every((v, i) => v === b[i]);
+
+/** The passage with the statements' speeds set to `vs` (n strokes a speed, closing, cut). */
+export function sayAcross(
+  a: Omit<SpeedsAcross, 'path'>,
+  vs: readonly (readonly number[])[],
+): number[] {
+  const out: number[] = [];
+  vs.forEach((v, i) => {
+    for (const s of v) for (let j = 0; j < a.n; j++) out.push(s);
+    if (a.closing && !(a.cut && i === vs.length - 1)) out.push(a.closing);
+  });
+  return out;
+}
+
+/**
+ * Three statements of the same length, each a ladder of n strokes a speed (one speed is a run of
+ * n × speeds strokes), with the same closing stroke, whose speeds follow one of `acrossPaths`
+ * (turning round, there and back, arriving at it, leaving it). Null otherwise, and for three
+ * equal statements (those are plain speeds).
+ */
+export function speedsAcrossOf(t: readonly number[]): SpeedsAcross | null {
+  if (t.length < 9) return null;
+  const sum = t.reduce((a, b) => a + b, 0);
+  const k = 3;
+  for (const closing of [0, ...new Set(t)])
+    for (const cut of closing ? [false, true] : [false]) {
+      const T = sum + (cut ? closing : 0);
+      if (T % k) continue;
+      const P = T / k;
+      // cut the passage into statements of P pulses (their edges must be tile edges)
+      const segs: number[][] = [];
+      let cur: number[] = [];
+      let acc = 0;
+      let ok = true;
+      for (const n of t) {
+        cur.push(n);
+        acc += n;
+        if (acc === P) {
+          segs.push(cur);
+          cur = [];
+          acc = 0;
+        } else if (acc > P) {
+          ok = false;
+          break;
+        }
+      }
+      if (!ok) continue;
+      if (cut) {
+        if (acc !== P - closing) continue;
+        segs.push([...cur, closing]);
+      } else if (cur.length) continue;
+      if (segs.length !== k) continue;
+      // every statement ends on the closing stroke
+      if (closing && segs.some((s) => s[s.length - 1] !== closing)) continue;
+      const bodies = segs.map((s) => (closing ? s.slice(0, -1) : s));
+      // the ladder's shape (speeds, strokes a speed) from a statement with three speeds at least
+      const l = bodies.map((b) => ladderOf(b)).find((x) => x && x.at === 0 && x.sizes.length >= 3);
+      if (!l) continue;
+      const L = l.sizes.length;
+      const vs: number[][] = [];
+      for (const b of bodies) {
+        if (b.length !== L * l.n) {
+          ok = false;
+          break;
+        }
+        const v: number[] = [];
+        for (let r = 0; r < L; r++) {
+          const run = b.slice(r * l.n, (r + 1) * l.n);
+          if (run.some((x) => x !== run[0])) ok = false;
+          v.push(run[0]!);
+        }
+        vs.push(v);
+      }
+      if (!ok || vs.every((v) => eqv(v, vs[0]!))) continue;
+      for (const base of [vs[0]!, vs[k - 1]!]) {
+        if (!simpleRatios(base) || new Set(base).size < 3) continue;
+        const p = acrossPaths(base, k).find((x) => x.vs.every((v, i) => eqv(v, vs[i]!)));
+        if (p) return { k, n: l.n, vs, closing, cut, path: p.name };
+      }
+    }
+  return null;
+}
+
+/** "Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round), 5 each, 3 closing", or null. */
+export function speedsAcrossLabel(t: readonly number[]): string | null {
+  const a = speedsAcrossOf(t);
+  if (!a) return null;
+  return `Speeds ${a.vs.map((v) => v.join(' ')).join(' | ')} (${a.path}), ${a.n} each${
+    a.closing ? `, ${a.closing} closing` : ''
+  }${a.cut ? ', last on the 1' : ''}`;
+}
+
+/**
+ * For a passage whose speeds already change across its statements: the other ways across, and
+ * the plain forms (the first statement's speeds, or the last one's, every time). Same length.
+ */
+export function otherWaysAcross(t: readonly number[]): { sizes: number[]; label: string }[] {
+  const a = speedsAcrossOf(t);
+  if (!a) return [];
+  const out: { sizes: number[]; label: string }[] = [];
+  const bases = [a.vs[0]!, a.vs[a.k - 1]!].filter((b) => new Set(b).size >= 3);
+  for (const base of bases) {
+    out.push({
+      sizes: sayAcross(
+        a,
+        Array.from({ length: a.k }, () => base),
+      ),
+      label: `${speedsName(base)}, ${a.n} strokes each, every time`,
+    });
+    for (const p of acrossPaths(base, a.k)) {
+      if (p.vs.every((v, i) => eqv(v, a.vs[i]!))) continue;
+      out.push({
+        sizes: sayAcross(a, p.vs),
+        label: `Speeds ${p.vs.map((v) => v.join(' ')).join(' | ')} (${p.name})`,
+      });
+    }
+  }
+  return out;
 }

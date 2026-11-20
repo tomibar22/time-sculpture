@@ -1,5 +1,5 @@
 import { countWays, sampleTiling } from './count';
-import { speedFills, speedsLabel } from './speeds';
+import { speedFills, speedsAcrossLabel, speedsLabel } from './speeds';
 import { yatiFills, yatiLabel } from './yati';
 
 /**
@@ -328,6 +328,7 @@ function goldenLabel(t: number[]): string | null {
 const LABELS: [ShapeFamily, (t: number[]) => string | null][] = [
   ['world', worldLabel],
   ['speeds', speedsLabel],
+  ['speeds', speedsAcrossLabel],
   ['repeat', repeatLabel],
   ['yati', yatiLabel],
   ['turn', turnLabel],

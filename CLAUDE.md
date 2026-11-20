@@ -21,6 +21,11 @@ breadth. Every gesture has a keyboard and a button equivalent.
 
 ## Commands
 
+- **CI** (`.github/workflows/ci.yml`, on every push to `main`): `check` = typecheck, lint, test,
+  build; `e2e` = Playwright with `CI=1`. Before pushing, run them as CI does, with `set -e` and
+  **never through a pipe** (`npm run lint | tail` hides both the error and the exit code: a lint
+  error once slipped through that way and failed five pushes in a row).
+
 - `npm run dev` · `npm run build` · `npm run typecheck` · `npm run lint`
 - `npm test` (Vitest, engine + store) · `npm run coverage` · `npm run e2e` (Playwright)
 - Playwright is pinned to the version matching the pre-installed Chromium; do not run
@@ -1060,4 +1065,12 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   (turning round)": numbers first, so phones show them) in Vary's Balanced group. A passage that
   is a speeds ladder gets no runs reading (Inside / gap trades), its inner shape being its speeds. Land's `speedWays` adds,
   three times, the paths except "leaving it" ("Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)"),
-  sorted after the plain ladder. Browse does not build them (no reader for unequal statements).
+  sorted after the plain ladder.
+- **Reading statements that differ** (speeds.ts): `speedsAcrossOf(t)` cuts a passage into three
+  statements of equal length (their edges on tile edges; a closing stroke ending each, the last
+  maybe cut), reads each as n strokes a speed (one speed = a run of n × speeds) and accepts it
+  when the speeds follow an `acrossPaths` path from the first or the last statement (three
+  equal statements are plain speeds: null). `speedsAcrossLabel` names it in Browse (family
+  `speeds`, after `speedsLabel` in LABELS); `speedFills` also builds them (×3, every path);
+  `otherWaysAcross` (Vary → Balanced) offers the plain forms ("… every time") and the other
+  paths. `sayAcross` writes one.
