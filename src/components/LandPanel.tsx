@@ -17,6 +17,7 @@ const FROM: ['any' | 'beat' | 'one', string, string][] = [
 const HEADS: Record<E.LandingKind, [string, string]> = {
   repeat: ['Repeated', 'so many times'],
   tihai: ['Tihai', 'three times, a gap between'],
+  yati: ['Yati', 'three times, the main size changing, the landing kept'],
   gapped: ['With a gap', 'any number of times'],
   shape: ['Shaped', 'the pattern, transformed'],
   even: ['Even', 'one size for the longs, one for the shorts'],
@@ -27,7 +28,8 @@ const LS_WORD = { L: 'Long', S: 'Short' } as const;
 /**
  * Land a pattern (third tab of the fill panel): build a pattern of tiles, and see every way it
  * ends exactly on the end of the region: how many times it is said and where it must begin; as a
- * tihai (three times, a gap tile between) or any number of times with a gap; and shaped (worn
+ * tihai (three times, a gap tile between); as a yati (three times, the cell's main size
+ * changing around a mean, so it lands where the plain tihai would); any number of times with a gap; and shaped (worn
  * away, built up, broad then as written, running through). "Last tile on the 1" lets the last
  * tile begin where the region ends, as a tihai's last stroke does (it is not written); "Begins"
  * keeps the ways that start on a beat or on a 1. A tap tries one in the score, Use writes it;
@@ -48,13 +50,26 @@ export function LandPanel() {
   const [why, setWhy] = useState<string | null>(null);
   const on1 = useUiStore((s) => s.landOn1);
   const from = useUiStore((s) => s.landFrom);
-  const version = useDocStore((s) => s.version);
   const R = region ? region.b - region.a : 0;
   const a = region?.a ?? 0;
   const p = ls ? 0 : sizesPattern.reduce((x, n) => x + n, 0);
+  const version = useDocStore((s) => s.version);
+  /** Pulses in a beat when every beat of the region has the same number (yati gaps of beats). */
+  const beat = useMemo(() => {
+    if (!region) return 0;
+    const sub = useDocStore.getState().doc.meter.subdivision;
+    const grid = E.buildGrid(useDocStore.getState().doc.meter);
+    const b0 = E.beatOfPulse(grid, region.a);
+    const b1 = E.beatOfPulse(grid, Math.max(region.a, region.b - 1));
+    const d = sub[b0] ?? 0;
+    for (let b = b0; b <= b1; b++) if (sub[b] !== d) return 0;
+    return d;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region?.a, region?.b, version]);
   const all = useMemo(
-    () => (ls ? E.lsLandings(R, lsPattern, { on1 }) : E.patternLandings(R, sizesPattern, { on1 })),
-    [R, ls, lsPattern, sizesPattern, on1],
+    () =>
+      ls ? E.lsLandings(R, lsPattern, { on1 }) : E.patternLandings(R, sizesPattern, { on1, beat }),
+    [R, ls, lsPattern, sizesPattern, on1, beat],
   );
   /** Where each way begins, and whether that is a strong place. */
   const places = useMemo(() => {
@@ -154,7 +169,7 @@ export function LandPanel() {
       ? `Tihai · gap ${l.gap}`
       : l.kind === 'gapped'
         ? `×${l.times} · gap ${l.gap}`
-        : l.kind === 'shape' || l.kind === 'free'
+        : l.kind === 'shape' || l.kind === 'free' || l.kind === 'yati'
           ? l.name
           : l.kind === 'even'
             ? `${l.name}${l.times > 1 ? ` ×${l.times}` : ''}`
@@ -379,7 +394,9 @@ export function LandPanel() {
                     <Strip {...shown(l)} beats={beats} />
                     <span className="fill-cap land-cap">
                       <span className="land-times">{title(l)}</span>
-                      {l.kind === 'shape' && l.note && <span className="land-what">{l.note}</span>}
+                      {(l.kind === 'shape' || l.kind === 'yati') && l.note && (
+                        <span className="land-what">{l.note}</span>
+                      )}
                       <span className="fill-meta land-where">
                         {l.lead ? `from ${w.text}` : 'fills it exactly'}
                         {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}

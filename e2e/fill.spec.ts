@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { at, DEFAULT_SEQ, expectSeq, fillFold, P, ready, score, tap } from './helpers';
+import { at, clearAll, DEFAULT_SEQ, expectSeq, fillFold, P, ready, score, tap } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -182,4 +182,21 @@ test('land: a tihai shows its gap as a tile; the last tile can fall on the 1', a
   const tihai = list.locator('.fill-main', { hasText: 'Tihai · gap 2' });
   await expect(tihai.locator('.strip-gap')).toHaveCount(2);
   await expect(tihai.locator('.strip-gap').first()).toHaveText('2');
+});
+
+test('land: a yati says the cell three times, its main size growing, and lands', async ({
+  page,
+}) => {
+  // an empty piece: 32 pulses, 4 a beat. The cell 3 2 3 (X 2 X): 2 → 3 → 4 lands where 3 3 3 would
+  await clearAll(page);
+  await page.getByRole('button', { name: 'Land…' }).first().click();
+  for (const n of [3, 2, 3]) await page.getByTestId(`land-${n}`).click();
+  const list = page.getByRole('list', { name: 'Ways it lands' });
+  await expect(list).toContainText('Yati');
+  const way = list.locator('.fill-main', { hasText: 'Widening 2 → 3 → 4' });
+  await expect(way).toContainText('X 2 X · 4 between');
+  await expect(way).toContainText('fills it exactly');
+  await way.click();
+  await way.click();
+  await expect(page.getByTestId('sequence')).toContainText('2 2 2 4 3 2 3 4 4 2 4');
 });

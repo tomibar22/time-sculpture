@@ -48,6 +48,7 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/move.ts      reorder (Place), slide (Pulse/Beat), stepDelta, clampSlide
   ops/meter.ts     setSubdivision, resizeMeter
   ops/bars.ts      setBars (metre / bar patterns), insertBars, removeBars, setRowSize
+  yati.ts          yati: a cell said 3 times, its main size changing around a mean (templateOf)
   longshort.ts     long–short shapes ("L S S"): parseLS, longShortOf, realizeLS, lsLandings
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
                    copyGroups, formatGroups / parseGroups ("3 (2) 4"), trimEdge
@@ -993,3 +994,16 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
 - **No focus frames anywhere** (`:focus, :focus-visible { outline: none }` in global.css; no
   `focusedId` ring in the score). Text fields keep their editing look; context-menu rows show
   keyboard focus as a background.
+
+### Studies of recorded pieces (docs/studies/; user request: learn from real compositions)
+
+- Each piece Tomer brings gets `docs/studies/<name>.md` (what it does, in his reading) and its
+  `.timesculpture.json`; an engine test must recognise / give it back. Study 1: `yati-5-7-9`.
+- **Yati in Land** (engine/yati.ts, `yatiWays` in land.ts, kind `yati`, listed after Tihai): the
+  pattern is a cell whose most frequent size is the variable X (`templateOf`, "X 3 X X 3 X X X
+  6"); it is said three times with X = shapes around a mean m that keep the sum (Even, Widening
+  m−d m m+d, Narrowing, Swelling m−d m+2d m−d, Pinched m+d m−2d m+d; d 1–3, sizes 1–16), so it
+  lands where the plain tihai of m would. Gaps: written straight on, between, or **before each**
+  (the study's `6 6 | cell | 6 6 | cell | 6 6 | cell`); gaps of whole beats are written as beat
+  strokes when the region's beats all have one subdivision (`LandOptions.beat`, from LandPanel).
+  Ranked: exact fit, gaps on beats, around the size written; each shape once with its best gap.

@@ -3,8 +3,10 @@
  * stretch of R pulses ends (a calculator for tihais and for patterns that cross the beat).
  * Everything is counted back from the end: the answer is where to begin.
  */
-/** `even` and `free` are long–short ways (engine/longshort.ts). */
-export type LandingKind = 'repeat' | 'tihai' | 'gapped' | 'shape' | 'even' | 'free';
+import { YATI_SHAPES, realize, templateOf, templateText } from './yati';
+
+/** `even` and `free` are long–short ways (engine/longshort.ts); `yati` see engine/yati.ts. */
+export type LandingKind = 'repeat' | 'tihai' | 'yati' | 'gapped' | 'shape' | 'even' | 'free';
 
 export interface PatternLanding {
   kind: LandingKind;
@@ -34,6 +36,11 @@ export interface LandOptions {
   on1?: boolean;
   /** At most this many of each kind. */
   limit?: number;
+  /**
+   * Pulses in a beat, when every beat of the stretch has the same number: yati gaps of whole
+   * beats are written as beat strokes (6 6), and ways whose gaps and start sit on beats come first.
+   */
+  beat?: number;
 }
 
 const sum = (a: readonly number[]) => a.reduce((x, n) => x + n, 0);
@@ -100,6 +107,16 @@ export function patternLandings(
     if (!take(s.sizes, { kind: 'tihai', times: 3, gap: g, gaps: s.gaps, key: `t${g}` })) break;
     n += out.length - before;
   }
+
+  // yati: the cell three times, its main size changing, the mean (and so the landing) kept
+  const yati: PatternLanding[] = [];
+  for (const c of yatiWays(R, pattern, opts)) {
+    const before = out.length;
+    take(c.full, c.more);
+    if (out.length > before) yati.push(out.pop()!);
+    if (yati.length >= 2 * limit) break;
+  }
+  out.push(...yati);
 
   // any other number of times with a gap: those that begin soonest first
   const gapped: PatternLanding[] = [];
@@ -177,4 +194,96 @@ export function patternLandings(
     });
   }
   return out;
+}
+
+interface YatiWay {
+  full: number[];
+  more: Omit<PatternLanding, 'sizes' | 'lead' | 'on1'>;
+}
+
+/**
+ * Yati ways, best first (each shape once, with its best gap): for every mean m (the cell with its main size m), shape and step d
+ * (0–3), the gaps that make it land: exactly (written straight after one another, or with the
+ * gap before each, as "6 6 | cell | 6 6 | cell | 6 6 | cell" does), and with a beat, gaps of
+ * whole beats that leave a lead of whole beats. Exact fits, gaps on beats, and ways around the
+ * cell as written (its size is the mean or one of the three) come first; then means near it.
+ */
+function yatiWays(R: number, cell: readonly number[], opts: LandOptions): YatiWay[] {
+  const t = templateOf(cell);
+  if (!t) return [];
+  const beat = opts.beat && opts.beat > 0 ? opts.beat : 0;
+  const words = templateText(cell);
+  const ways: (YatiWay & { score: number; order: number[] })[] = [];
+  const gapOf = (G: number) =>
+    G <= 0 ? [] : beat && G % beat === 0 ? Array<number>(G / beat).fill(beat) : [G];
+  for (let m = 1; m <= 16; m++)
+    for (const [si, shape] of YATI_SHAPES.entries())
+      for (let d = shape.id === 'even' ? 0 : 1; d <= (shape.id === 'even' ? 0 : 3); d++) {
+        const xs = shape.steps.map((k) => m + k * d);
+        if (xs.some((x) => x < 1 || x > 16)) continue;
+        const said = xs.map((x) => realize(cell, x));
+        const last = opts.on1 ? said[2]![said[2]!.length - 1]! : 0;
+        const left = R + last - said.reduce((a, s) => a + s.reduce((b, n) => b + n, 0), 0);
+        if (left < 0) continue;
+        /** [gap, before each] pairs to try. */
+        const tries: [number, boolean][] = [];
+        if (left % 2 === 0) tries.push([left / 2, false]);
+        if (left % 3 === 0 && left > 0) tries.push([left / 3, true]);
+        if (beat)
+          for (let k = 1; k <= 4; k++)
+            for (const each of [false, true]) {
+              const lead = left - (each ? 3 : 2) * k * beat;
+              if (lead > 0 && lead % beat === 0) tries.push([k * beat, each]);
+            }
+        for (const [G, each] of tries) {
+          const gap = gapOf(G);
+          const full: number[] = [];
+          const gaps: number[] = [];
+          said.forEach((s, i) => {
+            if (G && (each || i > 0))
+              for (const n of gap) {
+                gaps.push(full.length);
+                full.push(n);
+              }
+            full.push(...s);
+          });
+          const lead = left - (each ? 3 : 2) * G;
+          const score =
+            (lead === 0 ? 8 : 0) +
+            (beat && G % beat === 0 ? (G ? 4 : 2) : 0) +
+            (beat && lead % beat === 0 ? 1 : 0) -
+            Math.min(Math.abs(m - t.x), ...xs.map((x) => Math.abs(x - t.x)));
+          const gapWords = !G
+            ? 'back to back'
+            : `${gap.join(' ')} ${each ? 'before each' : 'between'}`;
+          ways.push({
+            full,
+            score,
+            order: [Math.abs(m - t.x), m, G, each ? 1 : 0, si, d],
+            more: {
+              kind: 'yati',
+              times: 3,
+              gap: G || undefined,
+              gaps: gaps.length ? gaps : undefined,
+              name: `${shape.name} ${xs.join(' → ')}`,
+              note: `${words} · ${gapWords}`,
+              key: `y${shape.id}${m}.${d}.${G}${each ? 'e' : 'p'}`,
+            },
+          });
+        }
+      }
+  ways.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    for (let i = 0; i < a.order.length; i++)
+      if (a.order[i] !== b.order[i]) return a.order[i]! - b.order[i]!;
+    return 0;
+  });
+  // each shape once, with its best gap
+  const once = new Set<string>();
+  return ways.filter((w) => {
+    const id = `${w.order[1]}.${w.order[4]}.${w.order[5]}`;
+    if (once.has(id)) return false;
+    once.add(id);
+    return true;
+  });
 }
