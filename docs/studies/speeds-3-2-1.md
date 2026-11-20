@@ -39,3 +39,18 @@ Test: `src/engine/__tests__/speeds.test.ts`. Land gives it back from `3 3 3 3 3`
   (faster and faster), 5 each, 3 closing · ×3".
 - **Vary → Balanced** (`speedBalances`): the speeds shared out again with the same sum and the
   same strokes: 1 → 2 → 3 (slower and slower), 2 → 2 → 2 (one speed), 1 → 4 → 1.
+
+## Joined with study 1: across the statements
+
+The two studies meet one level up. Study 1 changes its main size from statement to statement
+(5 → 7 → 9); study 2 changes its speed inside each statement (3 → 2 → 1). Together: the speeds
+change from statement to statement, every statement keeping its 11 beats:
+
+```
+3 3 3 3 3 · 2 2 2 2 2 · 1 1 1 1 1 · 3     faster and faster
+2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 · 3         one speed
+1 1 1 1 1 · 2 2 2 2 2 · 3 3 3 3 3 · [3]   slower and slower, the last 3 on the 1
+```
+
+Vary → Balanced "Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)"; Land, from `3 3 3 3 3`:
+"Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)", fills the 8 bars exactly.

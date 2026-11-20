@@ -63,3 +63,8 @@ Count long-range: a phrase's landing depends only on sums. Inside a fixed sum ev
 traded: three equal statements can widen, narrow, swell or pinch; a run of tiles can slow down
 or speed up, written out; the gap can stand between or before each. Cross the beat inside,
 meet it at the seams.
+
+## Across the statements (with study 2)
+
+The inside can change from statement to statement too, each keeping its length: "Inside 1 2 3 | 2 2 2 | 3 2 1 (turning round)" = X · XX · XXX, then XX · XX · XX, then
+XXX · XX · X, over 5 → 7 → 9: the growth turns round while the cells widen.

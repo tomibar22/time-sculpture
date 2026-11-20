@@ -5,7 +5,7 @@
  * and the count grows (X · X X · X X X); here the count stays and the size shrinks. Both keep a
  * sum, so both can be shared out again without moving the landing.
  */
-import { balanceName, rebalances, statementsOf } from './yati';
+import { acrossPaths, balanceName, rebalances, sayCells, statementsOf } from './yati';
 
 export interface Run {
   n: number;
@@ -223,4 +223,22 @@ export function speedFills(R: number, sizes: readonly number[], limit = 60): num
       }
   }
   return out.sort((a, b) => a.length - b.length).slice(0, limit);
+}
+
+/**
+ * The speeds changing from statement to statement (acrossPaths): "Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning
+ * round)": the first statement faster and faster, the next at one speed, the last
+ * slower and slower. Every statement keeps its length, so the landing stays.
+ */
+export function speedsAcross(t: readonly number[]): { sizes: number[]; label: string }[] {
+  const r = readLadder(t);
+  if (!r?.st || r.st.k < 2) return [];
+  const st = r.st;
+  return acrossPaths(r.l.sizes, st.k).map((p) => ({
+    sizes: sayCells(
+      st,
+      p.vs.map((v) => withLadder(r.cell, r.l, v)),
+    ),
+    label: `Speeds ${p.vs.map((v) => v.join(' ')).join(' | ')} (${p.name})`,
+  }));
 }

@@ -1,10 +1,11 @@
 import type { GroupSpec } from './ops/edit';
 import { formatGroups } from './ops/edit';
 import { longShortOf, realizeLS } from './longshort';
-import { speedBalances } from './speeds';
+import { speedBalances, speedsAcross } from './speeds';
 import {
   balanceName,
   gapTrades,
+  innerAcross,
   innerBalances,
   oneStatement,
   ramps,
@@ -240,14 +241,22 @@ export function variations(
           `${r.name} ${r.xs.join(' → ')} · ${r.sum}`,
           'balance',
         );
-    // one level down: the runs of the main size inside the cell (X | XX | XXX → 3 2 1, 2 2 2)
-    const one = st && balanceName(st.xs) ? st : oneStatement(sizes);
-    if (one) for (const r of innerBalances(one)) put(r.sizes.map(sound), r.label, 'balance');
-    // between the gaps and the cells: the gaps give pulses to the cells, or take them back
-    if (st && balanceName(st.xs))
-      for (const r of gapTrades(st)) put(r.sizes.map(sound), r.label, 'balance');
-    // the same strokes at other speeds (3 2 1 → 1 2 3, 2 2 2): count kept, sizes shared out
-    for (const r of speedBalances(sizes)) put(r.sizes.map(sound), r.label, 'balance');
+    // a phrase at several speeds: its inner shape is its speeds (not the runs of one size)
+    const speeds = speedBalances(sizes);
+    for (const r of speeds) put(r.sizes.map(sound), r.label, 'balance');
+    // a third level: the speeds changing from statement to statement, each the same length
+    for (const r of speedsAcross(sizes)) put(r.sizes.map(sound), r.label, 'balance');
+    if (!speeds.length) {
+      // one level down: the runs of the main size inside the cell (X | XX | XXX → 3 2 1, 2 2 2)
+      const one = st && balanceName(st.xs) ? st : oneStatement(sizes);
+      if (one) for (const r of innerBalances(one)) put(r.sizes.map(sound), r.label, 'balance');
+      if (st && balanceName(st.xs)) {
+        // the runs changing from statement to statement (1 2 3 | 2 2 2 | 3 2 1)
+        for (const r of innerAcross(st)) put(r.sizes.map(sound), r.label, 'balance');
+        // between the gaps and the cells: the gaps give pulses to the cells, or take them back
+        for (const r of gapTrades(st)) put(r.sizes.map(sound), r.label, 'balance');
+      }
+    }
     for (const r of ramps(sizes)) put(r.sizes.map(sound), r.label, 'balance');
   }
   for (const v of nudges(base, lock)) put(v.groups, v.label, 'nudge');

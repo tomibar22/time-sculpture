@@ -4,7 +4,7 @@
  * Everything is counted back from the end: the answer is where to begin.
  */
 import { speedsName } from './speeds';
-import { YATI_SHAPES, realize, templateOf, templateText } from './yati';
+import { YATI_SHAPES, acrossPaths, realize, templateOf, templateText } from './yati';
 
 /** `even` and `free` are long–short ways (engine/longshort.ts); `yati` see engine/yati.ts. */
 export type LandingKind =
@@ -127,7 +127,9 @@ export function patternLandings(
     take(c.full, c.more);
     if (out.length > before) speeds.push(out.pop()!);
   }
-  speeds.sort((x, y) => x.lead - y.lead || y.times - x.times);
+  // exact fits first; the plain ladder before the ways whose speeds change from time to time
+  const across = (l: PatternLanding) => (l.name?.includes('|') ? 1 : 0);
+  speeds.sort((x, y) => x.lead - y.lead || across(x) - across(y) || y.times - x.times);
   out.push(...speeds.slice(0, limit));
 
   // any other number of times with a gap: those that begin soonest first
@@ -323,6 +325,23 @@ function speedWays(pattern: readonly number[]): YatiWay[] {
   for (const l of [...ladders, ...ladders.map((x) => [...x].reverse())])
     for (const c of [g, 0]) {
       const said = [...l.flatMap((m) => unit.map((u) => u * m)), ...(c ? [c] : [])];
+      // three times with the speeds turning round from one time to the next (3 2 1 | 2 2 2 | 1 2 3)
+      for (const p of acrossPaths(l, 3).filter((x) => x.name !== 'leaving it')) {
+        const full = p.vs.flatMap((v) => [
+          ...v.flatMap((m) => unit.map((u) => u * m)),
+          ...(c ? [c] : []),
+        ]);
+        out.push({
+          full,
+          more: {
+            kind: 'speeds',
+            times: 3,
+            name: `Speeds ${p.vs.map((v) => v.join(' ')).join(' | ')} (${p.name})`,
+            note: `${pattern.join(' ')}, the speeds changing each time${c ? `, ${c} closing` : ''}`,
+            key: `s${l.join('.')}c${c}${p.name}`,
+          },
+        });
+      }
       for (const times of [3, 1]) {
         const full = Array.from({ length: times }, () => said).flat();
         out.push({

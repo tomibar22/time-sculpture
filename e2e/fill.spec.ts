@@ -217,3 +217,20 @@ test('land: speeds say the pattern again with shorter strokes, and land', async 
   // seven pulses stay open before it; it ends on the end
   await expect(page.getByTestId('sequence')).toContainText('· │ 4 4 4 2 2 2 1 1 1 4');
 });
+
+test('land: speeds that turn round from one time to the next, the landing kept', async ({
+  page,
+}) => {
+  // a stroke of 3 at 3 → 2 → 1, then one speed, then 1 → 2 → 3, a closing 3 each: 27 pulses
+  await clearAll(page);
+  await page.getByRole('button', { name: 'Land…' }).first().click();
+  await page.getByTestId('land-3').click();
+  const list = page.getByRole('list', { name: 'Ways it lands' });
+  const way = list
+    .locator('.fill-main', { hasText: 'Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)' })
+    .filter({ hasText: '3 closing' })
+    .first();
+  await way.click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
+  await expect(page.getByTestId('sequence')).toContainText('3 2 1 3 2 2 2 3 1 2 3 3');
+});

@@ -1051,3 +1051,13 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   closing tile. Land kind `speeds` (`speedWays`): the pattern ÷ its gcd g said at multiples g,
   then smaller (every decreasing ladder from g, 2–4 speeds, and turned round), closing g or none,
   once or three times, exact fits first.
+- **Across the statements, a third level** (yati.ts / speeds.ts, user request "continue": join
+  the two studies): `acrossPaths(v, k)` = ways for an inner shape v to change from statement to
+  statement with every statement's length kept: turning round (v, even…, v backwards), there and
+  back (no whole even), arriving at it (even…, v), leaving it (v, even…). `sayCells(st, cells)`
+  writes statements with a cell each; `cellOf(st, i)`. `innerAcross(st)` (runs: "Inside 1 2 3
+  | 2 2 2 | 3 2 1 (turning round)") and `speedsAcross(t)` ("Speeds 3 2 1 | 2 2 2 | 1 2 3
+  (turning round)": numbers first, so phones show them) in Vary's Balanced group. A passage that
+  is a speeds ladder gets no runs reading (Inside / gap trades), its inner shape being its speeds. Land's `speedWays` adds,
+  three times, the paths except "leaving it" ("Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)"),
+  sorted after the plain ladder. Browse does not build them (no reader for unequal statements).

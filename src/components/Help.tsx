@@ -317,7 +317,8 @@ export function Help() {
             <p>
               <b>Speeds</b>: the pattern said again with shorter strokes, faster and faster (3 3 3 3
               3 → 2 2 2 2 2 → 1 1 1 1 1), or slower and slower, once or three times, with a closing
-              stroke of the slowest size.
+              stroke of the slowest size; or with the speeds turning round from one time to the next
+              (3 2 1 | 2 2 2 | 1 2 3).
             </p>
             <p>
               <b>Last tile on the 1</b>: as in a tihai, the pattern’s last tile begins exactly where
@@ -354,7 +355,10 @@ export function Help() {
               trades between the breath and the cells: 6 6 before each becomes 6 while every cell’s
               main size grows by one (5 7 9 → 6 8 10), or the other way round. <b>Speeds</b>: a
               phrase said at several speeds (3 3 3 3 3 · 2 2 2 2 2 · 1 1 1 1 1) can be said slower
-              and slower, or at one speed, with the same strokes in the same time.
+              and slower, or at one speed, with the same strokes in the same time. And <b>across</b>{' '}
+              the statements, the inner shape can change from one to the next: 3 2 1, then 2 2 2,
+              then 1 2 3 (turning round), or only the last one as written (arriving at it); every
+              statement keeps its length.
             </p>
           </details>
           <details className="help-topic">

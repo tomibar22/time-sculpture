@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import study from '../../../docs/studies/speeds-3-2-1.timesculpture.json';
-import { ladderOf, runsAll, speedBalances, speedFills, speedsLabel, withLadder } from '../speeds';
+import {
+  ladderOf,
+  runsAll,
+  speedBalances,
+  speedFills,
+  speedsAcross,
+  speedsLabel,
+  withLadder,
+} from '../speeds';
 import { statementsOf } from '../yati';
 import { patternLandings } from '../land';
 import { shapeOf, shapeFills } from '../shapes';
@@ -77,5 +85,28 @@ describe('speeds: one phrase at several speeds', () => {
     expect(withLadder([3, 3, 2, 2, 5], { at: 0, n: 2, sizes: [3, 2] }, [2, 3])).toEqual([
       2, 2, 3, 3, 5,
     ]);
+  });
+});
+
+describe('across the statements: the speeds change from one to the next', () => {
+  it('turning round: 3 2 1 | 2 2 2 | 1 2 3, every statement 11 beats, the landing kept', () => {
+    const t = speedsAcross(PIECE).find((r) => r.label.includes('turning round'))!;
+    expect(t.label).toBe('Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)');
+    expect(sum(t.sizes)).toBe(99);
+    expect(t.sizes.slice(16, 32)).toEqual([...Array(15).fill(2), 3]);
+    expect(t.sizes.slice(32)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]);
+  });
+  it('Vary offers it, and no runs reading of a speeds phrase', () => {
+    const vs = variations(PIECE.map((n) => ({ n, kind: 'sound' as const })));
+    expect(vs.some((v) => v.label === 'Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)')).toBe(true);
+    expect(vs.some((v) => v.label.startsWith('Inside'))).toBe(false);
+  });
+  it('Land: the plain ladder first, then the ways that change each time', () => {
+    const ls = patternLandings(96, [3, 3, 3, 3, 3], { on1: true, beat: 3 }).filter(
+      (l) => l.kind === 'speeds',
+    );
+    expect(ls[0]!.name).toBe('Speeds 3 → 2 → 1 (faster and faster) · three times');
+    const turn = ls.find((l) => l.name === 'Speeds 3 2 1 | 2 2 2 | 1 2 3 (turning round)')!;
+    expect(turn.lead).toBe(0);
   });
 });

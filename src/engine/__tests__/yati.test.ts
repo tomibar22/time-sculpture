@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { patternLandings } from '../land';
 import {
+  acrossPaths,
+  innerAcross,
   gapTrades,
   headAsGap,
   innerBalances,
@@ -227,5 +229,30 @@ describe('one level down, and between the gaps and the cells', () => {
       ),
       { numRuns: 300 },
     );
+  });
+});
+
+describe('across the statements: the runs inside change from one to the next', () => {
+  it('paths keep the sum of every statement', () => {
+    expect(acrossPaths([1, 2, 3], 3).map((p) => p.name)).toEqual([
+      'turning round',
+      'arriving at it',
+      'leaving it',
+    ]);
+    expect(acrossPaths([1, 2], 3)[0]).toEqual({
+      name: 'there and back',
+      vs: [
+        [1, 2],
+        [2, 1],
+        [1, 2],
+      ],
+    });
+    expect(acrossPaths([2, 2, 2], 3)).toEqual([]);
+  });
+  it('study 1 turning round inside: X · XX · XXX, then XX · XX · XX, then XXX · XX · X', () => {
+    const t = innerAcross(statementsOf(PIECE)!).find((r) => r.label.includes('turning round'))!;
+    expect(t.label).toBe('Inside 1 2 3 | 2 2 2 | 3 2 1 (turning round)');
+    expect(sum(t.sizes)).toBe(192);
+    expect(t.sizes.slice(11, 22)).toEqual([6, 6, 7, 7, 3, 7, 7, 3, 7, 7, 6]);
   });
 });

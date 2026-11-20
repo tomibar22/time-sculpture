@@ -538,3 +538,82 @@ export function gapTrades(given: Statements): Reshaped[] {
   }
   return out;
 }
+
+/* -------------------------------------------- across the statements (a third level) */
+
+const same = (a: readonly number[], b: readonly number[]) =>
+  a.length === b.length && a.every((v, i) => v === b[i]);
+
+/**
+ * Ways for an inner shape v (the runs inside a cell, or a phrase's speeds) to change from one
+ * statement to the next while every statement keeps its length (v's sum is kept): turning round
+ * (v, then even, then v backwards: 3 2 1 | 2 2 2 | 1 2 3), there and back (v, backwards, v) when
+ * there is no whole even, arriving at it (even … then v: it appears only at the end), leaving it
+ * (v, then even …).
+ */
+export function acrossPaths(v: readonly number[], k: number): { name: string; vs: number[][] }[] {
+  if (k < 2 || v.length < 2) return [];
+  const rev = [...v].reverse();
+  const S = v.reduce((a, b) => a + b, 0);
+  const even = S % v.length ? null : Array<number>(v.length).fill(S / v.length);
+  const out: { name: string; vs: number[][] }[] = [];
+  if (!same(v, rev)) {
+    if (k === 2) out.push({ name: 'turning round', vs: [[...v], rev] });
+    else if (even && !same(v, even))
+      out.push({
+        name: 'turning round',
+        vs: [[...v], ...Array.from({ length: k - 2 }, () => even), rev],
+      });
+    else
+      out.push({
+        name: 'there and back',
+        vs: Array.from({ length: k }, (_, i) => (i % 2 ? rev : [...v])),
+      });
+  }
+  if (even && !same(v, even)) {
+    out.push({
+      name: 'arriving at it',
+      vs: [...Array.from({ length: k - 1 }, () => even), [...v]],
+    });
+    out.push({ name: 'leaving it', vs: [[...v], ...Array.from({ length: k - 1 }, () => even)] });
+  }
+  return out;
+}
+
+/** The statements written with a cell of their own each (the gap, before and cut kept). */
+export function sayCells(st: Statements, cells: readonly (readonly number[])[]): number[] {
+  const out: number[] = st.before ? [...st.gap] : [];
+  cells.forEach((cell, i) => {
+    const c = [...cell];
+    if (st.cut && i === cells.length - 1) c.pop();
+    out.push(...c);
+    if (i < cells.length - 1) out.push(...st.gap);
+  });
+  return out;
+}
+
+/** Statement i's cell as written (its main size set). */
+export function cellOf(st: Statements, i: number): number[] {
+  const slot = new Set(st.slots);
+  return st.cell.map((n, p) => (slot.has(p) ? st.xs[i]! : n));
+}
+
+/**
+ * The runs inside the cell changing from statement to statement (acrossPaths): "Inside 1 2 3 |
+ * 2 2 2 | 3 2 1 (turning round)". Every statement keeps its length.
+ */
+export function innerAcross(st: Statements): Reshaped[] {
+  if (st.k < 2) return [];
+  const r = runsOf(st.cell, st.slots);
+  if (!r) return [];
+  const out: Reshaped[] = [];
+  for (const p of acrossPaths(r.runs, st.k)) {
+    const cells = p.vs.map((v, i) => withRuns(cellOf(st, i), st.slots, v)?.cell);
+    if (cells.some((c) => !c)) continue;
+    out.push({
+      sizes: sayCells(st, cells as number[][]),
+      label: `Inside ${p.vs.map((v) => v.join(' ')).join(' | ')} (${p.name})`,
+    });
+  }
+  return out;
+}
