@@ -51,6 +51,12 @@ piece (not in the file).
 - Reading: `statementsOf` reads this piece as three statements of `6 6 X 3 X X 3 X X X 6`, the
   last 6 on the 1 (`yatiLabel`: "Widening 5 → 7 → 9 · 6 6 X 3 X X 3 X X X 6, last on the 1").
 
+- **Vary → Balanced, one level down**: "Inside: narrowing 3 → 2 → 1 · 6 6 X X X 3 X X 3 X 6"
+  (also even 2 2 2, swelling 1 4 1), the same landing.
+- **Vary → Balanced, gaps and cells**: the 6 6 is the breath before each cell. "Gaps give 18:
+  6 6 → 6, cells 6 → 8 → 10"; "Gaps take 18: 6 6 → 6 6 6, cells 4 → 6 → 8"; "Gaps give 36: none,
+  cells 7 → 9 → 11" (back to back).
+
 ## The general lesson
 
 Count long-range: a phrase's landing depends only on sums. Inside a fixed sum everything can be

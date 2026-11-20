@@ -1,7 +1,16 @@
 import type { GroupSpec } from './ops/edit';
 import { formatGroups } from './ops/edit';
 import { longShortOf, realizeLS } from './longshort';
-import { balanceName, ramps, rebalances, sayStatements, statementsOf } from './yati';
+import {
+  balanceName,
+  gapTrades,
+  innerBalances,
+  oneStatement,
+  ramps,
+  rebalances,
+  sayStatements,
+  statementsOf,
+} from './yati';
 
 /**
  * Variations of a passage: the same stretch of time said another way. Every variation has
@@ -230,6 +239,12 @@ export function variations(
           `${r.name} ${r.xs.join(' → ')} · ${r.sum}`,
           'balance',
         );
+    // one level down: the runs of the main size inside the cell (X | XX | XXX → 3 2 1, 2 2 2)
+    const one = st && balanceName(st.xs) ? st : oneStatement(sizes);
+    if (one) for (const r of innerBalances(one)) put(r.sizes.map(sound), r.label, 'balance');
+    // between the gaps and the cells: the gaps give pulses to the cells, or take them back
+    if (st && balanceName(st.xs))
+      for (const r of gapTrades(st)) put(r.sizes.map(sound), r.label, 'balance');
     for (const r of ramps(sizes)) put(r.sizes.map(sound), r.label, 'balance');
   }
   for (const v of nudges(base, lock)) put(v.groups, v.label, 'nudge');

@@ -342,7 +342,11 @@ export function Help() {
               <b>Balanced</b> comes first: when the passage is a cell said again (a tihai, a repeat,
               a yati), its main size is shared out again with the same sum: three 7s become 5 7 9 or
               9 7 5, and back; the sum is shown (5+7+9 = 3×7). Any passage can also slow down or
-              speed up, written out, every tile a step longer or shorter, in the same time.
+              speed up, written out, every tile a step longer or shorter, in the same time. One
+              level down, <b>Inside</b> shares out the runs of the main size within the cell (X · X
+              X · X X X becomes X X X · X X · X, or X X · X X · X X). And <b>Gaps give / take</b>{' '}
+              trades between the breath and the cells: 6 6 before each becomes 6 while every cell’s
+              main size grows by one (5 7 9 → 6 8 10), or the other way round.
             </p>
           </details>
           <details className="help-topic">

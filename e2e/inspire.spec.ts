@@ -333,6 +333,32 @@ test('browse: yatis are a kind of their own, named by how they share out', async
   await expect(list.locator('.fill-main').first()).toContainText(
     /Widening|Narrowing|Swelling|Pinched/,
   );
-  await list.locator('.fill-main').first().dblclick();
+  await list.locator('.fill-main').first().click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
+});
+
+test('vary, balanced: the gaps give to the cells, the runs inside a cell turn round', async ({
+  page,
+}) => {
+  await clearAll(page);
+  // the tihai 3 2 3 · 4 · 3 2 3 · 4 · 3 2 3: the gaps give 6 pulses to the cells (3 → 4)
+  for (const d of '32343234323') await page.keyboard.press(d);
+  await page.keyboard.press('Shift+KeyA');
+  await page.keyboard.press('Shift+KeyV');
+  const list = page.getByRole('list', { name: 'Variations' });
+  await list.getByRole('button', { name: /Gaps give 6: 4 → 1, cells 4 → 4 → 4/ }).click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
+  await expect(page.getByTestId('sequence')).toContainText('4 2 4 1 4 2 4 1 4 2 4');
+  await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
+  await page.getByRole('button', { name: 'Close' }).first().click();
+  // a phrase of its own: 3 1 3 3 1 3 3 3 is X | XX | XXX; turned round inside, the same length
+  await clearAll(page);
+  for (const d of '31331333') await page.keyboard.press(d);
+  await expect(page.getByTestId('sequence')).toContainText('3 1 3 3 1 3 3 3 │');
+  await page.keyboard.press('Shift+KeyA');
+  await page.keyboard.press('Shift+KeyV');
+  await list.getByRole('button', { name: /Inside: narrowing 3 → 2 → 1/ }).click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
+  await expect(page.getByTestId('sequence')).toContainText('3 3 3 1 3 3 1 3');
 });

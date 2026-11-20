@@ -1028,3 +1028,13 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   (`measureFill`): the share of statement / gap edges on a beat; sort "Across inside, on the
   beat at the seams" (seams × crossing); yatis with seams on beats first in their family.
 - Land's yati rows say the arithmetic too ("… · 5+7+9 = 3×7").
+- **One level down, and between gaps and cells** (yati.ts; Vary's Balanced group, user request):
+  `runsOf(cell, slots)` reads the runs of the main size between fixed tiles (X | 3 | X X | 3 |
+  X X X | 6 = 1 2 3), `withRuns` writes them back; `innerBalances(st)` = `rebalances` of the
+  runs (same count of X, so every statement keeps its length), the same inner shape in every
+  statement ("Inside: narrowing 3 → 2 → 1 · …"); a passage that is no statements is one cell of
+  its own (`oneStatement`). `headAsGap(st)`: fixed tiles at the head of a cell with no gap are
+  the gap before each (the study's 6 6). `gapTrades(st)`: every main size + Δ (shape kept, Δ ±1–3)
+  and each gap changes by −(X per cell × k × Δ) ÷ gaps (whole, ≥ 0), written in strokes of its own
+  size, else one stroke ≤ 16 ("Gaps give 18: 6 6 → 6, cells 6 → 8 → 10"). Browse also builds the
+  studied cell turned round and evened out ("X X X f X X f X", "X X f X X f X X").

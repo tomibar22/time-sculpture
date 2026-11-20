@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { patternLandings } from '../land';
 import {
+  gapTrades,
+  headAsGap,
+  innerBalances,
+  oneStatement,
+  runsOf,
+  withRuns,
   balanceName,
   ramps,
   realize,
@@ -163,5 +169,63 @@ describe('seams: across the beat inside, on the beat at the seams', () => {
     const { options } = fillOptions(meter, 0, 32, [2, 3, 4, 5, 6]);
     const best = sortFills(options, 'seams')[0]!;
     expect(best.seams).toBe(1);
+  });
+});
+
+describe('one level down, and between the gaps and the cells', () => {
+  it('reads the runs inside the cell: X | 3 | X X | 3 | X X X | 6 = 1 2 3', () => {
+    const cell = [7, 3, 7, 7, 3, 7, 7, 7, 6];
+    const slots = templateOf(cell)!.slots;
+    expect(runsOf(cell, slots)!.runs).toEqual([1, 2, 3]);
+    expect(withRuns(cell, slots, [3, 2, 1])!.cell).toEqual([7, 7, 7, 3, 7, 7, 3, 7, 6]);
+    expect(runsOf([3, 3, 2], [0, 1])).toBeNull();
+  });
+  it('the studied piece turned round inside: X X X 3 X X 3 X, the landing kept', () => {
+    const st = statementsOf(PIECE)!;
+    const r = innerBalances(st);
+    const turned = r.find((x) => x.label.startsWith('Inside: narrowing 3 → 2 → 1'))!;
+    expect(sum(turned.sizes)).toBe(192);
+    expect(turned.sizes.slice(0, 10)).toEqual([6, 6, 5, 5, 5, 3, 5, 5, 3, 5]);
+    for (const x of r) expect(sum(x.sizes)).toBe(192);
+    // a passage that is no statements: one cell of its own
+    expect(
+      innerBalances(oneStatement([5, 3, 5, 5, 3, 5, 5, 5])!).map((x) => x.sizes),
+    ).toContainEqual([5, 5, 5, 3, 5, 5, 3, 5]);
+  });
+  it('the 6 6 at the head of each cell is the gap before each', () => {
+    const st = headAsGap(statementsOf(PIECE)!);
+    expect(st).toMatchObject({ gap: [6, 6], before: true, xs: [5, 7, 9] });
+    expect(sayStatements(st, st.xs)).toEqual(PIECE);
+  });
+  it('the gaps give to the cells or take from them; the total stays', () => {
+    const t = gapTrades(statementsOf(PIECE)!);
+    const give = t.find((x) => x.label === 'Gaps give 18: 6 6 → 6, cells 6 → 8 → 10')!;
+    expect(give.sizes.slice(0, 2)).toEqual([6, 6]);
+    expect(give.sizes[1]).toBe(6);
+    expect(give.sizes[2]).toBe(3);
+    expect(t.map((x) => x.label)).toContain('Gaps take 18: 6 6 → 6 6 6, cells 4 → 6 → 8');
+    expect(t.map((x) => x.label)).toContain('Gaps give 36: 6 6 → none, cells 7 → 9 → 11');
+    for (const x of t) expect(sum(x.sizes)).toBe(192);
+  });
+  it('every trade and every inner balance keeps the length (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: 1, max: 6 }), { minLength: 2, maxLength: 5 }),
+        fc.array(fc.integer({ min: 1, max: 4 }), { minLength: 0, maxLength: 2 }),
+        fc.integer({ min: 2, max: 9 }),
+        (cell, gap, x) => {
+          const c = [x, ...cell, x, x];
+          const passage = [...c, ...gap, ...c, ...gap, ...c];
+          const st = statementsOf(passage);
+          if (!st) return;
+          const T = sum(passage);
+          for (const r of [...gapTrades(st), ...innerBalances(st)]) {
+            expect(sum(r.sizes)).toBe(T);
+            expect(r.sizes.every((n) => n >= 1)).toBe(true);
+          }
+        },
+      ),
+      { numRuns: 300 },
+    );
   });
 });

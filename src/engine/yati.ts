@@ -306,6 +306,9 @@ const CELLS: { text: string; build: (x: number, f: number, g: number) => number[
   { text: 'X X X f', build: (x, f) => [x, x, x, f] },
   { text: 'X f X X f X X X', build: (x, f) => [x, f, x, x, f, x, x, x] },
   { text: 'X f X X f X X X g', build: (x, f, g) => [x, f, x, x, f, x, x, x, g], g: true },
+  // the same growth turned round, and evened out (the inner shapes of the studied cell)
+  { text: 'X X X f X X f X', build: (x, f) => [x, x, x, f, x, x, f, x] },
+  { text: 'X X f X X f X X', build: (x, f) => [x, x, f, x, x, f, x, x] },
 ];
 
 /**
@@ -385,4 +388,153 @@ export function yatiLabel(t: readonly number[]): string | null {
   const name = balanceName(st.xs);
   if (!name) return null;
   return `${name} ${st.xs.join(' → ')} · ${statementsWords(st)}`;
+}
+
+/* ------------------------------------- inside the cell, and between gaps and cells */
+
+/**
+ * The cell read one level down: runs of its main size between fixed tiles, "X | 3 | X X | 3 |
+ * X X X | 6" = runs 1 2 3. Null with fewer than two runs.
+ */
+export function runsOf(
+  cell: readonly number[],
+  slots: readonly number[],
+): { runs: number[]; parts: (number[] | null)[] } | null {
+  const slot = new Set(slots);
+  // parts: fixed stretches as arrays, each run as null (its length in `runs`)
+  const parts: (number[] | null)[] = [];
+  const runs: number[] = [];
+  let i = 0;
+  while (i < cell.length) {
+    if (slot.has(i)) {
+      let n = 0;
+      while (i < cell.length && slot.has(i)) (n++, i++);
+      runs.push(n);
+      parts.push(null);
+    } else {
+      const f: number[] = [];
+      while (i < cell.length && !slot.has(i)) f.push(cell[i++]!);
+      parts.push(f);
+    }
+  }
+  return runs.length >= 2 ? { runs, parts } : null;
+}
+
+/** The cell with its runs of the main size set to `runs` (the fixed tiles kept). */
+export function withRuns(
+  cell: readonly number[],
+  slots: readonly number[],
+  runs: readonly number[],
+): { cell: number[]; slots: number[] } | null {
+  const r = runsOf(cell, slots);
+  if (!r || r.runs.length !== runs.length) return null;
+  const x = cell[slots[0]!]!;
+  const out: number[] = [];
+  const at: number[] = [];
+  let j = 0;
+  for (const p of r.parts) {
+    if (p) {
+      out.push(...p);
+      continue;
+    }
+    for (let n = 0; n < runs[j]!; n++) {
+      at.push(out.length);
+      out.push(x);
+    }
+    j++;
+  }
+  return { cell: out, slots: at };
+}
+
+/** A passage that is no statements read as one statement of itself (its main size as X). */
+export function oneStatement(sizes: readonly number[]): Statements | null {
+  const t = templateOf(sizes);
+  if (!t || t.slots.length === sizes.length) return null;
+  return { k: 1, cell: [...sizes], slots: t.slots, xs: [t.x], gap: [], before: false, cut: false };
+}
+
+export interface Reshaped {
+  sizes: number[];
+  label: string;
+}
+
+/**
+ * One level down, the same arithmetic: the runs of the main size inside the cell shared out
+ * again with the same count (1 2 3 → 3 2 1, 2 2 2, 1 4 1 …), so every statement keeps its length
+ * and the passage its landing. Every statement gets the same inner shape.
+ */
+export function innerBalances(st: Statements): Reshaped[] {
+  const r = runsOf(st.cell, st.slots);
+  if (!r) return [];
+  const out: Reshaped[] = [];
+  for (const b of rebalances(r.runs)) {
+    const w = withRuns(st.cell, st.slots, b.xs);
+    if (!w) continue;
+    const next: Statements = { ...st, cell: w.cell, slots: w.slots };
+    out.push({
+      sizes: sayStatements(next, st.xs),
+      label: `Inside: ${b.name.toLowerCase()} ${b.xs.join(' → ')} · ${statementsText(next)}`,
+    });
+  }
+  return out;
+}
+
+/**
+ * A cell that begins with fixed tiles and has no gap read with those tiles as the gap before each
+ * statement: "6 6 X 3 X X 3 X X X 6" three times is "6 6" before each of "X 3 X X 3 X X X 6".
+ * The same passage; only the breath is named as such.
+ */
+export function headAsGap(st: Statements): Statements {
+  if (st.gap.length || !st.slots.length || st.slots[0] === 0) return st;
+  const h = st.slots[0]!;
+  return {
+    ...st,
+    gap: st.cell.slice(0, h),
+    before: true,
+    cell: st.cell.slice(h),
+    slots: st.slots.map((p) => p - h),
+  };
+}
+
+/**
+ * Between the gaps and the cells: every statement's main size grows by Δ (the shape of the xs
+ * kept) and the gaps give back what the cells take, or the other way round, so the total stays.
+ * Each gap changes by −(X's per cell × statements × Δ) ÷ gaps, and must stay ≥ 0 and whole; a gap
+ * is written in strokes of its own size (6 6 → 6, 6 6 6), else as one stroke (≤ 16), else in its
+ * strokes and what is left.
+ */
+export function gapTrades(given: Statements): Reshaped[] {
+  if (given.k < 2) return [];
+  const st = headAsGap(given);
+  const c = st.slots.length;
+  const gaps = st.k - 1 + (st.before ? 1 : 0);
+  const g = st.gap.reduce((a, n) => a + n, 0);
+  const unit = st.gap.length && st.gap.every((n) => n === st.gap[0]) ? st.gap[0]! : 0;
+  const total = sayStatements(st, st.xs).reduce((a, n) => a + n, 0);
+  const out: Reshaped[] = [];
+  for (const dm of [1, 2, 3, -1, -2, -3]) {
+    const dg = (-c * st.k * dm) / gaps;
+    const ng = g + dg;
+    if (!Number.isInteger(ng) || ng < 0) continue;
+    const xs = st.xs.map((x) => x + dm);
+    if (xs.some((x) => x < 1 || x > 16)) continue;
+    // a gap that appears where there was none goes between (not before the first)
+    if (!g && st.before) continue;
+    let gap: number[] = [];
+    if (ng && unit && ng % unit === 0) gap = Array<number>(ng / unit).fill(unit);
+    else if (ng && ng <= 16) gap = [ng];
+    else if (ng && unit) gap = [...Array<number>(Math.floor(ng / unit)).fill(unit), ng % unit];
+    else if (ng) continue;
+    // a new gap between statements only (none before): the count of gaps is k − 1 then
+    const next: Statements = { ...st, gap, before: st.before && gap.length > 0 };
+    const sizes = sayStatements(next, xs);
+    if (sizes.reduce((a, n) => a + n, 0) !== total) continue;
+    const from = st.gap.length ? st.gap.join(' ') : 'none';
+    const to = gap.length ? gap.join(' ') : 'none';
+    out.push({
+      sizes,
+      label: `${dm > 0 ? `Gaps give ${c * st.k * dm}` : `Gaps take ${-c * st.k * dm}`}: ${from} → ${to}, cells ${xs.join(' → ')}`,
+    });
+  }
+  return out;
 }
