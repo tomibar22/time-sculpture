@@ -200,3 +200,20 @@ test('land: a yati says the cell three times, its main size growing, and lands',
   await way.click();
   await expect(page.getByTestId('sequence')).toContainText('2 2 2 4 3 2 3 4 4 2 4');
 });
+
+test('land: speeds say the pattern again with shorter strokes, and land', async ({ page }) => {
+  // an empty piece of 32 pulses; 4 4 4 at 4 → 2 → 1 with a closing 4 = 25 pulses, 7 before it
+  await clearAll(page);
+  await page.getByRole('button', { name: 'Land…' }).first().click();
+  for (let i = 0; i < 3; i++) await page.getByTestId('land-4').click();
+  const list = page.getByRole('list', { name: 'Ways it lands' });
+  await expect(list).toContainText('Speeds');
+  const way = list
+    .locator('.fill-main', { hasText: 'Speeds 4 → 2 → 1 (faster and faster)' })
+    .filter({ hasText: '4 4 4 at 3 speeds, 4 closing' })
+    .first();
+  await way.click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
+  // seven pulses stay open before it; it ends on the end
+  await expect(page.getByTestId('sequence')).toContainText('· │ 4 4 4 2 2 2 1 1 1 4');
+});

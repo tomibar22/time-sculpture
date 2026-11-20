@@ -3,10 +3,12 @@
  * stretch of R pulses ends (a calculator for tihais and for patterns that cross the beat).
  * Everything is counted back from the end: the answer is where to begin.
  */
+import { speedsName } from './speeds';
 import { YATI_SHAPES, realize, templateOf, templateText } from './yati';
 
 /** `even` and `free` are long–short ways (engine/longshort.ts); `yati` see engine/yati.ts. */
-export type LandingKind = 'repeat' | 'tihai' | 'yati' | 'gapped' | 'shape' | 'even' | 'free';
+export type LandingKind =
+  'repeat' | 'tihai' | 'yati' | 'speeds' | 'gapped' | 'shape' | 'even' | 'free';
 
 export interface PatternLanding {
   kind: LandingKind;
@@ -117,6 +119,16 @@ export function patternLandings(
     if (yati.length >= 2 * limit) break;
   }
   out.push(...yati);
+
+  // speeds: the pattern said again with shorter (or longer) strokes, once or three times
+  const speeds: PatternLanding[] = [];
+  for (const c of speedWays(pattern)) {
+    const before = out.length;
+    take(c.full, c.more);
+    if (out.length > before) speeds.push(out.pop()!);
+  }
+  speeds.sort((x, y) => x.lead - y.lead || y.times - x.times);
+  out.push(...speeds.slice(0, limit));
 
   // any other number of times with a gap: those that begin soonest first
   const gapped: PatternLanding[] = [];
@@ -286,4 +298,44 @@ function yatiWays(R: number, cell: readonly number[], opts: LandOptions): YatiWa
     once.add(id);
     return true;
   });
+}
+
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+
+/**
+ * The pattern at several speeds (laykari, engine/speeds.ts): its strokes ÷ g (g = their common
+ * size, 3 for 3 3 3 3 3) said at multiples g, then smaller ones (3 → 2 → 1, 3 → 1 …) or the other
+ * way round, with a closing stroke of the slowest size or none, once or three times (a tihai:
+ * with "Last tile on the 1" its last closing stroke is the 1).
+ */
+function speedWays(pattern: readonly number[]): YatiWay[] {
+  const g = pattern.reduce(gcd, 0);
+  if (g < 2) return [];
+  const unit = pattern.map((n) => n / g);
+  const ladders: number[][] = [];
+  const go = (cur: number[]) => {
+    if (cur.length >= 2) ladders.push([...cur]);
+    if (cur.length === 4) return;
+    for (let m = cur[cur.length - 1]! - 1; m >= 1; m--) go([...cur, m]);
+  };
+  go([g]);
+  const out: YatiWay[] = [];
+  for (const l of [...ladders, ...ladders.map((x) => [...x].reverse())])
+    for (const c of [g, 0]) {
+      const said = [...l.flatMap((m) => unit.map((u) => u * m)), ...(c ? [c] : [])];
+      for (const times of [3, 1]) {
+        const full = Array.from({ length: times }, () => said).flat();
+        out.push({
+          full,
+          more: {
+            kind: 'speeds',
+            times,
+            name: `${speedsName(l)}${times === 3 ? ' · three times' : ''}`,
+            note: `${pattern.join(' ')} at ${l.length} speeds${c ? `, ${c} closing` : ''}`,
+            key: `s${l.join('.')}c${c}x${times}`,
+          },
+        });
+      }
+    }
+  return out;
 }

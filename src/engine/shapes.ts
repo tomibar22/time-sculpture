@@ -1,4 +1,5 @@
 import { countWays, sampleTiling } from './count';
+import { speedFills, speedsLabel } from './speeds';
 import { yatiFills, yatiLabel } from './yati';
 
 /**
@@ -10,6 +11,7 @@ export type ShapeFamily =
   | 'tihai'
   | 'chakradhar'
   | 'yati'
+  | 'speeds'
   | 'world'
   | 'repeat'
   | 'turn'
@@ -43,6 +45,11 @@ export const SHAPE_FAMILIES: { id: ShapeFamily; label: string; hint: string }[] 
     id: 'yati',
     label: 'Yati',
     hint: 'A cell three times, its main size growing or shrinking around a mean (5 7 9): it lands where the plain tihai of the middle one would',
+  },
+  {
+    id: 'speeds',
+    label: 'Speeds',
+    hint: 'One phrase at several speeds, the same strokes shorter each time: 3 3 3 3 3 · 2 2 2 2 2 · 1 1 1 1 1',
   },
   {
     id: 'world',
@@ -320,6 +327,7 @@ function goldenLabel(t: number[]): string | null {
 
 const LABELS: [ShapeFamily, (t: number[]) => string | null][] = [
   ['world', worldLabel],
+  ['speeds', speedsLabel],
   ['repeat', repeatLabel],
   ['yati', yatiLabel],
   ['turn', turnLabel],
@@ -464,6 +472,8 @@ export function shapeFills(
   }
   // yatis: a cell three times, its main size shared out around a mean (engine/yati.ts)
   for (const t of yatiFills(R, S)) put(t);
+  // one phrase at several speeds (engine/speeds.ts)
+  for (const t of speedFills(R, S)) put(t);
   // rhythms with a name, at any scale that fits, as many times as the region holds
   for (const w of WORLD_RHYTHMS)
     for (const scale of [1, 2, 3, 4]) {

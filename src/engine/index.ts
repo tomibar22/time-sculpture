@@ -20,5 +20,6 @@ export * from './form';
 export * from './vary';
 export * from './land';
 export * from './yati';
+export * from './speeds';
 export * from './click';
 export * from './longshort';

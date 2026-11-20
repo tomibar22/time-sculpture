@@ -278,7 +278,8 @@ export function Help() {
               third time ends exactly on the 1. <b>All shapes</b> lists a few fills of every kind
               under its name, with the way to all of that kind; ↑ ↓ walk the list. A <b>Yati</b>{' '}
               says a cell three times, its main size growing or shrinking around a mean (5 7 9), so
-              it lands where three of the middle one would. The sort{' '}
+              it lands where three of the middle one would. <b>Speeds</b> says one phrase faster and
+              faster (3 3 3 · 2 2 2 · 1 1 1). The sort{' '}
               <b>Across inside, on the beat at the seams</b> puts first the fills whose phrases
               cross the beat but begin and end on it. <b>Known rhythms</b> are fills with a name
               (tresillo, cinquillo, the claves, bossa, bembé, aksak), at any breadth that fits;{' '}
@@ -314,6 +315,11 @@ export function Help() {
               written as beat strokes; “before each” puts the gap before every time.
             </p>
             <p>
+              <b>Speeds</b>: the pattern said again with shorter strokes, faster and faster (3 3 3 3
+              3 → 2 2 2 2 2 → 1 1 1 1 1), or slower and slower, once or three times, with a closing
+              stroke of the slowest size.
+            </p>
+            <p>
               <b>Last tile on the 1</b>: as in a tihai, the pattern’s last tile begins exactly where
               the stretch ends, so it is not written (the 1 is that stroke). <b>Begins</b> keeps
               only the ways that start on a beat, or on a 1.
@@ -346,7 +352,9 @@ export function Help() {
               level down, <b>Inside</b> shares out the runs of the main size within the cell (X · X
               X · X X X becomes X X X · X X · X, or X X · X X · X X). And <b>Gaps give / take</b>{' '}
               trades between the breath and the cells: 6 6 before each becomes 6 while every cell’s
-              main size grows by one (5 7 9 → 6 8 10), or the other way round.
+              main size grows by one (5 7 9 → 6 8 10), or the other way round. <b>Speeds</b>: a
+              phrase said at several speeds (3 3 3 3 3 · 2 2 2 2 2 · 1 1 1 1 1) can be said slower
+              and slower, or at one speed, with the same strokes in the same time.
             </p>
           </details>
           <details className="help-topic">

@@ -49,6 +49,7 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   ops/meter.ts     setSubdivision, resizeMeter
   ops/bars.ts      setBars (metre / bar patterns), insertBars, removeBars, setRowSize
   yati.ts          yati: a cell said 3 times, its main size changing around a mean (templateOf)
+  speeds.ts        speeds (laykari): one phrase at several speeds, 3 3 3 · 2 2 2 · 1 1 1
   longshort.ts     long–short shapes ("L S S"): parseLS, longShortOf, realizeLS, lsLandings
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
                    copyGroups, formatGroups / parseGroups ("3 (2) 4"), trimEdge
@@ -1038,3 +1039,15 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   and each gap changes by −(X per cell × k × Δ) ÷ gaps (whole, ≥ 0), written in strokes of its own
   size, else one stroke ≤ 16 ("Gaps give 18: 6 6 → 6, cells 6 → 8 → 10"). Browse also builds the
   studied cell turned round and evened out ("X X X f X X f X", "X X f X X f X X").
+- **Speeds** (engine/speeds.ts; study 2 `speeds-3-2-1`, user request): `runsAll` (runs of
+  equal tiles), `ladderOf(cell)` = neighbouring runs with the same count n ≥ 2, each a new size
+  (`{at, n, sizes}`), `withLadder`. The dual of a yati's inside: the count stays, the size
+  changes; `speedBalances` = `rebalances` of the ladder's sizes, applied to every statement
+  (Vary → Balanced: "Speeds 1 → 2 → 3 (slower and slower), 5 strokes each"). `speedsName` names by
+  direction (shorter and shorter = faster and faster). Browse family `speeds` (before `repeat`
+  in LABELS): `speedFills` = ladders of 3–4 speeds in **simple ratios** (`simpleRatios`: a unit ×
+  1–6; 16 15 14 is no change of speed), n 3–8, closing stroke or none, once or ×3 (cut or not);
+  `speedsLabel` needs ≥ 9 tiles, three runs of ≥ 3, the ladder from the cell's start with ≤ 1
+  closing tile. Land kind `speeds` (`speedWays`): the pattern ÷ its gcd g said at multiples g,
+  then smaller (every decreasing ladder from g, 2–4 speeds, and turned round), closing g or none,
+  once or three times, exact fits first.

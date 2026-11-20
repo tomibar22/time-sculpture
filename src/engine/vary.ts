@@ -1,6 +1,7 @@
 import type { GroupSpec } from './ops/edit';
 import { formatGroups } from './ops/edit';
 import { longShortOf, realizeLS } from './longshort';
+import { speedBalances } from './speeds';
 import {
   balanceName,
   gapTrades,
@@ -245,6 +246,8 @@ export function variations(
     // between the gaps and the cells: the gaps give pulses to the cells, or take them back
     if (st && balanceName(st.xs))
       for (const r of gapTrades(st)) put(r.sizes.map(sound), r.label, 'balance');
+    // the same strokes at other speeds (3 2 1 → 1 2 3, 2 2 2): count kept, sizes shared out
+    for (const r of speedBalances(sizes)) put(r.sizes.map(sound), r.label, 'balance');
     for (const r of ramps(sizes)) put(r.sizes.map(sound), r.label, 'balance');
   }
   for (const v of nudges(base, lock)) put(v.groups, v.label, 'nudge');

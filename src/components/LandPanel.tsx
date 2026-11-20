@@ -18,6 +18,7 @@ const HEADS: Record<E.LandingKind, [string, string]> = {
   repeat: ['Repeated', 'so many times'],
   tihai: ['Tihai', 'three times, a gap between'],
   yati: ['Yati', 'three times, the main size changing, the landing kept'],
+  speeds: ['Speeds', 'the same strokes faster and faster (or slower)'],
   gapped: ['With a gap', 'any number of times'],
   shape: ['Shaped', 'the pattern, transformed'],
   even: ['Even', 'one size for the longs, one for the shorts'],
@@ -169,7 +170,7 @@ export function LandPanel() {
       ? `Tihai · gap ${l.gap}`
       : l.kind === 'gapped'
         ? `×${l.times} · gap ${l.gap}`
-        : l.kind === 'shape' || l.kind === 'free' || l.kind === 'yati'
+        : l.kind === 'shape' || l.kind === 'free' || l.kind === 'yati' || l.kind === 'speeds'
           ? l.name
           : l.kind === 'even'
             ? `${l.name}${l.times > 1 ? ` ×${l.times}` : ''}`
@@ -394,9 +395,8 @@ export function LandPanel() {
                     <Strip {...shown(l)} beats={beats} />
                     <span className="fill-cap land-cap">
                       <span className="land-times">{title(l)}</span>
-                      {(l.kind === 'shape' || l.kind === 'yati') && l.note && (
-                        <span className="land-what">{l.note}</span>
-                      )}
+                      {(l.kind === 'shape' || l.kind === 'yati' || l.kind === 'speeds') &&
+                        l.note && <span className="land-what">{l.note}</span>}
                       <span className="fill-meta land-where">
                         {l.lead ? `from ${w.text}` : 'fills it exactly'}
                         {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}

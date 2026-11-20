@@ -1,0 +1,442 @@
+{
+  "format": "time-sculpture",
+  "version": 2,
+  "title": "Harikumar phrase 1",
+  "tempo": 99,
+  "beatsPerCycle": 4,
+  "cycles": 9,
+  "subdivision": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+  ],
+  "start": [
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 2
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 1
+    },
+    {
+      "pulses": 3
+    }
+  ],
+  "ending": [],
+  "layout": {
+    "cyclesPerRow": 4,
+    "breaks": [
+      11,
+      22
+    ]
+  },
+  "sounds": [
+    {
+      "at": 0,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 1,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 2,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 3,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 4,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 5,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 5.666667,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 6.333333,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 7,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 7.666667,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 8.333333,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 8.666667,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 9,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 9.333333,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 9.666667,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 10,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 11,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 12,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 13,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 14,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 15,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 16,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 16.666667,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 17.333333,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 18,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 18.666667,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 19.333333,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 19.666667,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 20,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 20.333333,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 20.666667,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 21,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 22,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 23,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 24,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 25,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 26,
+      "length": 1,
+      "pulses": 3
+    },
+    {
+      "at": 27,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 27.666667,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 28.333333,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 29,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 29.666667,
+      "length": 0.666667,
+      "pulses": 2
+    },
+    {
+      "at": 30.333333,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 30.666667,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 31,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 31.333333,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 31.666667,
+      "length": 0.333333,
+      "pulses": 1
+    },
+    {
+      "at": 32,
+      "length": 1,
+      "pulses": 3
+    }
+  ]
+}
