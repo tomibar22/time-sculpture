@@ -208,6 +208,8 @@ test('land: speeds say the pattern again with shorter strokes, and land', async 
   for (let i = 0; i < 3; i++) await page.getByTestId('land-4').click();
   const list = page.getByRole('list', { name: 'Ways it lands' });
   await expect(list).toContainText('Speeds');
+  // a kind shows a few ways; "all N" opens it in full
+  await list.getByRole('button', { name: /^all \d+ of Speeds$/ }).click();
   const way = list
     .locator('.fill-main', { hasText: 'Speeds 4 → 2 → 1 (faster and faster)' })
     .filter({ hasText: '4 4 4 at 3 speeds, 4 closing' })

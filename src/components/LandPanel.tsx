@@ -4,7 +4,7 @@ import { describePulse } from '../state/editing';
 import { closeFill, fillRegion, previewLanding, writeLanding } from '../state/fill';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { Strip, UseBar, useRegionBeats } from './fillParts';
+import { GroupHead, Strip, UseBar, shownRows, useOpenGroups, useRegionBeats } from './fillParts';
 import { CloseIcon } from './Icons';
 
 const SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -103,6 +103,17 @@ export function LandPanel() {
       }),
     [all, places, from],
   );
+  // the ways under their kind's heading, a few of each ("all N" opens a kind in full)
+  const kinds = useMemo(() => {
+    const out: { kind: E.LandingKind; rows: E.PatternLanding[] }[] = [];
+    for (const l of rows) {
+      const last = out[out.length - 1];
+      if (last?.kind === l.kind) last.rows.push(l);
+      else out.push({ kind: l.kind, rows: [l] });
+    }
+    return out;
+  }, [rows]);
+  const groups = useOpenGroups(`${R} ${a} ${pattern.join(' ')} ${on1} ${from}`);
   // another pattern or region: nothing is on trial any more
   useEffect(() => {
     setTrying(null);
@@ -175,7 +186,6 @@ export function LandPanel() {
           : l.kind === 'even'
             ? `${l.name}${l.times > 1 ? ` ×${l.times}` : ''}`
             : `×${l.times}`;
-  let heading: E.LandingKind | null = null;
 
   return (
     <div className="land">
@@ -371,54 +381,59 @@ export function LandPanel() {
         aria-label="Ways it lands"
         onMouseLeave={() => previewLanding(trying)}
       >
-        {rows.map((l) => {
-          const w = places.get(l.key)!;
-          const head = l.kind !== heading ? (heading = l.kind) : null;
+        {kinds.map(({ kind, rows: ways }) => {
+          const isOpen = groups.open.has(kind);
           return (
-            <Fragment key={l.key}>
-              {head && (
-                <li className="fill-group">
-                  <span className="fill-group-name">{HEADS[head][0]}</span>
-                  <span className="land-group-note">{HEADS[head][1]}</span>
-                </li>
-              )}
-              <li>
-                <div className="fill-row">
-                  <button
-                    type="button"
-                    className="fill-main"
-                    aria-pressed={trying?.key === l.key}
-                    title={trying?.key === l.key ? 'Tap again to use it' : undefined}
-                    onMouseEnter={() => previewLanding(l)}
-                    onClick={() => tryIt(l)}
-                  >
-                    <Strip {...shown(l)} beats={beats} />
-                    <span className="fill-cap land-cap">
-                      <span className="land-times">{title(l)}</span>
-                      {(l.kind === 'shape' || l.kind === 'yati' || l.kind === 'speeds') &&
-                        l.note && <span className="land-what">{l.note}</span>}
-                      <span className="fill-meta land-where">
-                        {l.lead ? `from ${w.text}` : 'fills it exactly'}
-                        {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}
-                        {l.on1 ? (
-                          <span className="land-on1">
-                            {' · then '}
-                            <i
-                              style={{
-                                background: sizeColor(l.on1),
-                                color: inkFor(sizeColor(l.on1)),
-                              }}
-                            >
-                              {l.on1}
-                            </i>
-                            {` ${end === 'after the stretch' ? 'after it' : end}`}
+            <Fragment key={kind}>
+              <GroupHead
+                label={HEADS[kind][0]}
+                note={HEADS[kind][1]}
+                count={ways.length}
+                open={isOpen}
+                onToggle={() => groups.toggle(kind)}
+              />
+              {shownRows(ways, isOpen, (l) => l.key === trying?.key).map((l) => {
+                const w = places.get(l.key)!;
+                return (
+                  <li key={l.key}>
+                    <div className="fill-row">
+                      <button
+                        type="button"
+                        className="fill-main"
+                        aria-pressed={trying?.key === l.key}
+                        title={trying?.key === l.key ? 'Tap again to use it' : undefined}
+                        onMouseEnter={() => previewLanding(l)}
+                        onClick={() => tryIt(l)}
+                      >
+                        <Strip {...shown(l)} beats={beats} />
+                        <span className="fill-cap land-cap">
+                          <span className="land-times">{title(l)}</span>
+                          {(l.kind === 'shape' || l.kind === 'yati' || l.kind === 'speeds') &&
+                            l.note && <span className="land-what">{l.note}</span>}
+                          <span className="fill-meta land-where">
+                            {l.lead ? `from ${w.text}` : 'fills it exactly'}
+                            {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}
+                            {l.on1 ? (
+                              <span className="land-on1">
+                                {' · then '}
+                                <i
+                                  style={{
+                                    background: sizeColor(l.on1),
+                                    color: inkFor(sizeColor(l.on1)),
+                                  }}
+                                >
+                                  {l.on1}
+                                </i>
+                                {` ${end === 'after the stretch' ? 'after it' : end}`}
+                              </span>
+                            ) : null}
                           </span>
-                        ) : null}
-                      </span>
-                    </span>
-                  </button>
-                </div>
-              </li>
+                        </span>
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </Fragment>
           );
         })}

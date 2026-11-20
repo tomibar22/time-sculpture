@@ -1,6 +1,6 @@
 import { countWays, sampleTiling } from './count';
 import { speedFills, speedsAcrossLabel, speedsLabel } from './speeds';
-import { yatiFills, yatiLabel } from './yati';
+import { innerAcrossLabel, yatiFills, yatiLabel } from './yati';
 
 /**
  * Shapes: fills with an aesthetic logic (repeats, growing patterns, pyramids, refrains, even
@@ -331,6 +331,7 @@ const LABELS: [ShapeFamily, (t: number[]) => string | null][] = [
   ['speeds', speedsAcrossLabel],
   ['repeat', repeatLabel],
   ['yati', yatiLabel],
+  ['yati', innerAcrossLabel],
   ['turn', turnLabel],
   ['additive', additiveLabel],
   ['grow', growLabel],

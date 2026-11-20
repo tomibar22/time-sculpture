@@ -368,6 +368,13 @@ export function yatiFills(R: number, sizes: readonly number[], limit = 60): numb
                   if (seen.has(key) || !yatiLabel(t)) continue;
                   seen.add(key);
                   out.push(t);
+                  // the growth inside changing from one statement to the next (1 2 3 | 2 2 2 | 3 2 1)
+                  for (const r of innerAcross(st)) {
+                    const key2 = r.sizes.join(' ');
+                    if (seen.has(key2) || !innerAcrossLabel(r.sizes)) continue;
+                    seen.add(key2);
+                    out.push(r.sizes);
+                  }
                 }
             }
         }
@@ -619,4 +626,130 @@ export function innerAcross(st: Statements): Reshaped[] {
     });
   }
   return out;
+}
+
+/* ------------------------------------- reading statements whose inside differs */
+
+/** A passage read as statements whose runs inside change from one to the next. */
+export interface InsideAcross {
+  st: Statements;
+  /** Each statement's runs of its main size (1 2 3 | 2 2 2 | 3 2 1). */
+  vs: number[][];
+  path: string;
+}
+
+/** A cell as runs of its main size x between fixed stretches. */
+function partsOf(cell: readonly number[], x: number): { fixed: number[][]; runs: number[] } {
+  const fixed: number[][] = [[]];
+  const runs: number[] = [];
+  let i = 0;
+  while (i < cell.length) {
+    if (cell[i] === x) {
+      let n = 0;
+      while (i < cell.length && cell[i] === x) {
+        n++;
+        i++;
+      }
+      runs.push(n);
+      fixed.push([]);
+    } else fixed[fixed.length - 1]!.push(cell[i++]!);
+  }
+  return { fixed, runs };
+}
+
+/**
+ * Three statements (with a gap, before each, or the last tile cut, as statementsOf) whose cells
+ * are the same fixed tiles with runs of a main size between them, the runs following an
+ * `acrossPaths` path (and the main sizes, if they change, a named sharing-out: 5 → 7 → 9).
+ */
+export function innerAcrossOf(t: readonly number[]): InsideAcross | null {
+  const N = t.length;
+  if (N < 9) return null;
+  const k = 3;
+  for (const cut of [false, true])
+    for (let gl = 0; gl <= 3; gl++)
+      for (const before of gl ? [false, true] : [false]) {
+        const rest = N - (before ? gl : 0) - (k - 1) * gl + (cut ? 1 : 0);
+        if (rest % k) continue;
+        const L = rest / k;
+        if (L < 4 || L <= gl) continue;
+        let at = before ? gl : 0;
+        const gap = before ? t.slice(0, gl) : t.slice(L, L + gl);
+        const cells: number[][] = [];
+        let ok = true;
+        for (let i = 0; i < k && ok; i++) {
+          const len = cut && i === k - 1 ? L - 1 : L;
+          cells.push(t.slice(at, at + len));
+          at += len;
+          if (i < k - 1) {
+            if (!eq(t.slice(at, at + gl), gap)) ok = false;
+            at += gl;
+          }
+        }
+        if (!ok) continue;
+        // the last statement's cut tile is the first one's last (a fixed tile)
+        if (cut) cells[k - 1]!.push(cells[0]![L - 1]!);
+        const xs = cells.map((c) => templateOf(c)!.x);
+        const parts = cells.map((c, i) => partsOf(c, xs[i]!));
+        const p0 = parts[0]!;
+        if (p0.runs.length < 2) continue;
+        if (
+          parts.some(
+            (p) => p.runs.length !== p0.runs.length || p.fixed.some((f, j) => !eq(f, p0.fixed[j]!)),
+          )
+        )
+          continue;
+        if (!p0.fixed.some((f) => f.length)) continue;
+        const vs = parts.map((p) => p.runs);
+        if (vs.every((v) => eq(v, vs[0]!))) continue;
+        if (!xs.every((x) => x === xs[0]) && !balanceName(xs)) continue;
+        for (const base of [vs[0]!, vs[k - 1]!]) {
+          const p = acrossPaths(base, k).find((x) => x.vs.every((v, i) => eq(v, vs[i]!)));
+          if (!p) continue;
+          const c0 = cells[0]!;
+          const slots = c0.flatMap((n, i) => (n === xs[0] ? [i] : []));
+          return { st: { k, cell: c0, slots, xs, gap, before, cut }, vs, path: p.name };
+        }
+      }
+  return null;
+}
+
+/** "Inside 1 2 3 | 2 2 2 | 3 2 1 (turning round) · 5 → 7 → 9", or null. */
+export function innerAcrossLabel(t: readonly number[]): string | null {
+  const r = innerAcrossOf(t);
+  if (!r) return null;
+  const xs = r.st.xs.every((x) => x === r.st.xs[0]) ? '' : ` · ${r.st.xs.join(' → ')}`;
+  return `Inside ${r.vs.map((v) => v.join(' ')).join(' | ')} (${r.path})${xs}`;
+}
+
+/** For a passage whose inside already changes across: the plain forms and the other paths. */
+export function otherInsideAcross(t: readonly number[]): Reshaped[] {
+  const r = innerAcrossOf(t);
+  if (!r) return [];
+  const { st } = r;
+  const out: Reshaped[] = [];
+  const say = (vs: readonly (readonly number[])[]) => {
+    const cells = vs.map((v, i) => withRuns(cellOf(st, i), st.slots, v)?.cell);
+    return cells.some((c) => !c) ? null : sayCells(st, cells as number[][]);
+  };
+  for (const base of [r.vs[0]!, r.vs[st.k - 1]!]) {
+    const plain = say(Array.from({ length: st.k }, () => base));
+    if (plain) out.push({ sizes: plain, label: `Inside ${base.join(' ')}, every time` });
+    for (const p of acrossPaths(base, st.k)) {
+      if (p.vs.every((v, i) => eq(v, r.vs[i]!))) continue;
+      const sizes = say(p.vs);
+      if (sizes)
+        out.push({
+          sizes,
+          label: `Inside ${p.vs.map((v) => v.join(' ')).join(' | ')} (${p.name})`,
+        });
+    }
+  }
+  const seen = new Set<string>();
+  return out.filter((o) => {
+    const key = o.sizes.join(' ');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

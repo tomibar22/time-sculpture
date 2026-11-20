@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as E from '../engine';
 import { fillRegion } from '../state/fill';
 import { useDocStore } from '../state/store';
@@ -191,5 +191,61 @@ export function UseBar({
         <span className="sr-only">Stop trying it</span>
       </button>
     </div>
+  );
+}
+
+/** How many rows of a group a list shows before "all N" (the same in Browse, Vary and Land). */
+export const GROUP_FEW = 3;
+
+/**
+ * Which groups of a list are open in full; all close again when `reset` changes (a new
+ * passage, pattern or region). The rest show their first GROUP_FEW rows.
+ */
+export function useOpenGroups(reset: unknown) {
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => setOpen(new Set()), [reset]);
+  const toggle = (id: string) =>
+    setOpen((o) => {
+      const next = new Set(o);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  return { open, toggle };
+}
+
+/** A group's rows as shown: all when open, else the first few, and always the row on trial. */
+export function shownRows<T>(rows: readonly T[], open: boolean, keep?: (row: T) => boolean): T[] {
+  return open ? [...rows] : rows.filter((r, i) => i < GROUP_FEW || keep?.(r));
+}
+
+/**
+ * A group's heading in a list: its name, an optional quiet note, and "all N" (or "fewer") when
+ * it has more rows than are shown. Calm on purpose: one line, small caps, a link.
+ */
+export function GroupHead({
+  label,
+  note,
+  count,
+  open,
+  onToggle,
+}: {
+  label: string;
+  note?: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <li className="fill-group">
+      <span className="fill-group-name">{label}</span>
+      {note && <span className="land-group-note">{note}</span>}
+      {count > GROUP_FEW && (
+        <button type="button" className="link-btn" aria-expanded={open} onClick={onToggle}>
+          {open ? 'fewer' : `all ${count}`}
+          <span className="sr-only"> of {label}</span>
+        </button>
+      )}
+    </li>
   );
 }

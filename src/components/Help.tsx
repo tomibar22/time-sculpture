@@ -291,7 +291,9 @@ export function Help() {
               <b>Tiles</b> narrows the fills to those with a set number of tiles. Almost right? Tap
               a fill to try it, then <b>Vary</b> beside Use: the list becomes that fill said other
               ways (nudged, swapped, rotated, backwards, regrouped), without anything being written.
-              Tap one to try it, Use to write it, Vary again to go further, ‹ Back to return.
+              Tap one to try it, Use to write it, Vary again to go further, ‹ Back to return. In
+              Vary and in Land too, every kind shows its first few; <b>all N</b> beside its name
+              opens the rest.
             </p>
           </details>
           <details className="help-topic">

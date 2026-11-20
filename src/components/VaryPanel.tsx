@@ -12,10 +12,13 @@ import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
 import {
   Contour,
+  GroupHead,
   GroupStrip,
   Heart,
   Strip,
   UseBar,
+  shownRows,
+  useOpenGroups,
   useRegionBeats,
   type StripLine,
 } from './fillParts';
@@ -57,7 +60,9 @@ export function VaryPanel() {
     setTrying(null);
   }, [region?.a, region?.b]);
 
-  const vars = useMemo(() => E.variations(base, 80, Math.random, locked), [base, locked]);
+  const vars = useMemo(() => E.variations(base, 120, Math.random, locked), [base, locked]);
+  // every kind shows a few; "all N" opens one in full (closed again for a new passage)
+  const groups = useOpenGroups(base);
   const steps = useMemo(
     () =>
       (trying ?? picked)
@@ -248,18 +253,21 @@ export function VaryPanel() {
         {E.VARIATION_KINDS.map((k) => {
           const vs = vars.filter((v) => v.kind === k.id);
           if (!vs.length) return null;
+          const isOpen = groups.open.has(k.id);
           return (
             <Fragment key={k.id}>
-              <li className="fill-group">
-                {k.label}
-                {k.id === 'longshort' && (
-                  <span className="land-group-note">
-                    {' '}
-                    {E.lsText(E.longShortOf(base.map((g) => g.n)) ?? [])}
-                  </span>
-                )}
-              </li>
-              {vs.map((v) => (
+              <GroupHead
+                label={k.label}
+                note={
+                  k.id === 'longshort'
+                    ? E.lsText(E.longShortOf(base.map((g) => g.n)) ?? [])
+                    : undefined
+                }
+                count={vs.length}
+                open={isOpen}
+                onToggle={() => groups.toggle(k.id)}
+              />
+              {shownRows(vs, isOpen, (v) => v.key === trying?.key).map((v) => (
                 <li key={v.key}>
                   <VaryRow
                     v={v}

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { patternLandings } from '../land';
 import {
+  innerAcrossLabel,
+  innerAcrossOf,
+  otherInsideAcross,
   acrossPaths,
   innerAcross,
   gapTrades,
@@ -254,5 +257,36 @@ describe('across the statements: the runs inside change from one to the next', (
     expect(t.label).toBe('Inside 1 2 3 | 2 2 2 | 3 2 1 (turning round)');
     expect(sum(t.sizes)).toBe(192);
     expect(t.sizes.slice(11, 22)).toEqual([6, 6, 7, 7, 3, 7, 7, 3, 7, 7, 6]);
+  });
+});
+
+describe('reading statements whose inside differs', () => {
+  const turned = () =>
+    innerAcross(statementsOf(PIECE)!).find((r) => r.label.includes('turning round'))!.sizes;
+  it('reads study 1 turned round inside, the cells still widening, last on the 1', () => {
+    const r = innerAcrossOf(turned())!;
+    expect(r.vs).toEqual([
+      [1, 2, 3],
+      [2, 2, 2],
+      [3, 2, 1],
+    ]);
+    expect(r.st.xs).toEqual([5, 7, 9]);
+    expect(r.path).toBe('turning round');
+    expect(innerAcrossLabel(turned())).toBe(
+      'Inside 1 2 3 | 2 2 2 | 3 2 1 (turning round) · 5 → 7 → 9',
+    );
+    expect(shapeOf(turned())?.family).toBe('yati');
+    expect(innerAcrossOf(PIECE)).toBeNull();
+  });
+  it('Vary offers the way back: the inside as written, every time (the piece itself)', () => {
+    const o = otherInsideAcross(turned());
+    const back = o.find((x) => x.label === 'Inside 1 2 3, every time')!;
+    expect(back.sizes).toEqual(PIECE);
+    for (const x of o) expect(sum(x.sizes)).toBe(192);
+  });
+  it('Browse builds it from the studied cell', () => {
+    const fills = yatiFills(192, [3, 5, 6, 7, 9], 200);
+    expect(fills.some((t) => innerAcrossLabel(t))).toBe(true);
+    for (const t of fills) expect(sum(t)).toBe(192);
   });
 });

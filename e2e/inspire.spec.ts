@@ -347,6 +347,8 @@ test('vary, balanced: the gaps give to the cells, the runs inside a cell turn ro
   await page.keyboard.press('Shift+KeyA');
   await page.keyboard.press('Shift+KeyV');
   const list = page.getByRole('list', { name: 'Variations' });
+  // Balanced shows a few; "all N" opens it in full
+  await list.getByRole('button', { name: /^all \d+ of Balanced/ }).click();
   await list.getByRole('button', { name: /Gaps give 6: 4 → 1, cells 4 → 4 → 4/ }).click();
   await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expect(page.getByTestId('sequence')).toContainText('4 2 4 1 4 2 4 1 4 2 4');

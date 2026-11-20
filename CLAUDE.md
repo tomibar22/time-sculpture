@@ -1074,3 +1074,25 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   `speeds`, after `speedsLabel` in LABELS); `speedFills` also builds them (×3, every path);
   `otherWaysAcross` (Vary → Balanced) offers the plain forms ("… every time") and the other
   paths. `sayAcross` writes one.
+- **Inside, read across** (yati.ts): `innerAcrossOf(t)` = three statements (gap / before / cut as
+  in `statementsOf`; a cut statement gets the first one's last tile back) whose cells are the
+  same fixed stretches with runs of their main size between them (`partsOf`), the runs following
+  an `acrossPaths` path, the main sizes equal or a named sharing-out ("Inside 1 2 3 | 2 2 2 |
+  3 2 1 (turning round) · 5 → 7 → 9", `innerAcrossLabel`, family `yati`, after `yatiLabel`).
+  `yatiFills` also builds them (`innerAcross` of each built yati); `otherInsideAcross` (Vary)
+  offers "Inside 1 2 3, every time" (the way back) and the other paths. Costs ~10 % of
+  `shapeFills` with 16 sizes.
+
+### Calm lists, however many options (user request: more and more options, never more clutter)
+
+- **One rule for Browse ("All shapes"), Vary and Land**: every kind shows its first
+  `GROUP_FEW` (3) rows under a one-line heading (`GroupHead` in fillParts.tsx: small caps name,
+  an optional quiet note, and **all N** / **fewer** as a link, `aria-expanded`); `useOpenGroups`
+  keeps which kinds are open and closes them all for a new passage / pattern / region;
+  `shownRows` always keeps the row on trial in view. So the best of each kind must come first:
+  order rows by musical sense, not by how they were made.
+- **Vary caps each kind** (`KIND_CAP` in vary.ts: balance 24, nudge 16, longshort 12, order 16,
+  weight 12, shuffle 6), so no kind crowds the others out (nudges once filled the whole list of
+  80 and hid Reordered / Broader / Same long and short). Land went from ~70–86 rows to ~18 by
+  default. When adding a new kind of option: give it a group, put its best first, and let
+  "all N" hold the rest; do not add new buttons or rows to the panel heads.

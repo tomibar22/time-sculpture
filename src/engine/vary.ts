@@ -7,6 +7,7 @@ import {
   gapTrades,
   innerAcross,
   innerBalances,
+  otherInsideAcross,
   oneStatement,
   ramps,
   rebalances,
@@ -40,6 +41,19 @@ export const VARIATION_KINDS: { id: VariationKind; label: string }[] = [
   { id: 'weight', label: 'Broader / denser' },
   { id: 'shuffle', label: 'Shuffled' },
 ];
+
+/**
+ * At most this many of each kind, so no kind crowds the others out of the list (nudges alone
+ * used to fill it). The panel shows a few of each and opens a kind in full on request.
+ */
+export const KIND_CAP: Record<VariationKind, number> = {
+  balance: 24,
+  nudge: 16,
+  longshort: 12,
+  order: 16,
+  weight: 12,
+  shuffle: 6,
+};
 
 const total = (gs: readonly GroupSpec[]) => gs.reduce((a, g) => a + g.n, 0);
 const sound = (n: number): GroupSpec => ({ n, kind: 'sound' });
@@ -205,11 +219,13 @@ export function variations(
   const lock = new Set(locked.filter((i) => i >= 0 && i < N));
   const out: Variation[] = [];
   const seen = new Set([formatGroups(base)]);
+  const per = new Map<VariationKind, number>();
   const put = (gs: GroupSpec[] | null, label: string, kind: VariationKind) => {
     if (!gs?.length || total(gs) !== T || gs.some((g) => g.n < 1 || !Number.isInteger(g.n))) return;
     const key = formatGroups(gs);
-    if (seen.has(key) || out.length >= limit) return;
+    if (seen.has(key) || out.length >= limit || (per.get(kind) ?? 0) >= KIND_CAP[kind]) return;
     seen.add(key);
+    per.set(kind, (per.get(kind) ?? 0) + 1);
     out.push({ groups: gs, key, label, kind });
   };
   if (!N) return out;
@@ -247,7 +263,7 @@ export function variations(
     // a third level: the speeds changing from statement to statement, each the same length
     for (const r of speedsAcross(sizes)) put(r.sizes.map(sound), r.label, 'balance');
     // already changing across: the other ways across, and the plain forms
-    const across = otherWaysAcross(sizes);
+    const across = [...otherWaysAcross(sizes), ...otherInsideAcross(sizes)];
     for (const r of across) put(r.sizes.map(sound), r.label, 'balance');
     if (!speeds.length && !across.length) {
       // one level down: the runs of the main size inside the cell (X | XX | XXX → 3 2 1, 2 2 2)
@@ -295,7 +311,7 @@ export function variations(
       t.kind,
     );
   if (N > 2) {
-    for (let tries = 0; tries < 60 && out.length < limit; tries++)
+    for (let tries = 0; tries < 60 && (per.get('shuffle') ?? 0) < KIND_CAP.shuffle; tries++)
       put(
         each((s) => {
           const p = [...s];
