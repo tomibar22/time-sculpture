@@ -408,7 +408,10 @@ export function runsOf(
   while (i < cell.length) {
     if (slot.has(i)) {
       let n = 0;
-      while (i < cell.length && slot.has(i)) (n++, i++);
+      while (i < cell.length && slot.has(i)) {
+        n++;
+        i++;
+      }
       runs.push(n);
       parts.push(null);
     } else {
