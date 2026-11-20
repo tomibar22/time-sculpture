@@ -1,5 +1,6 @@
 import { countWays, countWaysOf, sampleTiling, sampleTilingOf, waysByTiles } from './count';
-import { beatOfPulse, buildGrid, isOnBeat } from './grid';
+import { beatOfPulse, buildGrid, isOnBeat, type Grid } from './grid';
+import { statementsOf } from './yati';
 import { barMap } from './sections';
 import { shapeFills, shapeOf, tihaiFills, type Shape } from './shapes';
 import type { GroupSpec } from './ops/edit';
@@ -31,6 +32,12 @@ export interface FillOption {
   drive: number;
   /** How surprising the order is (0–1): different neighbour pairs over all pairs. */
   surprise: number;
+  /**
+   * For a fill made of statements of one cell (a tihai, a yati, a repeat): the share of the
+   * places where a statement or a gap begins or ends that fall on a beat (0 otherwise). With
+   * `crossing` high it is the studied style: across the beat inside, on the beat at the seams.
+   */
+  seams: number;
   /** Its aesthetic shape (repeat, pyramid, …), if it has one. */
   shape: Shape | null;
 }
@@ -54,7 +61,16 @@ export function measureFill(
   rests?: number[],
 ): Pick<
   FillOption,
-  'onBeat' | 'tiles' | 'offBeat' | 'variety' | 'spread' | 'sync' | 'crossing' | 'drive' | 'surprise'
+  | 'onBeat'
+  | 'tiles'
+  | 'offBeat'
+  | 'variety'
+  | 'spread'
+  | 'sync'
+  | 'crossing'
+  | 'drive'
+  | 'surprise'
+  | 'seams'
 > {
   const grid = buildGrid(meter);
   const silent = new Set(rests);
@@ -97,7 +113,29 @@ export function measureFill(
     crossing: crossing / N,
     drive: Math.max(-1, Math.min(1, drive)),
     surprise,
+    seams: rests?.length ? 0 : seamsOf(grid, start, t),
   };
+}
+
+/** The share of a fill's seams (statement and gap edges) that fall on a beat; 0 without any. */
+function seamsOf(grid: Grid, start: number, t: number[]): number {
+  if (t.length < 6) return 0;
+  const st = statementsOf(t);
+  if (!st) return 0;
+  const g = st.gap.reduce((a, n) => a + n, 0);
+  const len = st.cell.reduce((a, n) => a + n, 0) - st.slots.length * st.xs[0]!;
+  const edges = new Set<number>();
+  let k = start + (st.before ? g : 0);
+  if (st.before) edges.add(start);
+  st.xs.forEach((x, i) => {
+    edges.add(k);
+    k += len + st.slots.length * x - (st.cut && i === st.k - 1 ? st.cell.at(-1)! : 0);
+    edges.add(k);
+    if (i < st.k - 1) k += g;
+  });
+  let on = 0;
+  for (const e of edges) if (e <= grid.TS && isOnBeat(grid, e)) on++;
+  return on / edges.size;
 }
 
 /** Measures that the map can put on its axes. */
@@ -121,12 +159,14 @@ export type FillSort =
   | 'drive'
   | 'surprise'
   | 'predictable'
-  | 'crossing';
+  | 'crossing'
+  | 'seams';
 
 export const FILL_SORTS: { id: FillSort; label: string }[] = [
   { id: 'onbeat', label: 'Most on the beat' },
   { id: 'syncopated', label: 'Most syncopated' },
   { id: 'crossing', label: 'Most across the beat' },
+  { id: 'seams', label: 'Across inside, on the beat at the seams' },
   { id: 'drive', label: 'Pulls hardest to 1' },
   { id: 'surprise', label: 'Most surprising' },
   { id: 'predictable', label: 'Most predictable' },
@@ -252,6 +292,7 @@ export function sortFills(options: FillOption[], by: FillSort): FillOption[] {
     onbeat: (a, b) => b.onBeat / b.tiles - a.onBeat / a.tiles || b.onBeat - a.onBeat,
     syncopated: (a, b) => b.sync / b.tiles - a.sync / a.tiles || b.offBeat - a.offBeat,
     crossing: (a, b) => b.crossing - a.crossing,
+    seams: (a, b) => b.seams * b.crossing - a.seams * a.crossing || b.seams - a.seams,
     drive: (a, b) => b.drive - a.drive,
     surprise: (a, b) => b.surprise - a.surprise || b.variety - a.variety,
     predictable: (a, b) => a.surprise - b.surprise || a.variety - b.variety,

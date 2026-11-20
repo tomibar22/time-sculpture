@@ -276,11 +276,15 @@ export function Help() {
               shape: repeats, growing patterns, pyramids, refrains, even spreads, cadences, mirrors,
               and the <b>tihai</b>: a phrase said three times with the same tile between, so the
               third time ends exactly on the 1. <b>All shapes</b> lists a few fills of every kind
-              under its name, with the way to all of that kind; ↑ ↓ walk the list.{' '}
-              <b>Known rhythms</b> are fills with a name (tresillo, cinquillo, the claves, bossa,
-              bembé, aksak), at any breadth that fits; <b>Rotating</b> starts a cell one group later
-              each time. <b>From the piece</b> takes what is written just before the region, and the
-              opening, and says it again there: as it is, backwards, turned.
+              under its name, with the way to all of that kind; ↑ ↓ walk the list. A <b>Yati</b>{' '}
+              says a cell three times, its main size growing or shrinking around a mean (5 7 9), so
+              it lands where three of the middle one would. The sort{' '}
+              <b>Across inside, on the beat at the seams</b> puts first the fills whose phrases
+              cross the beat but begin and end on it. <b>Known rhythms</b> are fills with a name
+              (tresillo, cinquillo, the claves, bossa, bembé, aksak), at any breadth that fits;{' '}
+              <b>Rotating</b> starts a cell one group later each time. <b>From the piece</b> takes
+              what is written just before the region, and the opening, and says it again there: as
+              it is, backwards, turned.
             </p>
             <p>
               <b>Tiles</b> narrows the fills to those with a set number of tiles. Almost right? Tap
@@ -301,6 +305,13 @@ export function Help() {
               the score, Use to write it. What is before its first tile stays as it is. With an
               empty pattern, <b>Before it</b> takes the strokes written just before the stretch, and
               <b>Copied</b> what was copied last.
+            </p>
+            <p>
+              <b>Yati</b>: the pattern said three times, its main size (the one it has most of)
+              changing each time while the rest stays: 5 → 7 → 9 widening, 9 → 7 → 5 narrowing, or
+              swelling and pinched. 5 + 7 + 9 = 3 × 7, so it lands exactly where three 7s would:
+              take from one time, give to another, and the landing stays. Gaps of whole beats are
+              written as beat strokes; “before each” puts the gap before every time.
             </p>
             <p>
               <b>Last tile on the 1</b>: as in a tihai, the pattern’s last tile begins exactly where
@@ -326,6 +337,12 @@ export function Help() {
               groups first to lock them in place. Pointing at one previews it; everything around the
               passage stays where it is, so it still lands on 1. A tap tries a variation in the
               score; Use writes it. From here varies what is there now.
+            </p>
+            <p>
+              <b>Balanced</b> comes first: when the passage is a cell said again (a tihai, a repeat,
+              a yati), its main size is shared out again with the same sum: three 7s become 5 7 9 or
+              9 7 5, and back; the sum is shown (5+7+9 = 3×7). Any passage can also slow down or
+              speed up, written out, every tile a step longer or shorter, in the same time.
             </p>
           </details>
           <details className="help-topic">

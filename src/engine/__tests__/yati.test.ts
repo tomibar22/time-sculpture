@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { patternLandings } from '../land';
-import { realize, templateOf, templateText, yatiSizes } from '../yati';
+import {
+  balanceName,
+  ramps,
+  realize,
+  rebalances,
+  sayStatements,
+  statementsOf,
+  templateOf,
+  templateText,
+  yatiFills,
+  yatiLabel,
+  yatiSizes,
+} from '../yati';
+import { shapeOf, shapeFills } from '../shapes';
+import { variations } from '../vary';
+import { makeMeter } from '../doc';
+import { measureFill, sortFills, fillOptions } from '../fills';
 import study from '../../../docs/studies/yati-5-7-9.timesculpture.json';
 
 /** The recorded composition (docs/studies/yati-5-7-9.md): 8 bars of 4, 6 pulses a beat. */
@@ -29,7 +45,7 @@ describe('yati: a cell three times, its main size changing', () => {
     const yati = ls.filter((l) => l.kind === 'yati');
     const found = yati.find((l) => l.sizes.join(' ') === PIECE.join(' '))!;
     expect(found).toMatchObject({ lead: 0, on1: 6, name: 'Widening 5 → 7 → 9' });
-    expect(found.note).toBe('X 3 X X 3 X X X 6 · 6 6 before each');
+    expect(found.note).toBe('X 3 X X 3 X X X 6 · 6 6 before each · 5+7+9 = 3×7');
     expect(found.gaps).toEqual([0, 1, 11, 12, 22, 23]);
     // first the plain tihai of the 7s (the same landing), then widening by 1, by 2
     expect(yati.slice(0, 3).map((l) => l.name)).toEqual([
@@ -63,5 +79,89 @@ describe('yati: a cell three times, its main size changing', () => {
       ),
       { numRuns: 200 },
     );
+  });
+});
+
+describe('statements: reading a passage as a cell said again, its main size changing', () => {
+  it('reads the studied piece: three statements, the last tile on the 1', () => {
+    const st = statementsOf(PIECE)!;
+    expect(st).toMatchObject({ k: 3, xs: [5, 7, 9], cut: true });
+    expect(sayStatements(st, st.xs)).toEqual(PIECE);
+    // three 7s: the plain tihai, the same length
+    expect(sum(sayStatements(st, [7, 7, 7]))).toBe(192);
+    expect(balanceName(st.xs)).toBe('Widening');
+  });
+  it('reads a plain tihai with a gap and a repeat', () => {
+    // "3 2 | 1 | 3 2 | 1 | 3 2", or "3 2 1" three times with the last 1 on the 1: both say it
+    const t = statementsOf([3, 2, 1, 3, 2, 1, 3, 2])!;
+    expect(t).toMatchObject({ k: 3, xs: [3, 3, 3] });
+    expect(sayStatements(t, t.xs)).toEqual([3, 2, 1, 3, 2, 1, 3, 2]);
+    expect(statementsOf([3, 3, 2, 3, 3, 2])).toMatchObject({ k: 2, xs: [3, 3] });
+    expect(statementsOf([3, 4, 2, 5, 1])).toBeNull();
+  });
+  it('rebalances keep the sum: even, widening, narrowing, swelling, pinched', () => {
+    const r = rebalances([5, 7, 9]);
+    expect(r[0]).toMatchObject({ xs: [7, 7, 7], name: 'Even', sum: '7+7+7 = 3×7' });
+    expect(r.map((x) => x.xs.join(' '))).toContain('9 7 5');
+    expect(r.map((x) => x.xs.join(' '))).toContain('6 9 6');
+    for (const x of r) expect(sum(x.xs)).toBe(21);
+    expect(rebalances([3, 4])).toEqual([]); // no whole mean
+  });
+  it('a written-out slowing down keeps the length', () => {
+    expect(ramps([3, 3, 2])).toEqual([]);
+    const r = ramps([4, 4, 4, 4, 4]);
+    expect(r[0]).toEqual({ sizes: [2, 3, 4, 5, 6], label: 'Slowing down, 1 a tile' });
+    for (const x of r) expect(sum(x.sizes)).toBe(20);
+  });
+  it('Vary: a plain tihai of the 7-cell becomes the studied piece, in the Balanced group', () => {
+    const st = statementsOf(PIECE)!;
+    const plain = sayStatements(st, [7, 7, 7]);
+    const vs = variations(plain.map((n) => ({ n, kind: 'sound' as const })));
+    const v = vs.find((x) => x.groups.map((g) => g.n).join(' ') === PIECE.join(' '))!;
+    expect(v).toMatchObject({ kind: 'balance', label: 'Widening 5 → 7 → 9 · 5+7+9 = 3×7' });
+    expect(vs[0]!.kind).toBe('balance');
+  });
+  it('Browse: yatis are built from the allowed sizes, named, and land exactly', () => {
+    const fills = yatiFills(48, [2, 3, 4, 5, 6]);
+    expect(fills.length).toBeGreaterThan(5);
+    for (const t of fills) {
+      expect(t.every((n) => [2, 3, 4, 5, 6].includes(n))).toBe(true);
+      expect(sum(t)).toBe(48);
+    }
+    const named = shapeFills(48, [2, 3, 4, 5, 6]).filter((f) => f.shape.family === 'yati');
+    expect(named.length).toBeGreaterThan(3);
+    // the studied piece is a yati by name (6 6 before each, and the cut last tile)
+    expect(yatiLabel(PIECE)).toBe('Widening 5 → 7 → 9 · 6 6 X 3 X X 3 X X X 6, last on the 1');
+    // an accidental reading of a random fill is no yati
+    expect(yatiLabel([2, 2, 5, 7, 2, 5, 7, 2])).toBeNull();
+    expect(shapeOf(PIECE)?.family).toBe('yati');
+    // a refrain stays a refrain
+    expect(shapeOf([2, 3, 2, 4, 2, 5])?.family).toBe('refrain');
+  });
+  it('every built yati is read back as a yati, and Vary keeps the length', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 12, max: 96 }), (R) => {
+        for (const t of yatiFills(R, [2, 3, 4, 5, 6, 7], 12)) {
+          expect(sum(t)).toBe(R);
+          expect(statementsOf(t)).not.toBeNull();
+        }
+      }),
+      { numRuns: 60 },
+    );
+  });
+});
+
+describe('seams: across the beat inside, on the beat at the seams', () => {
+  it('the studied piece: every seam on a beat, most strokes across one', () => {
+    const m = measureFill(makeMeter(4, 8, 6), 0, PIECE);
+    expect(m.seams).toBe(1);
+    expect(m.crossing).toBeGreaterThan(0.4);
+  });
+  it('a fill with no statements has none; the sort puts seams first', () => {
+    const meter = makeMeter(4, 2, 4);
+    expect(measureFill(meter, 0, [3, 4, 2, 5, 1, 6, 3, 8]).seams).toBe(0);
+    const { options } = fillOptions(meter, 0, 32, [2, 3, 4, 5, 6]);
+    const best = sortFills(options, 'seams')[0]!;
+    expect(best.seams).toBe(1);
   });
 });

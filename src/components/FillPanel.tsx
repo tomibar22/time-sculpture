@@ -381,6 +381,8 @@ function Browse({
           E.shapeRank(a.shape!.family) - E.shapeRank(b.shape!.family) ||
           // within a family, the plain form before its variants (a tihai before a gap tihai)
           Number(a.shape!.label.includes('→')) - Number(b.shape!.label.includes('→')) ||
+          // yatis whose seams fall on beats first (across the beat inside, aligned at the seams)
+          (a.shape!.family === 'yati' ? b.seams - a.seams : 0) ||
           a.tiles - b.tiles ||
           a.key.localeCompare(b.key),
       );

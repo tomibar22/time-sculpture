@@ -1007,3 +1007,24 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   (the study's `6 6 | cell | 6 6 | cell | 6 6 | cell`); gaps of whole beats are written as beat
   strokes when the region's beats all have one subdivision (`LandOptions.beat`, from LandPanel).
   Ranked: exact fit, gaps on beats, around the size written; each shape once with its best gap.
+- **The principle, generalised** (user request: the app should count long-range, like the
+  study): a passage made of statements of one cell keeps its landing as long as the **sum** of
+  the statements' main sizes is kept, so it can be taken from one and given to another.
+  Engine (yati.ts): `statementsOf(sizes)` reads a passage as k (3, 4, 2, 5) statements of one
+  cell: `{cell, slots, xs, gap, before, cut}` (gap tiles between, also before the first, the
+  last tile cut = on the 1); written readings first, a "gap" equal to the cell's own fixed edge
+  is refused (so the study reads "6 6 X 3 X X 3 X X X 6", last on the 1). `sayStatements`
+  writes it back with other xs; `rebalances(xs)` = Even + `BALANCES[k]` (widening, narrowing,
+  swelling, pinched; d 1–3) with the sum shown ("5+7+9 = 3×7"); `balanceName`; `ramps` = a
+  written-out slowing down / speeding up (arithmetic steps adding to 0, n ≥ 4 tiles).
+- **Vary**: first group **Balanced: same sum, same landing** (kind `balance`): rebalances of
+  a real reading (a plain repeat / tihai, or a named sharing-out; accidental readings are
+  skipped) and the ramps. Three 7s ↔ 5 7 9 ↔ 9 7 5.
+- **Browse**: family `yati` (after Chakradhar): `yatiFills(R, sizes)` builds cells ("X X f",
+  "X f X", "X X X f", the study's "X f X X f X X X" and "+ g") three times with balanced xs, gaps of
+  1–3 equal strokes, between or before each, cut or not; xs never equal a fixed size; only fills
+  that `yatiLabel` reads back are kept ("Widening 5 → 7 → 9 · X X 4, 6 6 between, last on the
+  1"; label needs ≥ 8 tiles, a cell of ≥ 3 with a fixed tile, a named shape). Measure `seams`
+  (`measureFill`): the share of statement / gap edges on a beat; sort "Across inside, on the
+  beat at the seams" (seams × crossing); yatis with seams on beats first in their family.
+- Land's yati rows say the arithmetic too ("… · 5+7+9 = 3×7").

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { DEFAULT_SEQ, expectSeq, fillFold, openSetup, ready } from './helpers';
+import { clearAll, DEFAULT_SEQ, expectSeq, fillFold, openSetup, ready } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -304,4 +304,35 @@ test('practice: a pattern to start from shows in the score; speed up climbs and 
   await expect(pop.getByTestId('practice-tempo')).toHaveValue('200');
   await page.keyboard.press('Escape');
   await expect(btn).toContainText('speeding up');
+});
+
+test('vary, balanced: a plain tihai shares out its main size again, the landing kept', async ({
+  page,
+}) => {
+  // an empty piece of 32 pulses, then the tihai 3 2 3 · 4 · 3 2 3 · 4 · 3 2 3 (lands on 1)
+  await clearAll(page);
+  for (const d of '32343234323') await page.keyboard.press(d);
+  await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
+  await page.keyboard.press('Shift+KeyA');
+  await page.keyboard.press('Shift+KeyV');
+  const list = page.getByRole('list', { name: 'Variations' });
+  await expect(list).toContainText('Balanced');
+  // 2 + 3 + 4 = 3 × 3: the cell widening, in the same time
+  await list.getByRole('button', { name: /Widening 2 → 3 → 4/ }).click();
+  await page.getByRole('button', { name: 'Use', exact: true }).click();
+  await expect(page.getByTestId('sequence')).toContainText('2 2 2 4 3 2 3 4 4 2 4');
+  await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
+});
+
+test('browse: yatis are a kind of their own, named by how they share out', async ({ page }) => {
+  await clearAll(page);
+  await page.getByRole('button', { name: 'Fill it…' }).click();
+  await fillFold(page, 'Shape');
+  await page.getByRole('button', { name: /^Yati/ }).click();
+  const list = page.getByRole('list', { name: 'Ways to fill' });
+  await expect(list.locator('.fill-main').first()).toContainText(
+    /Widening|Narrowing|Swelling|Pinched/,
+  );
+  await list.locator('.fill-main').first().dblclick();
+  await expect(page.getByTestId('status')).toContainText('Complete · lands on 1');
 });

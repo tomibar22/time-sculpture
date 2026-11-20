@@ -266,7 +266,7 @@ function yatiWays(R: number, cell: readonly number[], opts: LandOptions): YatiWa
               gap: G || undefined,
               gaps: gaps.length ? gaps : undefined,
               name: `${shape.name} ${xs.join(' → ')}`,
-              note: `${words} · ${gapWords}`,
+              note: `${words} · ${gapWords}${d ? ` · ${xs.join('+')} = 3×${m}` : ''}`,
               key: `y${shape.id}${m}.${d}.${G}${each ? 'e' : 'p'}`,
             },
           });

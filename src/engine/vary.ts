@@ -1,6 +1,7 @@
 import type { GroupSpec } from './ops/edit';
 import { formatGroups } from './ops/edit';
 import { longShortOf, realizeLS } from './longshort';
+import { balanceName, ramps, rebalances, sayStatements, statementsOf } from './yati';
 
 /**
  * Variations of a passage: the same stretch of time said another way. Every variation has
@@ -18,9 +19,10 @@ export interface Variation {
   kind: VariationKind;
 }
 
-export type VariationKind = 'order' | 'weight' | 'nudge' | 'shuffle' | 'longshort';
+export type VariationKind = 'balance' | 'order' | 'weight' | 'nudge' | 'shuffle' | 'longshort';
 
 export const VARIATION_KINDS: { id: VariationKind; label: string }[] = [
+  { id: 'balance', label: 'Balanced: same sum, same landing' },
   { id: 'nudge', label: 'Nearby' },
   { id: 'longshort', label: 'Same long and short' },
   { id: 'order', label: 'Reordered' },
@@ -214,6 +216,22 @@ export function variations(
     return res;
   };
 
+  // balanced: taken from one place, given to another, the sum kept (engine/yati.ts). Statements
+  // of one cell share out their main size again (5 7 9 ↔ 7 7 7 ↔ 9 7 5); any passage can slow
+  // down or speed up, written out, in the same time.
+  if (!lock.size && base.every((g) => g.kind === 'sound')) {
+    const sizes = base.map((g) => g.n);
+    const st = statementsOf(sizes);
+    // only a real reading: a plain repeat or tihai, or a named way of sharing out
+    if (st && balanceName(st.xs))
+      for (const r of rebalances(st.xs))
+        put(
+          sayStatements(st, r.xs).map(sound),
+          `${r.name} ${r.xs.join(' → ')} · ${r.sum}`,
+          'balance',
+        );
+    for (const r of ramps(sizes)) put(r.sizes.map(sound), r.label, 'balance');
+  }
   for (const v of nudges(base, lock)) put(v.groups, v.label, 'nudge');
   // the same shape of long and short tiles with other sizes, the nearest first
   if (!lock.size && base.every((g) => g.kind === 'sound')) {

@@ -42,11 +42,18 @@ piece (not in the file).
 
 ## In the app
 
-- **Land → Yati** (engine/yati.ts, `yatiWays` in land.ts): enter the cell (`7 3 7 7 3 7 7 7 6`),
-  turn on "Last tile on the 1": "Widening 5 → 7 → 9 · 6 6 before each · fills it exactly".
+- **Land → Yati**: enter the cell (`7 3 7 7 3 7 7 7 6`), turn on "Last tile on the 1":
+  "Widening 5 → 7 → 9 · 6 6 before each · fills it exactly · 5+7+9 = 3×7".
+- **Vary → Balanced**: select the piece; "Even 7 → 7 → 7" is the plain tihai in the same time,
+  and back. Any passage read as statements of a cell can be shared out again.
+- **Browse → Yati**: built yatis of any stretch, from the allowed sizes, named by how they
+  share out; the sort "Across inside, on the beat at the seams" finds the studied style.
+- Reading: `statementsOf` reads this piece as three statements of `6 6 X 3 X X 3 X X X 6`, the
+  last 6 on the 1 (`yatiLabel`: "Widening 5 → 7 → 9 · 6 6 X 3 X X 3 X X X 6, last on the 1").
 
-## Still to learn from it
+## The general lesson
 
-- Vary: a plain tihai (A gap A gap A) → widening / narrowing / swelling / pinched, same length.
-- Browse: a Yati family, and a measure "crosses inside, aligned at the seams".
-- Recognition: `shapeOf` naming a written passage as a yati of a template.
+Count long-range: a phrase's landing depends only on sums. Inside a fixed sum everything can be
+traded: three equal statements can widen, narrow, swell or pinch; a run of tiles can slow down
+or speed up, written out; the gap can stand between or before each. Cross the beat inside,
+meet it at the seams.
