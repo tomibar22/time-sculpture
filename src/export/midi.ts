@@ -1,4 +1,13 @@
-import { barMap, buildGrid, EPS, isSpace, pitchForSize, playOrder, sectionAt } from '../engine';
+import {
+  barMap,
+  buildGrid,
+  EPS,
+  isSpace,
+  mutedAt,
+  pitchForSize,
+  playOrder,
+  sectionAt,
+} from '../engine';
 import type { Doc } from '../engine';
 
 /**
@@ -83,6 +92,7 @@ export function midiFile(doc: Doc, title: string, tempo: number): Uint8Array {
     for (const s of sounds) {
       // a group sounds when its onset is played (as in the app)
       if (s.t0 < span.a - EPS || s.t0 >= span.b - EPS) continue;
+      if (mutedAt(doc.meter, s.t0)) continue; // a muted stretch is not heard
       const on = tick(out + s.t0 - span.a);
       const off = Math.max(on + 1, tick(out + Math.min(s.t1, span.b) - span.a) - 8);
       const note = noteOf(pitchForSize(s.n));

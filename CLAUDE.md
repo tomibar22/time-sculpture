@@ -381,6 +381,20 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   in the tile and range bars (`toggleTotalOver`); a tap on a bracket selects its range. Saved as
   `totals` `{fromBeat, toBeat, pulses}`.
 
+### Muted stretches (user request: a bar where nothing sounds, no click, nothing)
+
+- `meter.mutes` `{a, b}[]` (beats, on pulses, ascending, disjoint: `withForm` merges what touches
+  or overlaps). They ride in `Form` like totals, so every meter op snaps / moves / cuts them;
+  `formErrors` checks them. `toggleMute(doc, ka, kb)`: mutes, or when all of it is muted already
+  lets just that stretch sound again; `isMuted`, `mutedAt(meter, t)`.
+- Player: at a pulse inside a muted stretch nothing is scheduled (tiles, click, ticks, the 1,
+  picked clicks); the count-in is never muted. MIDI leaves muted strokes out. File: `muted`
+  `{fromBeat, toBeat}`.
+- UI: "Mute" (pressed when on) in the tile and range bars, "Mute (nothing sounds)" / "Let it
+  sound again" in both menus, "Mute this bar" on the bar page, key **U** (`toggleMuteOver`,
+  `mutedOver` in actions.ts). Drawn as a light veil with grey hatching over the tiles and a grey
+  line along its top (in print too).
+
 ### Repeats and endings (engine/form.ts)
 
 - `meter.repeatStarts` (`|:`, 0 ≤ t < NB), `meter.repeatEnds` (`{at, times}`, `:|`, 0 < t ≤ NB,
@@ -894,6 +908,9 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   scale had the ticks at 35 and is converted on load). **The 1 is on its own**: every bar's
   downbeat sounds on The 1 fader whatever `ui.click` says (`click` only switches the other
   beats; before, Beats at nothing also silenced the bars' downbeats, leaving only the landing).
+  **The low drum on the piece's 1** (the landing's sine under its click) can be switched off on
+  the Mix page ("Low drum on the 1 of the piece", `ui.landDrum`, device pref, on by default,
+  Reset turns it on; user request); the landing's click stays.
 - **Click pattern**: cells are 40 px (dots 32 × 40); a note says when the beats or the
   subdivision are off in the Mix ("Turn on"); while playing, the tab of the bar of the cycle that
   sounds is ringed (`ui.clickBarNow`, from the player's slots) and the beat that sounds is

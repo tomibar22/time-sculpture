@@ -563,6 +563,10 @@ export function Help() {
                   </dt>
                   <dd>total</dd>
                   <dt>
+                    <kbd>U</kbd>
+                  </dt>
+                  <dd>mute: nothing sounds there</dd>
+                  <dt>
                     <kbd>[ ]</kbd>
                   </dt>
                   <dd>repeat signs (+ − on an end sign: times)</dd>

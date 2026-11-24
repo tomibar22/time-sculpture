@@ -1,4 +1,5 @@
 import {
+  mutedAt,
   barMap,
   buildGrid,
   clickHeard,
@@ -217,12 +218,17 @@ function schedule(): void {
           d: doc.meter.subdivision[ev.beat] ?? 1,
           bar: barsHeard,
         });
-    if (sound !== 'off' && heard === 'picked') {
+    // a muted stretch of the piece: nothing at all sounds there (user request)
+    const muted = mutedAt(doc.meter, ev.t0);
+    if (muted) {
+      // silent
+    } else if (sound !== 'off' && heard === 'picked') {
       if (ui.ticks) playPicked(next);
     } else if (sound !== 'off' && heard)
       playClick(next, click, ui.ticks, ui.click || ui.stage || hush);
     const dur = span(ev.t0, ev.t1);
-    if (ev.onset && sound === 'all' && !hush) playGroup(next, ev.onset.n, dur * ev.onset.n);
+    if (ev.onset && sound === 'all' && !hush && !muted)
+      playGroup(next, ev.onset.n, dur * ev.onset.n);
     const cyc = !ui.stage && ui.clickPat.on ? barsHeard % ui.clickPat.bars.length : -1;
     const phase = barsHeard - (barMap(doc.meter).barOf[ev.beat] ?? 0);
     queue.push({ t: next, T0: ev.t0, T1: ev.t1, dur, hush, bar: cyc, phase });

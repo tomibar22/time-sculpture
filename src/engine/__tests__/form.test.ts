@@ -240,3 +240,36 @@ describe('bars after the end', () => {
     expect(appendBars(docFrom(makeMeter(4, MAX_CYCLES, 1), ['|']), 1).report.ok).toBe(false);
   });
 });
+
+describe('muted stretches', () => {
+  it('mutes, merges what touches, and lets part of it sound again', async () => {
+    const { toggleMute, isMuted, mutedAt } = await import('../form');
+    let d = toggleMute(piece(), 4, 8).doc; // bar 2
+    expect(d.meter.mutes).toEqual([{ a: 4, b: 8 }]);
+    expect(mutedAt(d.meter, 4)).toBe(true);
+    expect(mutedAt(d.meter, 8)).toBe(false);
+    d = toggleMute(d, 8, 12).doc; // bar 3 touches: one stretch
+    expect(d.meter.mutes).toEqual([{ a: 4, b: 12 }]);
+    expect(isMuted(d.meter, 5, 7)).toBe(true);
+    d = toggleMute(d, 6, 8).doc; // muted already: sounds again, the rest stays muted
+    expect(d.meter.mutes).toEqual([
+      { a: 4, b: 6 },
+      { a: 8, b: 12 },
+    ]);
+    expect(checkInvariants(d)).toEqual([]);
+    expect(toggleMute(d, 3, 3).report.ok).toBe(false);
+  });
+
+  it('moves with the bars when bars are added or removed', async () => {
+    const { toggleMute } = await import('../form');
+    const { insertBars, removeBars } = await import('../ops/bars');
+    const d = toggleMute(piece(), 8, 12).doc; // bar 3
+    const ins = insertBars(d, 0, 1).doc;
+    expect(ins.meter.mutes).toEqual([{ a: 12, b: 16 }]);
+    expect(checkInvariants(ins)).toEqual([]);
+    const rem = removeBars(d, 2, 1).doc; // the muted bar itself goes
+    expect(rem.meter.mutes).toBeUndefined();
+    const early = removeBars(d, 0, 1).doc;
+    expect(early.meter.mutes).toEqual([{ a: 4, b: 8 }]);
+  });
+});

@@ -194,6 +194,9 @@ test('practice: the tempo is typed, the count-in can tick the subdivision, and a
   await pop.getByTestId('mix-drum').fill('40');
   await pop.getByTestId('mix-beat').fill('0');
   await expect(pop.locator('.mixer-row.off')).toHaveCount(1);
+  // the low drum on the piece's 1 can be left out
+  await expect(pop.getByTestId('land-drum')).toHaveAttribute('aria-checked', 'true');
+  await pop.getByTestId('land-drum').click();
   await page.keyboard.press('Escape');
   await page.reload();
   await ready(page);
@@ -202,7 +205,9 @@ test('practice: the tempo is typed, the count-in can tick the subdivision, and a
   await pop.getByRole('tab', { name: 'Mix' }).click();
   await expect(pop.getByTestId('mix-drum')).toHaveValue('40');
   await expect(pop.getByTestId('mix-beat')).toHaveValue('0');
+  await expect(pop.getByTestId('land-drum')).toHaveAttribute('aria-checked', 'false');
   await pop.getByRole('button', { name: 'Reset' }).click();
+  await expect(pop.getByTestId('land-drum')).toHaveAttribute('aria-checked', 'true');
   await expect(pop.getByTestId('mix-drum')).toHaveValue('70');
   await expect(pop.getByTestId('mix-beat')).toHaveValue('70');
   // it plays with all of it on

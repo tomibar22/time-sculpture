@@ -209,8 +209,9 @@ const TABS: ['practice' | 'click' | 'mix', string][] = [
   ['mix', 'Mix'],
 ];
 /** Is the mix anything but the plain one? */
-const mixChanged = (s: { mix: Mix; click: boolean; ticks: boolean }) =>
+const mixChanged = (s: { mix: Mix; click: boolean; ticks: boolean; landDrum: boolean }) =>
   !s.click ||
+  !s.landDrum ||
   !s.ticks ||
   (Object.keys(MIX_DEFAULT) as MixChannel[]).some((ch) => s.mix[ch] !== MIX_DEFAULT[ch]);
 
@@ -379,6 +380,7 @@ function Mixer() {
   const click = useUiStore((s) => s.click);
   const ticks = useUiStore((s) => s.ticks);
   const tiles = useUiStore((s) => s.tiles);
+  const landDrum = useUiStore((s) => s.landDrum);
   const set = useUiStore((s) => s.set);
   const shown = (ch: MixChannel) =>
     (ch === 'beat' && !click) || (ch === 'sub' && !ticks) ? 0 : mix[ch];
@@ -390,7 +392,7 @@ function Mixer() {
       ...(ch === 'sub' ? { ticks: v > 0 } : {}),
     });
   };
-  const changed = mixChanged({ mix, click, ticks });
+  const changed = mixChanged({ mix, click, ticks, landDrum });
   return (
     <div className="mixer" role="group" aria-label="Mix">
       {CHANNELS.map(([ch, label, what]) => {
@@ -418,6 +420,22 @@ function Mixer() {
           </label>
         );
       })}
+      <div className="practice-row sub">
+        <span id="mix-land">Low drum on the 1 of the piece</span>
+        <button
+          type="button"
+          className="switch"
+          role="switch"
+          aria-checked={landDrum}
+          aria-labelledby="mix-land"
+          data-testid="land-drum"
+          onClick={() => set({ landDrum: !landDrum })}
+        >
+          <span className="switch-track" aria-hidden="true">
+            <span className="switch-knob" />
+          </span>
+        </button>
+      </div>
       <p className="practice-note mixer-foot">
         <span>
           {tiles === 'off'
@@ -428,7 +446,9 @@ function Mixer() {
           <button
             type="button"
             className="link-btn"
-            onClick={() => set({ mix: { ...MIX_DEFAULT }, click: true, ticks: true })}
+            onClick={() =>
+              set({ mix: { ...MIX_DEFAULT }, click: true, ticks: true, landDrum: true })
+            }
           >
             Reset
           </button>

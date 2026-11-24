@@ -13,6 +13,8 @@ import {
   changeRepeatTimes,
   openVolta,
   toggleTotalOver,
+  toggleMuteOver,
+  mutedOver,
   toggleRepeatOver,
   toggleDoubleBarAt,
   repeatedOver,
@@ -239,6 +241,7 @@ export function SelectionBar() {
         <span className="selbar-sep" aria-hidden="true" />
         {/* marks on the score */}
         <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
+        <MuteButton disabled={!sel.length || !E.isContiguous(idx)} />
         <RepeatButton disabled={!sel.length || !E.isContiguous(idx)} />
         <SectionEndButton disabled={!sel.length} />
         <button
@@ -425,6 +428,7 @@ function CaretBar() {
           <RepeatButton />
           <SectionEndButton />
           <TotalButton />
+          <MuteButton />
           <button
             type="button"
             title="Subdivision of the beats in the range"
@@ -730,6 +734,25 @@ function TotalButton({ disabled = false }: { disabled?: boolean }) {
       onClick={() => toggleTotalOver(selectedRegion())}
     >
       {has ? 'Remove total' : 'Total'}
+    </button>
+  );
+}
+
+/** Mute the selection (nothing sounds there while playing), or let it sound again (U). */
+function MuteButton({ disabled = false }: { disabled?: boolean }) {
+  useDocStore((s) => s.version);
+  useUiStore((s) => s.range);
+  useUiStore((s) => s.selection);
+  const on = mutedOver(selectedRegion());
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={on}
+      title="Nothing sounds here while playing: no tiles, no click (U)"
+      onClick={() => toggleMuteOver(selectedRegion())}
+    >
+      Mute
     </button>
   );
 }

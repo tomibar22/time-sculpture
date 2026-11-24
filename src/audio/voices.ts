@@ -21,10 +21,11 @@ export function playClick(
 ): void {
   switch (kind) {
     case 'landing': {
-      // the 1 of the piece: a soft low drum under the bar's click (it is what the phrase lands on)
+      // the 1 of the piece: a soft low drum under the bar's click (it is what the phrase lands
+      // on); the Mix page can leave the drum out (user request), the click stays
       const g = vol('one');
       if (g <= 0) break;
-      tone(t, 'sine', 150, 0.5 * g, 0.45, 52);
+      if (useUiStore.getState().landDrum) tone(t, 'sine', 150, 0.5 * g, 0.45, 52);
       woodblock(t, 1900, 0.11 * g);
       break;
     }

@@ -51,3 +51,29 @@ test('a phrase mark gets a name of your choice, or none', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Phrase mark' })).toBeVisible();
   await expectSeq(page, DEFAULT_SEQ);
 });
+
+test('a muted stretch: Mute in the bar, U, undo; it is kept with the piece', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(3.5))); // the first 3
+  await tap(page, at(s, P(9)), ['Shift']); // through the 2
+  const mute = page.getByRole('button', { name: 'Mute', exact: true });
+  await expect(mute).toHaveAttribute('aria-pressed', 'false');
+  await mute.click();
+  await expect(mute).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('muted: nothing sounds there')).toBeVisible();
+  await expectSeq(page, DEFAULT_SEQ);
+  await page.keyboard.press('u'); // sounds again
+  await expect(mute).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('z'); // undo: muted again
+  await expect(mute).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(700); // autosave
+  await page.reload();
+  await ready(page);
+  const s2 = await score(page);
+  await tap(page, at(s2, P(3.5)));
+  await tap(page, at(s2, P(9)), ['Shift']);
+  await expect(page.getByRole('button', { name: 'Mute', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});

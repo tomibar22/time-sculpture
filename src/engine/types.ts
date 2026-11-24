@@ -72,6 +72,11 @@ export interface Meter {
    */
   readonly totals?: readonly Total[];
   /**
+   * Muted stretches [a, b) (beats, on pulses): nothing sounds there while playing, neither the
+   * tiles nor the click (user request: a bar left silent on purpose). Ascending, disjoint, merged.
+   */
+  readonly mutes?: readonly Total[];
+  /**
    * The main section's bars when they are not all alike: a pattern of bar sizes in beats that
    * goes round ("5 5 4"). Absent = every bar has `beatsPerCycle` beats. With a pattern the piece
    * is as long as its subdivision and `cycles` counts the bars (as with modulations).

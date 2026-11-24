@@ -536,6 +536,36 @@ export function toggleTotalOver(region: { a: number; b: number } | null): void {
   announce(had ? 'Total removed' : `Total: ${region.b - region.a} pulses`);
 }
 
+/** Is all of a region (pulses) muted? */
+export function mutedOver(region: { a: number; b: number } | null): boolean {
+  if (!region || region.b <= region.a) return false;
+  const g = E.buildGrid(doc().meter);
+  return E.isMuted(doc().meter, g.times[region.a]!, g.times[region.b]!);
+}
+
+/**
+ * U: mute a region (the selected groups, a range or bars): while playing nothing sounds there,
+ * neither the tiles nor the click. Muting what is muted lets it sound again.
+ */
+export function toggleMuteOver(region: { a: number; b: number } | null): void {
+  if (!region || region.b <= region.a) {
+    sfx.nope();
+    return void toast('Select the bars (or a range) to mute');
+  }
+  const had = mutedOver(region);
+  const r = E.toggleMute(doc(), region.a, region.b);
+  if (!r.report.ok) return void sfx.nope();
+  run(r, { label: had ? 'sound again' : 'mute', select: 'keep' });
+  const bars = barsOfPulses(region.a, region.b);
+  const p = pulsesOfBars(bars.a, bars.b);
+  const label = barsLabel(bars.a, bars.b);
+  const what =
+    p.a === region.a && p.b === region.b
+      ? label.charAt(0).toUpperCase() + label.slice(1)
+      : 'The stretch';
+  toast(had ? `${what} sounds again` : `${what} muted: nothing sounds there`);
+}
+
 /* ------------------------------------------------------------------ bars before the beginning */
 
 /** Add a bar before the beginning, as open space to write an opening in; the caret goes there. */

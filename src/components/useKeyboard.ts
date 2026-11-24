@@ -19,6 +19,7 @@ import {
   changeRepeatTimes,
   openVolta,
   toggleTotalOver,
+  toggleMuteOver,
   splitSelection,
   undo,
 } from '../state/actions';
@@ -255,6 +256,10 @@ export function useKeyboard() {
       if (k === 'g' && !e.shiftKey) {
         e.preventDefault();
         return toggleTotalOver(selectedRegion());
+      }
+      if (k === 'u' && !e.shiftKey) {
+        e.preventDefault();
+        return toggleMuteOver(selectedRegion());
       }
       if (k === 'p' && e.shiftKey) {
         // name the phrase mark at the caret (or where the selection starts)

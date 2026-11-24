@@ -23,6 +23,8 @@ import {
   toggleDoubleBarAt,
   toggleRepeatStartAt,
   toggleTotalOver,
+  toggleMuteOver,
+  mutedOver,
   toggleRepeatOver,
   repeatedOver,
   wholeBars,
@@ -202,6 +204,16 @@ function Menu({ menu }: { menu: ContextMenuState }) {
           set({ barsDialog: true });
         },
       },
+      (() => {
+        const p = pulsesOfBars(bars.a, bars.b);
+        const muted = mutedOver(p);
+        return {
+          label: muted
+            ? `Let ${many ? 'them' : 'it'} sound again`
+            : `Mute ${many ? 'these bars' : 'this bar'} (nothing sounds)`,
+          run: () => toggleMuteOver(p),
+        };
+      })(),
       'sep',
       { label: 'Metre from here…', run: () => set({ meterDialog: { at: barStart } }) },
       { label: 'Bars in this row…', run: () => set({ rowDialog: { t: barStart } }) },
@@ -267,6 +279,12 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         run: () => toggleTotalOver(selectedRegion()),
       },
       {
+        label: mutedOver(region) ? 'Let it sound again' : 'Mute (nothing sounds)',
+        hint: 'U',
+        disabled: !E.isContiguous(idx),
+        run: () => toggleMuteOver(selectedRegion()),
+      },
+      {
         label: repeatedOver(region) ? 'Remove the repeat' : 'Repeat |: :|',
         hint: 'R',
         disabled: !E.isContiguous(idx),
@@ -319,6 +337,11 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         label: hasTotal ? 'Remove total' : 'Total',
         hint: 'G',
         run: () => toggleTotalOver(r),
+      },
+      {
+        label: mutedOver(r) ? 'Let it sound again' : 'Mute (nothing sounds)',
+        hint: 'U',
+        run: () => toggleMuteOver(r),
       },
       {
         label: repeatedOver(r) ? 'Remove the repeat' : 'Repeat |: :|',

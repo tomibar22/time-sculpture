@@ -130,6 +130,7 @@ const moveForm = (meter: Meter, starts: (t: number) => number, ends: (t: number)
     voltas: f.voltas.map((v) => ({ ...v, a: starts(v.a), b: ends(v.b) })),
     doubleBars: f.doubleBars.map(ends),
     totals: f.totals.map((v) => ({ a: starts(v.a), b: ends(v.b) })),
+    mutes: (f.mutes ?? []).map((v) => ({ a: starts(v.a), b: ends(v.b) })),
   };
   return form;
 };
@@ -178,9 +179,10 @@ export function insertBars(doc: Doc, atBar: number, n: number): OpResult {
     repeatEnds: _re,
     voltas: _v,
     totals: _t,
+    mutes: _mu,
     ...core
   } = meter;
-  void [_b, _m, _n, _s, _r, _rs, _re, _v, _t];
+  void [_b, _m, _n, _s, _r, _rs, _re, _v, _t, _mu];
   let nm: Meter = {
     ...core,
     subdivision: [...meter.subdivision.slice(0, at), ...subs, ...meter.subdivision.slice(at)],
@@ -279,9 +281,10 @@ export function removeBars(doc: Doc, fromBar: number, count: number): OpResult {
     repeatEnds: _re,
     voltas: _v,
     totals: _t,
+    mutes: _mu,
     ...core
   } = meter;
-  void [_b, _m, _n, _s, _r, _rs, _re, _v, _t];
+  void [_b, _m, _n, _s, _r, _rs, _re, _v, _t, _mu];
   let base: Meter = {
     ...core,
     subdivision: [...meter.subdivision.slice(0, a), ...meter.subdivision.slice(b)],
@@ -317,6 +320,7 @@ export function removeBars(doc: Doc, fromBar: number, count: number): OpResult {
     voltas: f.voltas.map((v) => ({ ...v, a: span(v.a), b: span(v.b) })),
     doubleBars: f.doubleBars.map(ends),
     totals: f.totals.map((v) => ({ a: span(v.a), b: span(v.b) })),
+    mutes: (f.mutes ?? []).map((v) => ({ a: span(v.a), b: span(v.b) })),
   });
 
   const grid = buildGrid(meter);

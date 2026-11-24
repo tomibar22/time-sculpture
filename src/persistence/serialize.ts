@@ -65,6 +65,8 @@ export interface SavedPiece {
   totals?: { fromBeat: number; toBeat: number; pulses: number }[];
   /** Section ends (optional): times in beats of double bar lines that close a part. */
   sectionEnds?: number[];
+  /** Muted stretches (optional): [fromBeat, toBeat) where nothing sounds while playing. */
+  muted?: { fromBeat: number; toBeat: number }[];
   /**
    * Metric modulations (optional): from local beat `atBeat`, a pulse of `from`:1 before equals a
    * pulse of `to`:1 after, and bars have `beatsPerBar` beats.
@@ -143,6 +145,9 @@ export function toSaved(
             };
           }),
         }
+      : {}),
+    ...(doc.meter.mutes?.length
+      ? { muted: doc.meter.mutes.map((v) => ({ fromBeat: v.a, toBeat: v.b })) }
       : {}),
     ...(doc.meter.bars ? { barPattern: [...doc.meter.bars] } : {}),
     ...(doc.meter.sections?.length
@@ -237,6 +242,13 @@ export function fromSaved(raw: unknown): Parsed {
     ...(Array.isArray(p.totals)
       ? {
           totals: (p.totals as Record<string, unknown>[])
+            .map((v) => ({ a: Number(v?.fromBeat), b: Number(v?.toBeat) }))
+            .filter((v) => Number.isFinite(v.a) && Number.isFinite(v.b)),
+        }
+      : {}),
+    ...(Array.isArray(p.muted)
+      ? {
+          mutes: (p.muted as Record<string, unknown>[])
             .map((v) => ({ a: Number(v?.fromBeat), b: Number(v?.toBeat) }))
             .filter((v) => Number.isFinite(v.a) && Number.isFinite(v.b)),
         }

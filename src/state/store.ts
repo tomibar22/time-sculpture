@@ -70,6 +70,8 @@ export interface DevicePrefs {
   turns: { on: number; off: number };
   /** The count-in also ticks the subdivision of the bar it counts. */
   countSub: boolean;
+  /** The low drum under the click on the piece's 1 (the landing); off = the click alone. */
+  landDrum: boolean;
   /** How loud each voice is, 0–100 (see MIX_DEFAULT). */
   mix: Mix;
   /** The click as a rhythm of its own: which beats, pulses and bars have it (engine/click.ts). */
@@ -125,6 +127,7 @@ function loadPrefs(): Partial<DevicePrefs> {
     if (p.turns && typeof p.turns === 'object')
       out.turns = { on: n(p.turns.on), off: n(p.turns.off) };
     if (typeof p.countSub === 'boolean') out.countSub = p.countSub;
+    if (typeof p.landDrum === 'boolean') out.landDrum = p.landDrum;
     if (p.mix && typeof p.mix === 'object') {
       const m = { ...MIX_DEFAULT };
       for (const k of Object.keys(m) as MixChannel[]) {
@@ -315,6 +318,7 @@ export interface UiState {
   tiles: TilesMode;
   turns: { on: number; off: number };
   countSub: boolean;
+  landDrum: boolean;
   mix: Mix;
   clickPat: ClickPattern;
   speedUp: SpeedUp;
@@ -444,6 +448,7 @@ export const useUiStore = create<UiState>((set) => ({
   tiles: 'on',
   turns: { on: 1, off: 1 },
   countSub: false,
+  landDrum: true,
   mix: { ...MIX_DEFAULT },
   clickPat: CLICK_PATTERN,
   speedUp: { on: false, step: 4, every: 2, to: 120 },
@@ -504,6 +509,7 @@ useUiStore.subscribe((s, p) => {
     s.tiles !== p.tiles ||
     s.turns !== p.turns ||
     s.countSub !== p.countSub ||
+    s.landDrum !== p.landDrum ||
     s.mix !== p.mix ||
     s.clickPat !== p.clickPat ||
     s.speedUp !== p.speedUp
@@ -519,6 +525,7 @@ useUiStore.subscribe((s, p) => {
       tiles: s.tiles,
       turns: s.turns,
       countSub: s.countSub,
+      landDrum: s.landDrum,
       mix: s.mix,
       clickPat: s.clickPat,
       speedUp: s.speedUp,

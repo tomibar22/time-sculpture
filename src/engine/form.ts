@@ -29,6 +29,8 @@ export interface Form {
   doubleBars: readonly number[];
   /** Totals ride along with the form: they are spans of time that snap and move the same way. */
   totals: readonly Total[];
+  /** Muted stretches: spans like totals, but merged into disjoint ones. */
+  mutes?: readonly Total[];
 }
 
 export const formOf = (m: Meter): Form => ({
@@ -37,10 +39,50 @@ export const formOf = (m: Meter): Form => ({
   voltas: m.voltas ?? [],
   doubleBars: m.doubleBars ?? [],
   totals: m.totals ?? [],
+  mutes: m.mutes ?? [],
 });
 
 export const hasForm = (m: Meter) =>
   !!(m.repeatStarts?.length || m.repeatEnds?.length || m.voltas?.length);
+
+/* ------------------------------------------------------------------ muted stretches */
+
+/** Is all of [a, b) (beats) muted? */
+export function isMuted(meter: Meter, a: number, b: number): boolean {
+  return (meter.mutes ?? []).some((m) => m.a <= a + EPS && m.b >= b - EPS);
+}
+
+/** Is the time t (beats) inside a muted stretch? */
+export function mutedAt(meter: Meter, t: number): boolean {
+  return (meter.mutes ?? []).some((m) => t >= m.a - EPS && t < m.b - EPS);
+}
+
+/**
+ * Mute pulses [ka, kb) (nothing sounds there while playing), or, when all of it is muted
+ * already, let it sound again (only that stretch: a longer muted stretch keeps the rest).
+ */
+export function toggleMute(doc: Doc, ka: number, kb: number): OpResult {
+  const g = buildGrid(doc.meter);
+  if (!Number.isInteger(ka) || !Number.isInteger(kb) || ka < 0 || kb > g.TS || kb <= ka)
+    return { doc, report: fail('out-of-range') };
+  const a = g.times[ka]!;
+  const b = g.times[kb]!;
+  const cur = doc.meter.mutes ?? [];
+  const mutes: Total[] = isMuted(doc.meter, a, b)
+    ? cur.flatMap((m) =>
+        m.b <= a + EPS || m.a >= b - EPS
+          ? [m]
+          : [
+              ...(m.a < a - EPS ? [{ a: m.a, b: a }] : []),
+              ...(m.b > b + EPS ? [{ a: b, b: m.b }] : []),
+            ],
+      )
+    : [...cur, { a, b }];
+  return {
+    doc: { ...doc, meter: withForm(doc.meter, { ...formOf(doc.meter), mutes }) },
+    report: report(),
+  };
+}
 
 /* ------------------------------------------------------------------ totals */
 
@@ -126,8 +168,10 @@ export function withForm(
     voltas: _v,
     totals: _t,
     doubleBars: _d,
+    mutes: _m,
     ...rest
   } = meter;
+  void _m;
   void _d;
   void _s;
   void _e;
@@ -191,8 +235,23 @@ export function withForm(
       totals.push({ a, b });
   }
 
+  // muted stretches: snapped like totals, then merged where they touch or overlap
+  const mutes: Total[] = [];
+  const mappedMutes = (form.mutes ?? [])
+    .map((v) => ({ ka: snap(mapSpan(v.a)), kb: snap(Math.min(mapSpan(v.b), grid.NB)) }))
+    .filter((v) => v.ka >= 0 && v.kb <= grid.TS && v.kb > v.ka)
+    .sort((x, y) => x.ka - y.ka);
+  let last: { ka: number; kb: number } | null = null;
+  const runs: { ka: number; kb: number }[] = [];
+  for (const v of mappedMutes) {
+    if (last && v.ka <= last.kb) last.kb = Math.max(last.kb, v.kb);
+    else runs.push((last = { ...v }));
+  }
+  for (const r of runs) mutes.push({ a: grid.times[r.ka]!, b: grid.times[r.kb]! });
+
   return {
     ...base,
+    ...(mutes.length ? { mutes } : {}),
     ...(starts.length ? { repeatStarts: starts } : {}),
     ...(ends.length ? { repeatEnds: ends } : {}),
     ...(voltas.length ? { voltas } : {}),
@@ -447,6 +506,18 @@ export function formErrors(meter: Meter): string[] {
   for (const v of meter.totals ?? []) {
     if (!(v.b > v.a + EPS) || v.a < -EPS || v.b > g.NB + EPS || !onPulse(v.a) || !onPulse(v.b))
       errs.push(`bad total ${v.a}–${v.b}`);
+  }
+  prev = -1;
+  for (const v of meter.mutes ?? []) {
+    if (
+      !(v.b > v.a + EPS) ||
+      v.a < prev + EPS ||
+      v.b > g.NB + EPS ||
+      !onPulse(v.a) ||
+      !onPulse(v.b)
+    )
+      errs.push(`bad mute ${v.a}–${v.b}`);
+    prev = v.b;
   }
   return errs;
 }

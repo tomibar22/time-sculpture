@@ -590,6 +590,41 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
     if (t >= g.grid.NB) return { x: rowEndX(g, g.R - 1), r: g.R - 1 };
     return xOf(g, t);
   };
+  if (doc.meter.mutes?.length) {
+    // muted stretches (nothing sounds there): a veil of the bed's colour over the tiles,
+    // hatched, with a thin line along the top
+    for (const m of doc.meter.mutes) {
+      for (let r = 0; r < g.R; r++) {
+        const row = g.rows[r]!;
+        const a = Math.max(m.a, row.b0);
+        const b = Math.min(m.b, row.b0 + row.nb);
+        if (b <= a) continue;
+        const x0 = L.margin + (a - row.b0) * row.bw;
+        const x1 = L.margin + (b - row.b0) * row.bw;
+        const y0 = tileY(g, r) - 3;
+        const h = L.tileH + 6;
+        c.save();
+        c.fillStyle = P.card;
+        c.globalAlpha = 0.45;
+        c.fillRect(x0, y0, x1 - x0, h);
+        c.beginPath();
+        c.rect(x0, y0, x1 - x0, h);
+        c.clip();
+        c.strokeStyle = P.muted;
+        c.globalAlpha = 0.35;
+        c.lineWidth = 1;
+        c.beginPath();
+        for (let x = x0 - h; x < x1; x += 7) {
+          c.moveTo(x, y0 + h);
+          c.lineTo(x + h, y0);
+        }
+        c.stroke();
+        c.restore();
+        c.fillStyle = P.muted;
+        c.fillRect(x0, y0, x1 - x0, 2);
+      }
+    }
+  }
   if (s.doomed) {
     // the bars a "Delete bar" would take away: a red wash from the numbers down to the band
     for (let r = 0; r < g.R; r++) {
