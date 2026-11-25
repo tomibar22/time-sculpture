@@ -612,6 +612,8 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
 - `ChordDialog`'s `onClose` ignores a close event that arrives after the dialog was opened
   again (the event comes a moment late: a quick Esc then C used to shut the new one); `close()`
   closes the element at once so the next key reaches the score.
+- **Every text field is ≥ 16 px** (iOS zooms in on a smaller one and stays zoomed; user bug
+  report after typing a chord): `input.chord-name` shares the `mark-name` style.
 - Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·

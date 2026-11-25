@@ -704,7 +704,8 @@ dialog.library::backdrop {
   margin-top: 6px;
 }
 .lib-rename input,
-input.mark-name {
+input.mark-name,
+input.chord-name {
   flex: 1;
   min-width: 0;
   min-height: var(--touch);
@@ -2240,12 +2241,17 @@ body:has(.stage) {
 }
 
 /* the phrase-mark name dialog: the name takes the row */
-.lib-inner > .field:has(.mark-name) {
+.lib-inner > .field:has(.mark-name),
+.lib-inner > .field:has(.chord-name) {
   margin: 4px 0 14px;
 }
-input.mark-name {
+input.mark-name,
+input.chord-name {
   flex: 1 1 12em;
   font-size: 16px; /* no zoom-in on iPhone */
+}
+input.chord-name {
+  font-family: var(--f-mono);
 }
 
 /* stage build: back · next · reset, and the Play / Build switch */
