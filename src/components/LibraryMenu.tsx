@@ -270,6 +270,7 @@ export function LibraryMenu() {
               {entries.length > 6 && (
                 <input
                   type="search"
+                  dir="auto"
                   className="lib-search"
                   placeholder="Search"
                   aria-label="Search compositions"
@@ -288,7 +289,9 @@ export function LibraryMenu() {
                     onClick={() => void after(() => openPiece(e.id))}
                   >
                     <span className="lib-line">
-                      <span className="t">{e.name}</span>
+                      <span className="t" dir="auto">
+                        {e.name}
+                      </span>
                       <span className="d">
                         {e.meta ? `${e.meta} · ` : ''}
                         {e.id === currentId ? 'open now' : when(e.updated)}
@@ -331,6 +334,7 @@ export function LibraryMenu() {
             <div className="row">
               <input
                 id="lib-name"
+                dir="auto"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={80}

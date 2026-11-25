@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import * as E from '../engine';
 import { adjustEnd } from '../state/actions';
 import { beatsLabel } from '../score/draw';
 import { openFill } from '../state/fill';
-import { useDocStore } from '../state/store';
+import { useDocStore, useUiStore } from '../state/store';
 
 export function Status() {
   const doc = useDocStore((s) => s.doc);
@@ -18,11 +19,46 @@ export function Status() {
       <span className="seq sr-only" data-testid="sequence">
         {start.join(' ') || '·'} │ {ending.join(' ') || '·'}
       </span>
-      <span className="meta">
+      {/* the settings line above the score says the same: here only for screen readers */}
+      <span className="meta sr-only">
         {E.meterSummary(doc.meter, !E.isFree(doc.meter))} · {mix.map((d) => `${d}:1`).join(' ')} ·{' '}
         {TS} pulses
       </span>
+      <FirstHint />
     </div>
+  );
+}
+
+/**
+ * The four things to know, once, for someone who has just arrived: how to select, write, play,
+ * and where everything else is. Put away with ✕ (or by itself after a few edits), never again.
+ */
+function FirstHint() {
+  const seen = useUiStore((s) => s.hintSeen);
+  const version = useDocStore((s) => s.version);
+  // a dozen edits in, it has done its work: put away for good
+  useEffect(() => {
+    if (!seen && version > 12) useUiStore.getState().set({ hintSeen: true });
+  }, [seen, version]);
+  if (seen || version > 12) return null;
+  const touch = matchMedia('(pointer: coarse)').matches;
+  return (
+    <span className="first-hint" data-testid="first-hint">
+      <span>
+        {touch
+          ? 'Tap a tile to select it · tap a number to write · hold a tile for everything else'
+          : 'Click a tile to select it · type a number to write · Space plays · right-click for everything else'}
+      </span>
+      <button
+        type="button"
+        className="ghost icon"
+        aria-label="Got it, hide this hint"
+        title="Got it"
+        onClick={() => useUiStore.getState().set({ hintSeen: true })}
+      >
+        ✕
+      </button>
+    </span>
   );
 }
 

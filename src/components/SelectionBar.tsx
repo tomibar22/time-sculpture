@@ -48,7 +48,7 @@ import { openFill } from '../state/fill';
 import { chordTarget, openChord } from '../state/chords';
 import { cancelSwap, swapNow, swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
-import { CloseIcon, TrashIcon } from './Icons';
+import { ChevronIcon, CloseIcon, TrashIcon } from './Icons';
 import { PieceState } from './Status';
 
 export function SelectionBar() {
@@ -57,6 +57,7 @@ export function SelectionBar() {
   const multi = useUiStore((s) => s.multi);
   const clip = useUiStore((s) => s.clipboard);
   const swapA = useUiStore((s) => s.swapA);
+  const more = useUiStore((s) => s.barMore);
   const items = doc.items;
   const idx = E.selectedIndices(items, selection);
   if (swapA) return <SwapBar A={swapA} />;
@@ -143,11 +144,6 @@ export function SelectionBar() {
         >
           <TrashIcon />
         </button>
-        {sel.some((x) => x.kind === 'sound') && (
-          <button type="button" title="Write a chord over the tile (C)" onClick={() => openChord()}>
-            Chord…
-          </button>
-        )}
         <span className="selbar-sep" aria-hidden="true" />
         {/* its place */}
         <button
@@ -177,95 +173,110 @@ export function SelectionBar() {
         >
           Vary…
         </button>
-        <button
-          type="button"
-          disabled={!contiguous && sel.length !== 1}
-          title="Fill this stretch again: shapes, or every way to do it"
-          onClick={() => openFill('browse')}
-        >
-          Refill…
-        </button>
-        {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
-          <button
-            type="button"
-            title="Retrograde: reverse the order (⇧R)"
-            onClick={reverseSelection}
-          >
-            Reverse
-          </button>
+        <MoreToggle />
+        {more && (
+          <>
+            <span className="selbar-sep" aria-hidden="true" />
+            {sel.some((x) => x.kind === 'sound') && (
+              <button
+                type="button"
+                title="Write a chord over the tile (C)"
+                onClick={() => openChord()}
+              >
+                Chord…
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={!contiguous && sel.length !== 1}
+              title="Fill this stretch again: shapes, or every way to do it"
+              onClick={() => openFill('browse')}
+            >
+              Refill…
+            </button>
+            {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
+              <button
+                type="button"
+                title="Retrograde: reverse the order (⇧R)"
+                onClick={reverseSelection}
+              >
+                Reverse
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={!sel.length || !E.isContiguous(idx)}
+              title="Swap with another stretch: choose it next (X)"
+              onClick={swapStep}
+            >
+              Swap…
+            </button>
+            <span className="selbar-sep" aria-hidden="true" />
+            <button
+              type="button"
+              disabled={!sel.length}
+              title="Copy (⌘C)"
+              onClick={() => copyButton(false)}
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              disabled={!sel.length}
+              title="Cut (⌘X)"
+              onClick={() => copyButton(true)}
+            >
+              Cut
+            </button>
+            {clip.length > 0 && (
+              <button
+                type="button"
+                disabled={!sel.length}
+                title={`Paste ${E.formatGroups(clip)} over the selection (⌘V)`}
+                onClick={() => paste()}
+              >
+                Paste
+              </button>
+            )}
+            <span className="selbar-sep" aria-hidden="true" />
+            {/* selecting more */}
+            <button
+              type="button"
+              aria-pressed={multi}
+              title="Tap groups to add them to the selection"
+              onClick={() => toggleMulti()}
+            >
+              Select several
+            </button>
+            {sel.length < items.length - 1 && (
+              <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+                Select all
+              </button>
+            )}
+            <span className="selbar-sep" aria-hidden="true" />
+            {/* marks on the score */}
+            <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
+            <MuteButton disabled={!sel.length || !E.isContiguous(idx)} />
+            <RepeatButton disabled={!sel.length || !E.isContiguous(idx)} />
+            <SectionEndButton disabled={!sel.length} />
+            <button
+              type="button"
+              disabled={!sel.length || !E.isContiguous(idx)}
+              title="Ending bracket over the selection: 1., 2. … (V)"
+              onClick={() => openVolta(selectedRegion())}
+            >
+              Ending…
+            </button>
+            <button
+              type="button"
+              disabled={!sel.length}
+              title="Subdivision of the beats under the selection (B)"
+              onClick={openSubdivision}
+            >
+              Subdivision…
+            </button>
+          </>
         )}
-        <button
-          type="button"
-          disabled={!sel.length || !E.isContiguous(idx)}
-          title="Swap with another stretch: choose it next (X)"
-          onClick={swapStep}
-        >
-          Swap…
-        </button>
-        <span className="selbar-sep" aria-hidden="true" />
-        <button
-          type="button"
-          disabled={!sel.length}
-          title="Copy (⌘C)"
-          onClick={() => copyButton(false)}
-        >
-          Copy
-        </button>
-        <button
-          type="button"
-          disabled={!sel.length}
-          title="Cut (⌘X)"
-          onClick={() => copyButton(true)}
-        >
-          Cut
-        </button>
-        {clip.length > 0 && (
-          <button
-            type="button"
-            disabled={!sel.length}
-            title={`Paste ${E.formatGroups(clip)} over the selection (⌘V)`}
-            onClick={() => paste()}
-          >
-            Paste
-          </button>
-        )}
-        <span className="selbar-sep" aria-hidden="true" />
-        {/* selecting more */}
-        <button
-          type="button"
-          aria-pressed={multi}
-          title="Tap groups to add them to the selection"
-          onClick={() => toggleMulti()}
-        >
-          Select several
-        </button>
-        {sel.length < items.length - 1 && (
-          <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
-            Select all
-          </button>
-        )}
-        <span className="selbar-sep" aria-hidden="true" />
-        {/* marks on the score */}
-        <TotalButton disabled={!sel.length || !E.isContiguous(idx)} />
-        <MuteButton disabled={!sel.length || !E.isContiguous(idx)} />
-        <RepeatButton disabled={!sel.length || !E.isContiguous(idx)} />
-        <SectionEndButton disabled={!sel.length} />
-        <button
-          type="button"
-          disabled={!sel.length || !E.isContiguous(idx)}
-          title="Ending bracket over the selection: 1., 2. … (V)"
-          onClick={() => openVolta(selectedRegion())}
-        >
-          Ending…
-        </button>
-        <button
-          type="button"
-          disabled={!sel.length}
-          title="Subdivision of the beats under the selection (B)"
-          onClick={openSubdivision}
-        >
-          Subdivision…
-        </button>
         <Done label="Done, clear the selection" onClick={clearSelection} />
       </div>
     </div>
@@ -353,6 +364,7 @@ function Done({ label, onClick }: { label: string; onClick: () => void }) {
  */
 function CaretBar() {
   useDocStore((s) => s.version);
+  const more = useUiStore((s) => s.barMore);
   const caret = useUiStore((s) => s.caret);
   const range = useUiStore((s) => s.range);
   const clip = useUiStore((s) => s.clipboard);
@@ -401,10 +413,10 @@ function CaretBar() {
           </button>
           <button
             type="button"
-            title="Swap with another stretch: choose it next (X)"
-            onClick={swapStep}
+            title="Empty this stretch: what is written in it goes (⌫)"
+            onClick={() => deleteAtCaret(-1)}
           >
-            Swap…
+            Empty
           </button>
           <RemoveBarsButton />
           <button type="button" onClick={() => openFill('browse')}>
@@ -424,44 +436,50 @@ function CaretBar() {
           >
             Land…
           </button>
-          <button
-            type="button"
-            title="Ending bracket over the range: 1., 2. … (V)"
-            onClick={() => openVolta(range)}
-          >
-            Ending…
-          </button>
-          <RepeatButton />
-          <SectionEndButton />
-          <TotalButton />
-          <MuteButton />
-          <button
-            type="button"
-            title="Subdivision of the beats in the range"
-            onClick={openSubdivision}
-          >
-            Subdivision…
-          </button>
-          <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
-            Select all
-          </button>
-          <button
-            type="button"
-            title="Empty this stretch: what is written in it goes (⌫)"
-            onClick={() => deleteAtCaret(-1)}
-          >
-            Empty
-          </button>
-          <button type="button" onClick={() => copyButton(false)}>
-            Copy
-          </button>
-          <button type="button" onClick={() => copyButton(true)}>
-            Cut
-          </button>
-          {clip.length > 0 && (
-            <button type="button" onClick={() => paste()}>
-              Paste
-            </button>
+          <MoreToggle />
+          {more && (
+            <>
+              <span className="selbar-sep" aria-hidden="true" />
+              <button
+                type="button"
+                title="Swap with another stretch: choose it next (X)"
+                onClick={swapStep}
+              >
+                Swap…
+              </button>
+              <button
+                type="button"
+                title="Ending bracket over the range: 1., 2. … (V)"
+                onClick={() => openVolta(range)}
+              >
+                Ending…
+              </button>
+              <RepeatButton />
+              <SectionEndButton />
+              <TotalButton />
+              <MuteButton />
+              <button
+                type="button"
+                title="Subdivision of the beats in the range"
+                onClick={openSubdivision}
+              >
+                Subdivision…
+              </button>
+              <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+                Select all
+              </button>
+              <button type="button" onClick={() => copyButton(false)}>
+                Copy
+              </button>
+              <button type="button" onClick={() => copyButton(true)}>
+                Cut
+              </button>
+              {clip.length > 0 && (
+                <button type="button" onClick={() => paste()}>
+                  Paste
+                </button>
+              )}
+            </>
           )}
           <Done label="Done, clear the selection" onClick={escape} />
         </div>
@@ -533,133 +551,117 @@ function CaretBar() {
         >
           Select ⇥
         </button>
-        <button
-          type="button"
-          title="Start a new row here (Enter)"
-          onClick={() => toggleLineBreak(caret!)}
-        >
-          {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
-        </button>
-        <button
-          type="button"
-          title="Mark the start of a phrase here (P)"
-          onClick={() => togglePhraseMark(caret!)}
-        >
-          {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
-        </button>
-        {E.hasMarkAt(useDocStore.getState().doc, caret!) && (
-          <button
-            type="button"
-            title="Name this phrase mark, or leave it without a name (⇧P)"
-            onClick={() => useUiStore.getState().set({ markDialog: { k: caret! } })}
-          >
-            Name…
-          </button>
-        )}
-        <button
-          type="button"
-          title="Subdivision of the beat at the caret"
-          onClick={openSubdivision}
-        >
-          Subdivision…
-        </button>
-        <span className="selbar-sep" aria-hidden="true" />
-        <button
-          type="button"
-          title="How many bars this row holds: this row only, or from here on"
-          aria-haspopup="dialog"
-          onClick={() =>
-            useUiStore.getState().set({
-              rowDialog: { t: gridNow.times[Math.min(caret!, gridNow.TS - 1)]! },
-            })
-          }
-        >
-          Row…
-        </button>
-        <button
-          type="button"
-          title="Add bars here, or remove some"
-          aria-haspopup="dialog"
-          onClick={() => useUiStore.getState().set({ barsDialog: true })}
-        >
-          Bars…
-        </button>
-        {(isBeatLine || caret === 0) && (
-          <button
-            type="button"
-            title="Change the metre from here: other bars, the same tempo and subdivision"
-            aria-haspopup="dialog"
-            onClick={() =>
-              useUiStore.getState().set({ meterDialog: { at: caret === 0 ? 0 : beatHere } })
-            }
-          >
-            Metre…
-          </button>
-        )}
-        {isBeatLine && (
-          <button
-            type="button"
-            title="Metric modulation from here (T)"
-            onClick={() => openModulation(caret!)}
-          >
-            {sectionHere ? 'Modulation…' : 'Modulate…'}
-          </button>
-        )}
-        {caret! < gridNow.TS && (
-          <button
-            type="button"
-            title="Start repeat sign here ([)"
-            onClick={() => toggleRepeatStartAt(caret!)}
-          >
-            {E.repeatStartAt(docNow, caret!) ? 'Remove |:' : '|: Start repeat'}
-          </button>
-        )}
-        {caret! > 0 && (
-          <button
-            type="button"
-            title="End repeat sign here (])"
-            onClick={() => toggleRepeatEndAt(caret!)}
-          >
-            {repeatEnd ? 'Remove :|' : ':| End repeat'}
-          </button>
-        )}
-        {caret! > 0 && (
-          <button
-            type="button"
-            aria-pressed={E.doubleBarAt(docNow, caret!)}
-            title="A double bar line here: the end of a section (\)"
-            onClick={() => toggleDoubleBarAt(caret!)}
-          >
-            ‖ Section end
-          </button>
-        )}
-        {repeatEnd && (
-          <div className="stepper repeat-times" role="group" aria-label="Times played">
+        {repeatEnd && <RepeatTimes caret={caret!} times={repeatEnd.times} />}
+        <MoreToggle />
+        {more && (
+          <>
+            <span className="selbar-sep" aria-hidden="true" />
             <button
               type="button"
-              aria-label="Play it one time less"
-              title="One time less (−)"
-              disabled={repeatEnd.times <= E.MIN_REPEAT}
-              onClick={() => changeRepeatTimes(caret!, -1)}
+              title="Start a new row here (Enter)"
+              onClick={() => toggleLineBreak(caret!)}
             >
-              −
+              {E.hasBreakAt(useDocStore.getState().doc, caret!) ? 'Join rows' : 'Break line'}
             </button>
-            <output data-testid="repeat-times">×{repeatEnd.times}</output>
             <button
               type="button"
-              aria-label="Play it one time more"
-              title="One time more (+)"
-              disabled={repeatEnd.times >= E.MAX_REPEAT}
-              onClick={() => changeRepeatTimes(caret!, 1)}
+              title="Mark the start of a phrase here (P)"
+              onClick={() => togglePhraseMark(caret!)}
             >
-              +
+              {E.hasMarkAt(useDocStore.getState().doc, caret!) ? 'Unmark phrase' : 'Phrase mark'}
             </button>
-          </div>
+            {E.hasMarkAt(useDocStore.getState().doc, caret!) && (
+              <button
+                type="button"
+                title="Name this phrase mark, or leave it without a name (⇧P)"
+                onClick={() => useUiStore.getState().set({ markDialog: { k: caret! } })}
+              >
+                Name…
+              </button>
+            )}
+            <button
+              type="button"
+              title="Subdivision of the beat at the caret"
+              onClick={openSubdivision}
+            >
+              Subdivision…
+            </button>
+            <span className="selbar-sep" aria-hidden="true" />
+            <button
+              type="button"
+              title="How many bars this row holds: this row only, or from here on"
+              aria-haspopup="dialog"
+              onClick={() =>
+                useUiStore.getState().set({
+                  rowDialog: { t: gridNow.times[Math.min(caret!, gridNow.TS - 1)]! },
+                })
+              }
+            >
+              Row…
+            </button>
+            <button
+              type="button"
+              title="Add bars here, or remove some"
+              aria-haspopup="dialog"
+              onClick={() => useUiStore.getState().set({ barsDialog: true })}
+            >
+              Bars…
+            </button>
+            {(isBeatLine || caret === 0) && (
+              <button
+                type="button"
+                title="Change the metre from here: other bars, the same tempo and subdivision"
+                aria-haspopup="dialog"
+                onClick={() =>
+                  useUiStore.getState().set({ meterDialog: { at: caret === 0 ? 0 : beatHere } })
+                }
+              >
+                Metre…
+              </button>
+            )}
+            {isBeatLine && (
+              <button
+                type="button"
+                title="Metric modulation from here (T)"
+                onClick={() => openModulation(caret!)}
+              >
+                {sectionHere ? 'Modulation…' : 'Modulate…'}
+              </button>
+            )}
+            {caret! < gridNow.TS && (
+              <button
+                type="button"
+                title="Start repeat sign here ([)"
+                onClick={() => toggleRepeatStartAt(caret!)}
+              >
+                {E.repeatStartAt(docNow, caret!) ? 'Remove |:' : '|: Start repeat'}
+              </button>
+            )}
+            {caret! > 0 && (
+              <button
+                type="button"
+                title="End repeat sign here (])"
+                onClick={() => toggleRepeatEndAt(caret!)}
+              >
+                {repeatEnd ? 'Remove :|' : ':| End repeat'}
+              </button>
+            )}
+            {caret! > 0 && (
+              <button
+                type="button"
+                aria-pressed={E.doubleBarAt(docNow, caret!)}
+                title="A double bar line here: the end of a section (\)"
+                onClick={() => toggleDoubleBarAt(caret!)}
+              >
+                ‖ Section end
+              </button>
+            )}
+            <span className="selbar-sep" aria-hidden="true" />
+            <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
+              Select all
+            </button>
+          </>
         )}
-        <span className="selbar-sep" aria-hidden="true" />
-        <button type="button" title="Select every group (⌘A)" onClick={selectAll}>
-          Select all
-        </button>
         <Done label="Done, remove the caret" onClick={escape} />
       </div>
       <span className="hint">
@@ -667,6 +669,63 @@ function CaretBar() {
           ? 'Numbers from the pad below are written here. ⇧ arrows select a range.'
           : 'Type a number to write here; ⇧ arrows select a range (123 opens the number pad)'}
       </span>
+    </div>
+  );
+}
+
+/**
+ * More: the bars show what is done most; the rest (marks, form, clipboard, layout) waits behind
+ * this, and stays open once opened (a device preference), for those who use it all the time.
+ * Every action is also in the menu (right-click, or hold) and on a key.
+ */
+function MoreToggle() {
+  const more = useUiStore((s) => s.barMore);
+  return (
+    <button
+      type="button"
+      className="selbar-more"
+      aria-expanded={more}
+      data-testid="bar-more"
+      title={more ? 'Fewer actions' : 'More actions: marks, repeats, clipboard, rows, bars…'}
+      onClick={(e) => {
+        const btn = e.currentTarget;
+        useUiStore.getState().set({ barMore: !more });
+        // a row that scrolls sideways (phones): bring what has just opened into view
+        if (!more)
+          requestAnimationFrame(() =>
+            btn.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'smooth' }),
+          );
+      }}
+    >
+      {more ? 'Less' : 'More'}
+      <ChevronIcon />
+    </button>
+  );
+}
+
+/** How many times an end repeat sign at the caret is played: − ×2 +. */
+function RepeatTimes({ caret, times }: { caret: number; times: number }) {
+  return (
+    <div className="stepper repeat-times" role="group" aria-label="Times played">
+      <button
+        type="button"
+        aria-label="Play it one time less"
+        title="One time less (−)"
+        disabled={times <= E.MIN_REPEAT}
+        onClick={() => changeRepeatTimes(caret, -1)}
+      >
+        −
+      </button>
+      <output data-testid="repeat-times">×{times}</output>
+      <button
+        type="button"
+        aria-label="Play it one time more"
+        title="One time more (+)"
+        disabled={times >= E.MAX_REPEAT}
+        onClick={() => changeRepeatTimes(caret, 1)}
+      >
+        +
+      </button>
     </div>
   );
 }

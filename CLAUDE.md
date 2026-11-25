@@ -1185,3 +1185,23 @@ Palani Subramania Pillai's tail korvai, Viswanathan's kuraippu, a compound mora.
   (`pulsesHeard` in player.ts). Both device prefs.
 - **Vary → Keep the ending** (`vary-rhyme`): locks the last ⌈n/3⌉ tiles (a kaida's rhyme).
 
+
+### Calm round (user request: simple, clean, spacious, every capability kept)
+
+- **The bars show what is done most; More holds the rest** (`MoreToggle` in SelectionBar.tsx,
+  `ui.barMore`, device pref, `data-testid="bar-more"`, "More" / "Less"): tiles: −1 +1 Split
+  (Merge) Duplicate Remove · ← → · Loop Vary… | More: Chord, Refill, Reverse, Swap, clipboard,
+  Select several / all, Total, Mute, Repeat, Section end, Ending, Subdivision. Range: ⇤ ⇥ Loop
+  Duplicate Empty (Remove bars) Browse fills Vary… Land… | More: Swap, Ending, Repeat, Section
+  end, Total, Mute, Subdivision, Select all, clipboard. Caret: (arrows) (Paste) (Bar before /
+  after) (Chord) Start here, Select ⇥, (repeat ×N) | More: Break line, Phrase mark, Name,
+  Subdivision, Row, Bars, Metre, Modulate, repeat signs, Section end, Select all. Everything is
+  also in the context menu and on a key. e2e: `more(page)` in helpers opens it.
+- The settings line names the drag mode only when it is not Pulse. The meta under the score
+  ("4×2 · 4:1 · 32 pulses") is for screen readers only (the settings line says it).
+- **First hint** (`FirstHint` in Status.tsx, `ui.hintSeen`): one line under the score for a
+  newcomer (select, write, play, the menu), ✕ or a dozen edits put it away for good.
+- **Browse folds Sizes and Shape on every screen** (one layout everywhere; `fillFold` works).
+- Help topics are grouped under headings (`.help-group`): Write and shape · Fill, vary, land ·
+  Listen and practise · Time and form · The page. "Options" is called **Sound** and points to
+  the metronome menu. User text fields and names have `dir="auto"` (Hebrew titles read right).

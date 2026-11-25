@@ -84,6 +84,7 @@ export function ChordDialog() {
           <input
             ref={input}
             type="text"
+            dir="auto"
             className="chord-name"
             value={text}
             maxLength={E.MAX_CHORD}

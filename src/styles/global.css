@@ -4553,3 +4553,69 @@ button.pat-cell.one[aria-pressed='true'] {
 .practice-row.hidden-beat > span:first-child {
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------- calm: More, the first hint */
+/* the bars show what is done most; More opens the rest in place (and stays open once opened) */
+.selbar-actions > .selbar-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.selbar-actions > .selbar-more svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s;
+}
+.selbar-actions > .selbar-more[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+@media (hover: hover) {
+  .selbar-actions > .selbar-more:hover {
+    color: var(--fg);
+  }
+}
+.status:empty {
+  display: none;
+}
+.first-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 4px 4px 12px;
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+.first-hint > span {
+  flex: 1 1 auto;
+}
+.first-hint > button {
+  flex: 0 0 auto;
+  min-width: var(--touch, 44px);
+  min-height: var(--touch, 44px);
+}
+.help-group {
+  margin: 20px 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.help-group:first-child {
+  margin-top: 4px;
+}
+/* where Play starts: a quiet line beside Play, not a second headline */
+.now.idle.start-btn {
+  font-family: var(--f-body);
+}
+.now.idle.start-btn b {
+  font-family: var(--f-body);
+  font-size: 0.95rem;
+}

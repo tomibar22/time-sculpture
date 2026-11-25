@@ -17,7 +17,6 @@ import { inkFor, sizeColor } from '../score/colors';
 import { Contour, Heart, Strip, UseBar, useRegionBeats, type StripLine } from './fillParts';
 import { FillMap } from './FillMap';
 import { BreedIcon, ChevronIcon, CloseIcon, DiceIcon, HeartIcon, PinIcon } from './Icons';
-import { PHONE, useMedia } from './useMedia';
 import { VaryPanel } from './VaryPanel';
 import { LandPanel } from './LandPanel';
 
@@ -43,15 +42,14 @@ export function FillPanel() {
   useUiStore((s) => s.range);
   useUiStore((s) => s.selection);
   const region = fillRegion();
-  // a phone folds the sizes and the shapes into one line of two buttons while browsing, so the
-  // fills themselves get the room; a tap on either opens its row
-  const phone = useMedia(PHONE);
   const shape = useUiStore((s) => s.fillShape);
   const wantedTiles = useUiStore((s) => s.fillTiles);
   const [fold, setFold] = useState<'sizes' | 'shapes' | null>(null);
   useEffect(() => setFold((f) => (f === 'shapes' ? null : f)), [shape]);
   if (!tab) return null;
-  const folded = phone && tab !== 'vary';
+  // every screen folds the sizes and the shapes while browsing: the fills get the room, and a
+  // tap opens either row (on wider screens too, for one calm layout everywhere)
+  const folded = tab !== 'vary';
   const shapeName =
     shape === 'shapes'
       ? 'All shapes'

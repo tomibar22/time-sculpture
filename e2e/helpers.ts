@@ -181,3 +181,9 @@ export function knobAt(s: ScoreBox, t: number, row = Math.floor(t / s.beats + 1e
     y: s.y + TILE_TOP + 52 + 5 + 22 + 8 + row * STRIDE,
   };
 }
+
+/** Open the selection / caret bar's More (the actions beyond the main ones), if it is closed. */
+export async function more(page: Page) {
+  const b = page.getByTestId('bar-more');
+  if ((await b.count()) && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+}

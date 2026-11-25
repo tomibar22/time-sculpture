@@ -57,6 +57,7 @@ export function MarkDialog() {
           <input
             ref={input}
             type="text"
+            dir="auto"
             className="mark-name"
             value={name}
             maxLength={E.MAX_MARK_NAME}

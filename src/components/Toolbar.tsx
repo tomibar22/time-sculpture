@@ -40,16 +40,19 @@ export function Toolbar() {
           {/* a phone has room for the short form only; cut off, the long one said nothing */}
           <span className="setup-sum sum-long">
             <b>{shape}</b>
+            {/* the drag mode is said only when it is not the usual one */}
             <span className="dim">
               {' '}
-              · {mix} · drag by {moveMode}
+              · {mix}
+              {moveMode !== 'pulse' ? ` · drag by ${moveMode}` : ''}
             </span>
           </span>
           <span className="setup-sum sum-short" aria-hidden="true">
             <b>{short}</b>
             <span className="dim">
               {' '}
-              · {mix} · {moveMode}
+              · {mix}
+              {moveMode !== 'pulse' ? ` · ${moveMode}` : ''}
             </span>
           </span>
           <ChevronIcon />

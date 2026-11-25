@@ -7,7 +7,7 @@ export function Options() {
   const log = useDocStore((s) => s.log);
   return (
     <details className="disclosure">
-      <summary>Options</summary>
+      <summary>Sound</summary>
       <div className="dbody">
         <label className="opt">
           <input
@@ -25,6 +25,10 @@ export function Options() {
           />{' '}
           Hear the subdivisions
         </label>
+        <p className="hist">
+          The metronome beside Play has the rest: count-in, the tiles silent or in turn, a click
+          pattern, a hidden beat, the mix.
+        </p>
         {log.length > 0 && <p className="hist">Recent: {log.join(' → ')}</p>}
       </div>
     </details>

@@ -87,6 +87,10 @@ export interface DevicePrefs {
   hiddenBeat: HiddenBeat;
   /** Practice: the piece's 1 (the landing) is not heard at all: felt, not heard. */
   silentOne: boolean;
+  /** The selection and caret bars show all their actions, not only the main ones. */
+  barMore: boolean;
+  /** The first-time hint under the score was put away. */
+  hintSeen: boolean;
 }
 
 export interface HiddenBeat {
@@ -146,6 +150,8 @@ function loadPrefs(): Partial<DevicePrefs> {
     if (typeof p.landDrum === 'boolean') out.landDrum = p.landDrum;
     if (typeof p.outline === 'boolean') out.outline = p.outline;
     if (typeof p.silentOne === 'boolean') out.silentOne = p.silentOne;
+    if (typeof p.barMore === 'boolean') out.barMore = p.barMore;
+    if (typeof p.hintSeen === 'boolean') out.hintSeen = p.hintSeen;
     if (p.hiddenBeat && typeof p.hiddenBeat === 'object') {
       const e = p.hiddenBeat.every;
       out.hiddenBeat = {
@@ -352,6 +358,8 @@ export interface UiState {
   outline: boolean;
   hiddenBeat: HiddenBeat;
   silentOne: boolean;
+  barMore: boolean;
+  hintSeen: boolean;
   landDrum: boolean;
   mix: Mix;
   clickPat: ClickPattern;
@@ -489,6 +497,8 @@ export const useUiStore = create<UiState>((set) => ({
   outline: false,
   hiddenBeat: { on: false, every: 3 },
   silentOne: false,
+  barMore: false,
+  hintSeen: false,
   mix: { ...MIX_DEFAULT },
   clickPat: CLICK_PATTERN,
   speedUp: { on: false, step: 4, every: 2, to: 120 },
@@ -556,7 +566,9 @@ useUiStore.subscribe((s, p) => {
     s.speedUp !== p.speedUp ||
     s.outline !== p.outline ||
     s.hiddenBeat !== p.hiddenBeat ||
-    s.silentOne !== p.silentOne
+    s.silentOne !== p.silentOne ||
+    s.barMore !== p.barMore ||
+    s.hintSeen !== p.hintSeen
   )
     savePrefs({
       theme: s.theme,
@@ -576,5 +588,7 @@ useUiStore.subscribe((s, p) => {
       outline: s.outline,
       hiddenBeat: s.hiddenBeat,
       silentOne: s.silentOne,
+      barMore: s.barMore,
+      hintSeen: s.hintSeen,
     });
 });
