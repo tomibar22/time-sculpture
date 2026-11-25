@@ -85,11 +85,8 @@ export const loadPiece = (id: string): Promise<SavedPiece | undefined> =>
  * Save a piece. `touch: false` keeps its place in the list (its date) when nothing was edited,
  * e.g. the save made before the library opens. `current: false` leaves the open piece as it is.
  */
-export const savePiece = (
-  id: string,
-  piece: SavedPiece,
-  opts: SaveOpts = {},
-): Promise<void> => serial(() => saveNow(id, piece, opts));
+export const savePiece = (id: string, piece: SavedPiece, opts: SaveOpts = {}): Promise<void> =>
+  serial(() => saveNow(id, piece, opts));
 
 interface SaveOpts {
   touch?: boolean;
@@ -108,7 +105,8 @@ async function saveNow(id: string, piece: SavedPiece, opts: SaveOpts): Promise<v
   idx.push({ id, name: piece.title, updated, ...stripOf(piece) });
   await set(INDEX, idx, store);
   if (opts.current !== false) await set(CURRENT, id, store);
-  if (!opts.remote && (!old || old.updated !== updated)) onChange?.({ id, updated, deleted: false });
+  if (!opts.remote && (!old || old.updated !== updated))
+    onChange?.({ id, updated, deleted: false });
 }
 
 export const deletePiece = (id: string, opts: { remote?: boolean } = {}): Promise<void> =>

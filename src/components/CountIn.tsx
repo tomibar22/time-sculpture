@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { stopPlayback } from '../audio/player';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
-import { MIX_DEFAULT, SPEED_EVERY, SPEED_STEPS, useUiStore } from '../state/store';
+import {
+  HIDDEN_MAX,
+  HIDDEN_MIN,
+  MIX_DEFAULT,
+  SPEED_EVERY,
+  SPEED_STEPS,
+  useUiStore,
+} from '../state/store';
 import type { Mix, MixChannel, SpeedUp, TilesMode } from '../state/store';
 import { ClickPatternSection } from './ClickPattern';
 import { MetronomeIcon } from './Icons';
@@ -55,10 +62,12 @@ export function PracticeButton() {
   const tab = useUiStore((s) => s.practiceTab);
   const mixed = useUiStore(mixChanged);
   const speeding = useUiStore((s) => s.speedUp.on);
-  const on = countIn > 0 || tiles !== 'on' || pattern || speeding;
+  const hidden = useUiStore((s) => s.hiddenBeat.on);
+  const silent1 = useUiStore((s) => s.silentOne);
+  const on = countIn > 0 || tiles !== 'on' || pattern || speeding || hidden || silent1;
   const marked = {
-    practice: countIn > 0 || tiles !== 'on' || speeding,
-    click: pattern,
+    practice: countIn > 0 || tiles !== 'on' || speeding || silent1,
+    click: pattern || hidden,
     mix: mixed,
   };
   const said = [
@@ -66,6 +75,8 @@ export function PracticeButton() {
     tiles === 'off' ? 'tiles silent' : tiles === 'turns' ? 'tiles in turn' : '',
     pattern ? 'click pattern' : '',
     speeding ? 'speeding up' : '',
+    hidden ? 'hidden beat' : '',
+    silent1 ? 'the 1 silent' : '',
   ]
     .filter(Boolean)
     .join(', ');
@@ -192,9 +203,15 @@ export function PracticeButton() {
                   </p>
                 )}
                 <SpeedUpRow />
+                <SilentOneRow />
               </>
             )}
-            {tab === 'click' && <ClickPatternSection />}
+            {tab === 'click' && (
+              <>
+                <HiddenBeatRow />
+                <ClickPatternSection />
+              </>
+            )}
             {tab === 'mix' && <Mixer />}
           </div>
         </div>
@@ -459,6 +476,89 @@ function Mixer() {
 }
 
 const times = (n: number) => (n === 1 ? 'Once' : n === 2 ? 'Twice' : `${n} times`);
+
+/** The 1 of the piece is not heard at all (no click, no stroke): to feel where it lands. */
+function SilentOneRow() {
+  const on = useUiStore((s) => s.silentOne);
+  const set = useUiStore((s) => s.set);
+  return (
+    <div className="practice-row">
+      <span
+        id="pr-silent1"
+        title="The 1 the piece lands on is not heard (no click, no stroke on it): feel it"
+      >
+        The 1 silent
+      </span>
+      <button
+        type="button"
+        className="switch"
+        role="switch"
+        aria-checked={on}
+        aria-labelledby="pr-silent1"
+        data-testid="silent-one"
+        onClick={() => set({ silentOne: !on })}
+      >
+        <span className="switch-track" aria-hidden="true">
+          <span className="switch-knob" />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The hidden beat: a click every so many pulses since Play, a larger pulse over the written one
+ * (a tihai built of units of 3 pulses is felt in them). Its own, rounder sound.
+ */
+function HiddenBeatRow() {
+  const hb = useUiStore((s) => s.hiddenBeat);
+  const set = useUiStore((s) => s.set);
+  const put = (next: Partial<typeof hb>) => set({ hiddenBeat: { ...hb, ...next } });
+  return (
+    <div className="practice-row hidden-beat">
+      <span
+        id="pr-hidden"
+        title="A click of its own every so many pulses, counted from where playing begins: a new, larger pulse over the written one"
+      >
+        Hidden beat
+      </span>
+      {hb.on && (
+        <div className="stepper" role="group" aria-label="Hidden beat, every so many pulses">
+          <button
+            type="button"
+            aria-label="One pulse less"
+            disabled={hb.every <= HIDDEN_MIN}
+            onClick={() => put({ every: hb.every - 1 })}
+          >
+            −
+          </button>
+          <output data-testid="hidden-every">every {hb.every}</output>
+          <button
+            type="button"
+            aria-label="One pulse more"
+            disabled={hb.every >= HIDDEN_MAX}
+            onClick={() => put({ every: hb.every + 1 })}
+          >
+            +
+          </button>
+        </div>
+      )}
+      <button
+        type="button"
+        className="switch"
+        role="switch"
+        aria-checked={hb.on}
+        aria-labelledby="pr-hidden"
+        data-testid="hidden-beat"
+        onClick={() => put({ on: !hb.on })}
+      >
+        <span className="switch-track" aria-hidden="true">
+          <span className="switch-knob" />
+        </span>
+      </button>
+    </div>
+  );
+}
 
 function Turns({
   label,

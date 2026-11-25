@@ -12,7 +12,7 @@ import {
 import type { Meter, Span } from '../engine';
 import { useDocStore, useUiStore } from '../state/store';
 import { audioNow, ensureAudio } from './context';
-import { playClick, playGroup, playPicked } from './voices';
+import { playClick, playGroup, playHidden, playPicked } from './voices';
 
 /**
  * Lookahead scheduler. It walks beat-time T (not pulse indices), asking the engine for the next
@@ -63,6 +63,8 @@ const hushedNow = (): boolean => {
  */
 let barsHeard = 0;
 let barsBegun = false;
+/** Pulses played since Play: the hidden beat clicks on every `hiddenBeat.every`-th. */
+let pulsesHeard = 0;
 let countBar = 0;
 let countBars = 1;
 let countBeat = 1;
@@ -170,7 +172,11 @@ function schedule(): void {
       if (once && seg + 1 >= plan.length) {
         // the last stretch is over: land on 1 and stop there (a selection that ends before the
         // end of the piece just stops)
-        if (sound !== 'off' && s.b >= doc.meter.subdivision.length - EPS)
+        if (
+          sound !== 'off' &&
+          s.b >= doc.meter.subdivision.length - EPS &&
+          !(ui.silentOne && !ui.stage)
+        )
           playClick(next, 'landing', false);
         endAt = next;
         endT = s.b;
@@ -220,14 +226,20 @@ function schedule(): void {
         });
     // a muted stretch of the piece: nothing at all sounds there (user request)
     const muted = mutedAt(doc.meter, ev.t0);
-    if (muted) {
+    // practice: the piece's 1 is felt, not heard (no click, no stroke on it)
+    const silent1 = ui.silentOne && !ui.stage && !ui.loop && ev.k === 0;
+    // practice: the hidden beat, every so many pulses since Play
+    if (!ui.stage && ui.hiddenBeat.on && pulsesHeard % ui.hiddenBeat.every === 0 && !muted)
+      if (sound !== 'off') playHidden(next);
+    pulsesHeard++;
+    if (muted || silent1) {
       // silent
     } else if (sound !== 'off' && heard === 'picked') {
       if (ui.ticks) playPicked(next);
     } else if (sound !== 'off' && heard)
       playClick(next, click, ui.ticks, ui.click || ui.stage || hush);
     const dur = span(ev.t0, ev.t1);
-    if (ev.onset && sound === 'all' && !hush && !muted)
+    if (ev.onset && sound === 'all' && !hush && !muted && !silent1)
       playGroup(next, ev.onset.n, dur * ev.onset.n);
     const cyc = !ui.stage && ui.clickPat.on ? barsHeard % ui.clickPat.bars.length : -1;
     const phase = barsHeard - (barMap(doc.meter).barOf[ev.beat] ?? 0);
@@ -305,6 +317,7 @@ export function startPlayback(
   useUiStore.getState().set({ tempoBoost: 0 });
   barsHeard = 0;
   barsBegun = false;
+  pulsesHeard = 0;
   // count in (bars of the main beat) before the music starts: the stage's own setting, or the
   // editor's (the bar it counts is the bar where playing begins)
   const ui = useUiStore.getState();

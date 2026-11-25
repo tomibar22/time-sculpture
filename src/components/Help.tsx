@@ -103,7 +103,10 @@ export function Help() {
               play; In turn plays so many times round with the tiles and so many with the click
               alone (the score goes grey while they are silent). <b>Speed up</b> lets the tempo
               climb while it plays, so many faster every so many times round, up to a tempo; the
-              piece’s own tempo is not changed, and Stop goes back to it.
+              piece’s own tempo is not changed, and Stop goes back to it. <b>The 1 silent</b> leaves
+              the piece’s 1 unheard (no click, no stroke on it): feel where it lands. On the Click
+              page, <b>Hidden beat</b> clicks every so many pulses from where playing begins, a
+              larger pulse over the written one (a tihai built of 3s is felt in 3s).
             </p>
             <p>
               <b>Mix</b>: how loud the drum, the 1 of every bar, the other beats and the subdivision
@@ -326,6 +329,22 @@ export function Help() {
               (3 2 1 | 2 2 2 | 1 2 3).
             </p>
             <p>
+              <b>Long forms</b>: a <b>Korvai</b> (a yati of strokes, 6 5 4 3 2 1, drawn into a tihai
+              of the pattern; ×3 when only the third time lands), a <b>Tihai of tihais</b> (nine
+              statements: the row says where the inner tihais land, 2 before 1, 1 before 1, on 1;{' '}
+              <b>Farmaishi</b> when they fall on the 1 one after another), a <b>Chain of tihais</b>{' '}
+              (the statements shrink as the gaps grow, so one still begins every so many pulses),
+              the <b>Tail</b> (a pattern of 3–5 phrases: abcd ×3, bcd ×2, cd, c, each phrase
+              stretched or shortened so it lands: 3a+5b+7c+6d), <b>Halving</b> (kuraippu: the last
+              half each time, its start halving too, 8 → 4 → 2 → 1, once or traded) and <b>Gati</b>{' '}
+              (the same strokes at three speeds of the beat: the beats change their subdivision, 2 →
+              3 → 6, faster and faster).
+            </p>
+            <p>
+              <b>Lands</b> ‹ › « »: land early (anagat: a pulse or a beat before the end, with air
+              after it, or on the 1 of an imagined bar) or late (atit: it runs on past the end).
+            </p>
+            <p>
               <b>Last tile on the 1</b>: as in a tihai, the pattern’s last tile begins exactly where
               the stretch ends, so it is not written (the 1 is that stroke). <b>Begins</b> keeps
               only the ways that start on a beat, or on a 1.
@@ -348,7 +367,9 @@ export function Help() {
               as long and short tiles (3 3 2 is L L S) and gives other sizes with that shape. Tap
               groups first to lock them in place. Pointing at one previews it; everything around the
               passage stays where it is, so it still lands on 1. A tap tries a variation in the
-              score; Use writes it. From here varies what is there now.
+              score; Use writes it. From here varies what is there now. <b>Keep the ending</b> locks
+              the passage’s last third, so every variation rhymes on the same cadence (as a kaida’s
+              variations do).
             </p>
             <p>
               <b>Balanced</b> comes first: when the passage is a cell said again (a tihai, a repeat,
@@ -374,6 +395,17 @@ export function Help() {
               Chords come along: in the text each one stands in brackets after its size, “3[C-7(b6)]
               4[F7]”, so you can type a progression in Notes too. Copy as text (in the Library)
               copies the whole phrase that way.
+            </p>
+          </details>
+          <details className="help-topic">
+            <summary>Outline</summary>
+            <p>
+              The outline button (beside the zoom) or <b>O</b> hangs brackets under the score for
+              the statements of what is written: the three of a tihai or a yati, a korvai’s yati and
+              its mora, and inside a tihai of tihais its small tihais too. Each statement says where
+              it lands (where the stroke after it begins): on 1, on beat 3, 2 before 1… so the long
+              arithmetic can be followed. Of the selection when there is one, else of all that is
+              written.
             </p>
           </details>
           <details className="help-topic">
@@ -579,6 +611,10 @@ export function Help() {
                     <kbd>U</kbd>
                   </dt>
                   <dd>mute: nothing sounds there</dd>
+                  <dt>
+                    <kbd>O</kbd>
+                  </dt>
+                  <dd>outline: the statements, and where each lands</dd>
                   <dt>
                     <kbd>[ ]</kbd>
                   </dt>

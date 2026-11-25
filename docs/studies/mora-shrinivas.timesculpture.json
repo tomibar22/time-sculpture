@@ -1,0 +1,65 @@
+{
+  "format": "time-sculpture",
+  "version": 2,
+  "title": "Mora with eduppu (U. Shrinivas)",
+  "tempo": 72,
+  "beatsPerCycle": 3,
+  "cycles": 2,
+  "subdivision": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+  ],
+  "start": [],
+  "ending": [
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 7
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 7
+    },
+    {
+      "pulses": 3
+    }
+  ],
+  "layout": {
+    "cyclesPerRow": 1,
+    "breaks": []
+  },
+  "sounds": [
+    {
+      "at": 0.25,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 1,
+      "length": 1.75,
+      "pulses": 7
+    },
+    {
+      "at": 2.75,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 3.5,
+      "length": 1.75,
+      "pulses": 7
+    },
+    {
+      "at": 5.25,
+      "length": 0.75,
+      "pulses": 3
+    }
+  ]
+}

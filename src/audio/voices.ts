@@ -53,6 +53,16 @@ export function playPicked(t: number): void {
   woodblock(t, 1120, 0.07 * Math.sqrt(vol('sub')));
 }
 
+/**
+ * The hidden beat (practice): a click every so many pulses, a new, larger pulse over the written
+ * one. Lower and rounder than the beat's woodblock, so the two are told apart; on the Beats fader.
+ */
+export function playHidden(t: number): void {
+  const g = vol('beat');
+  if (g <= 0) return;
+  tone(t, 'triangle', 780, 0.09 * g, 0.06, 700);
+}
+
 /** A dry, woody click: a sine that drops a little, with a breath of its octave on top. */
 function woodblock(t: number, f: number, gain: number): void {
   if (gain <= 0) return;

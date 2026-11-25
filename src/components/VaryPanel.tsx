@@ -61,6 +61,12 @@ export function VaryPanel() {
   }, [region?.a, region?.b]);
 
   const vars = useMemo(() => E.variations(base, 120, Math.random, locked), [base, locked]);
+  /** The cadence a kaida rhymes on: the passage's last third (one tile at least). */
+  const cadence = useMemo(() => {
+    const k = Math.max(1, Math.round(base.length / 3));
+    return base.map((_, i) => i).slice(base.length - k);
+  }, [base]);
+  const rhymed = locked.length === cadence.length && cadence.every((i) => locked.includes(i));
   // every kind shows a few; "all N" opens one in full (closed again for a new passage)
   const groups = useOpenGroups(base);
   const steps = useMemo(
@@ -189,6 +195,22 @@ export function VaryPanel() {
             ? `${locked.length} locked. The rest moves around ${locked.length > 1 ? 'them' : 'it'}.`
             : `${total} pulses. Tap a group to lock it in place.`}
         </span>
+        {base.length >= 3 && (
+          <button
+            type="button"
+            className="link-btn"
+            aria-pressed={rhymed}
+            data-testid="vary-rhyme"
+            title="Keep the ending (a kaida's rhyme): its last third is locked, so every variation ends with the same cadence. Tap again to let it go."
+            onClick={() => {
+              setPicked(null);
+              setTrying(null);
+              setLocked(rhymed ? [] : cadence);
+            }}
+          >
+            {rhymed ? 'Ending kept' : 'Keep the ending'}
+          </button>
+        )}
         <button
           type="button"
           className="fill-dice"

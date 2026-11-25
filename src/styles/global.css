@@ -4540,3 +4540,16 @@ button.pat-cell.one[aria-pressed='true'] {
   font: 600 0.78rem var(--f-mono);
   text-align: center;
 }
+
+/* ---------------------------------------------------------------- practice: hidden beat */
+.practice-row.hidden-beat > span:first-child {
+  margin-right: auto;
+}
+.practice-row.hidden-beat output {
+  min-width: 4.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.practice-row.hidden-beat > span:first-child {
+  white-space: nowrap;
+}

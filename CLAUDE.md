@@ -56,6 +56,8 @@ src/engine/        pure TS, no React/DOM. Fully unit + property tested.
   yati.ts          yati: a cell said 3 times, its main size changing around a mean (templateOf)
   speeds.ts        speeds (laykari): one phrase at several speeds, 3 3 3 · 2 2 2 · 1 1 1
   longshort.ts     long–short shapes ("L S S"): parseLS, longShortOf, realizeLS, lsLandings
+  longforms.ts     Land's long forms: korvai, tail, halving (kuraippu), chain, nested, gati
+  outline.ts       outlineOf (statements of a passage), whereWords / isOnOne (where a pulse is)
   ops/edit.ts      text-editor ops: insertGroups, replaceGroups, resizeGroup(s), reverseGroups,
                    copyGroups, formatGroups / parseGroups ("3 (2) 4"), trimEdge
 src/state/         Zustand store: document (undo/redo) + ui; actions.ts, editing.ts (caret)
@@ -1142,3 +1144,44 @@ evenOnly, limit})` = every sizing (1–16) with every long > every short (DFS wi
   80 and hid Reordered / Broader / Same long and short). Land went from ~70–86 rows to ~18 by
   default. When adding a new kind of option: give it a group, put its best first, and let
   "all N" hold the rest; do not add new buttons or rows to the panel heads.
+
+### Long forms, from the research report (user request "do everything but 13 and 14")
+
+Studies 3–6 (`docs/studies/long-forms.md`, test `studies.test.ts`): Shrinivas's mora with eduppu,
+Palani Subramania Pillai's tail korvai, Viswanathan's kuraippu, a compound mora.
+
+- **Land kinds** (engine/longforms.ts, `patternLandings` takes them as `LongWay.full`, the last
+  tile dropped with `on1`; `ends` [end, last tile] become `PatternLanding.landings`, pulses from
+  the first written tile): `korvai` (a yati of strokes, narrowing / widening runs or the pattern
+  worn away / built up, into a mora with a gap g; ×3 only when it fills the stretch exactly; a
+  mora with a gap first), `nested` (tihai of tihais, g inside, G between; `inner` = statement
+  [start, end] per inner tihai: the panel marks **Farmaishi** when inner tihai j's statement j
+  starts or lands on a 1, and lists those first), `chain` (three tihais, the cell's main size
+  ± d each time, the gaps the other way, so the onset spacing is kept), `tail` (3–5 phrases:
+  abcd ×3, bcd ×2, cd, c, each phrase ±3 so it fills exactly; as written when it fits),
+  `halving` (`halvings`: the last half at tile edges, ≥ 3 stages; eduppu e0 halving too, later
+  eduppus added to the tile before; once or traded 2·2·2·4), `gati` (`gatiWays(beats, …)`, made
+  in LandPanel only for a region on beat lines and no shift: three subdivisions dividing the
+  pattern's sum, monotone, gaps of whole beats; `writeGati` sets the subdivisions then
+  `fillRange`; `PatternLanding.gati`; the strip is in a common unit with `Strip labels`).
+  Kind order in the list: `ORDER` in LandPanel.tsx. `l.gap` is only set for tihai / gapped.
+- **Lands early / late** (`ui.landShift`, pulses; clamped to −(R−1) … pulses after the region):
+  the ways are computed for R + shift; early writes the pattern then the air (a rest, or the
+  landing tile sounding when "Last tile on the 1"); late writes past the region's end
+  (`landingResult` in state/fill.ts). ‹ › by a pulse, « » by a beat (when the region has one
+  subdivision); the middle button resets.
+- **Outline** (`ui.outline`, device pref, key **O**, button `data-testid="outline"` in the zoom
+  group): `outlineOf(sizes)` reads three equal statements with equal gaps (a gap never longer
+  than the statement, whole readings before cut ones), else `statementsOf` (k 3–5), else a
+  korvai (a yati of ≥ 2 tiles, then a mora to the end, gapped moras first); inner tihais at
+  depth 1. state/outline.ts `outlineMarks` (cached by doc + region): the selection, else each
+  passage (silences at its edges trimmed). Drawn under the band like totals: `geometry(…,
+  extra)` levels totals and outline together (totals' indices first); `drawOutline` (dashed,
+  `--sel`, labels via `whereWords`, "on 1" in red). Not on the stage or in print.
+- **Browse → Woven** (`woven`, `wovenLabel`): pairs a b of one sum, a stepping ±1/±2, ≥ 3 pairs.
+- **Practice**: `ui.silentOne` (the piece's 1: no landing click and no stroke at pulse 0, not in
+  a loop, not on the stage) on the Practice page; `ui.hiddenBeat {on, every 2–16}` on the Click
+  page: `playHidden` (a rounder triangle, Beats fader) every `every` pulses since Play
+  (`pulsesHeard` in player.ts). Both device prefs.
+- **Vary → Keep the ending** (`vary-rhyme`): locks the last ⌈n/3⌉ tiles (a kaida's rhyme).
+

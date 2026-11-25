@@ -33,9 +33,7 @@ describe('long forms', () => {
   });
   it('tail: abcd ×3, bcd ×2, cd, c = 3a+5b+7c+6d; a+2 b+2 gives 112 (T9)', () => {
     const as = tailWays(96, [10, 4, 4, 3]);
-    expect(as[0]!.full).toEqual([
-      10, 4, 4, 3, 10, 4, 4, 3, 10, 4, 4, 3, 4, 4, 3, 4, 4, 3, 4, 3, 4,
-    ]);
+    expect(as[0]!.full).toEqual([10, 4, 4, 3, 10, 4, 4, 3, 10, 4, 4, 3, 4, 4, 3, 4, 4, 3, 4, 3, 4]);
     expect(as[0]!.note).toContain('3a+5b+7c+6d = 96');
     const more = tailWays(112, [10, 4, 4, 3]);
     expect(more.some((w) => w.name.includes('a+2 b+2'))).toBe(true);
@@ -72,8 +70,7 @@ describe('long forms', () => {
     expect(on1.landings![2]).toBe(sum(on1.sizes));
     const kinds = new Set(patternLandings(32, [3]).map((l) => l.kind));
     expect(kinds.has('korvai')).toBe(true);
-    for (const l of patternLandings(40, [3, 2, 2]))
-      expect(l.lead + sum(l.sizes)).toBe(40);
+    for (const l of patternLandings(40, [3, 2, 2])) expect(l.lead + sum(l.sizes)).toBe(40);
   });
   it('gati: 6 strokes at 2, 3 and 6 a beat = 3 + 2 + 1 beats (T17)', () => {
     const gs = gatiWays(8, [1, 1, 1, 1, 1, 1]);

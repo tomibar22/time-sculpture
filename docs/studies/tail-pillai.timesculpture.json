@@ -1,0 +1,211 @@
+{
+  "format": "time-sculpture",
+  "version": 2,
+  "title": "Tail korvai (Palani Subramania Pillai)",
+  "tempo": 72,
+  "beatsPerCycle": 8,
+  "cycles": 3,
+  "subdivision": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+  ],
+  "start": [
+    {
+      "pulses": 10
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 10
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 10
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 4
+    },
+    {
+      "pulses": 3
+    },
+    {
+      "pulses": 4
+    }
+  ],
+  "ending": [],
+  "layout": {
+    "cyclesPerRow": 1,
+    "breaks": []
+  },
+  "sounds": [
+    {
+      "at": 0,
+      "length": 2.5,
+      "pulses": 10
+    },
+    {
+      "at": 2.5,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 3.5,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 4.5,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 5.25,
+      "length": 2.5,
+      "pulses": 10
+    },
+    {
+      "at": 7.75,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 8.75,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 9.75,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 10.5,
+      "length": 2.5,
+      "pulses": 10
+    },
+    {
+      "at": 13,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 14,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 15,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 15.75,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 16.75,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 17.75,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 18.5,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 19.5,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 20.5,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 21.25,
+      "length": 1,
+      "pulses": 4
+    },
+    {
+      "at": 22.25,
+      "length": 0.75,
+      "pulses": 3
+    },
+    {
+      "at": 23,
+      "length": 1,
+      "pulses": 4
+    }
+  ]
+}

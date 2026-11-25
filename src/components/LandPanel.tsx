@@ -165,7 +165,9 @@ export function LandPanel() {
             farmaishi:
               !!l.inner &&
               l.inner.every(
-                (st, j) => E.isOnOne(d.meter, grid, at(st[j]![0])) || E.isOnOne(d.meter, grid, at(st[j]![1] - back)),
+                (st, j) =>
+                  E.isOnOne(d.meter, grid, at(st[j]![0])) ||
+                  E.isOnOne(d.meter, grid, at(st[j]![1] - back)),
               ),
           },
         ];
@@ -268,6 +270,7 @@ export function LandPanel() {
           sizes: l.gati.strip,
           rests: l.gati.leadBeats ? [0] : undefined,
           gaps: l.gati.stripGaps,
+          labels: l.gati.leadBeats ? [0, ...l.gati.sizes] : l.gati.sizes,
         }
       : {
           sizes: l.lead ? [l.lead, ...l.sizes] : l.sizes,
@@ -619,4 +622,3 @@ export function LandPanel() {
     </div>
   );
 }
-
