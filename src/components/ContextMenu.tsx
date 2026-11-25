@@ -42,6 +42,7 @@ import {
   setRange,
 } from '../state/editing';
 import { openFill } from '../state/fill';
+import { chordTarget, openChord } from '../state/chords';
 import { swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
 import type { ContextMenuState } from '../state/store';
@@ -245,6 +246,15 @@ function Menu({ menu }: { menu: ContextMenuState }) {
       { label: 'Remove', icon: <TrashIcon />, run: removeSelection, danger: true },
     ];
     rows = [
+      ...(sel.some((x) => x.kind === 'sound')
+        ? [
+            {
+              label: E.chordOf(doc, chordTarget() ?? '') ? 'Change the chord…' : 'Chord…',
+              hint: 'C',
+              run: () => openChord(),
+            },
+          ]
+        : []),
       { label: 'Split', hint: 'S', disabled: !sel.some((x) => x.n >= 2), run: splitSelection },
       ...(run
         ? ([

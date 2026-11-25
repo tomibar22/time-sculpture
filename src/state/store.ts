@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CLICK_PATTERN, cleanClickPattern } from '../engine';
+import { CLICK_PATTERN, carryChords, cleanClickPattern } from '../engine';
 import type {
   ClickPattern,
   Doc,
@@ -200,9 +200,10 @@ export const useDocStore = create<DocState>((set, get) => ({
   future: [],
   log: [],
   version: 0,
-  commit: (doc, label) => {
+  commit: (doc0, label) => {
     const s = get();
-    if (doc === s.doc) return;
+    if (doc0 === s.doc) return;
+    const doc = carryChords(s.doc, doc0);
     set({
       doc,
       past: [...s.past.slice(-(HISTORY_LIMIT - 1)), s.doc],
@@ -369,6 +370,8 @@ export interface UiState {
   playStart: number | null;
   /** The phrase-mark name dialog, for the mark at pulse k (added if there is none yet). */
   markDialog: { k: number } | null;
+  /** The chord dialog, for the sounding group with this id. */
+  chordDialog: { id: ItemId } | null;
   /** Playhead in beats while playing. */
   playhead: number | null;
   /**
@@ -463,6 +466,7 @@ export const useUiStore = create<UiState>((set) => ({
   modDialog: null,
   voltaDialog: null,
   markDialog: null,
+  chordDialog: null,
   meterDialog: null,
   barsDialog: false,
   menu: null,

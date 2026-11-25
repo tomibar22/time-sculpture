@@ -78,7 +78,10 @@ export function run(result: OpResult, opts: RunOpts): boolean {
   }
   const wasComplete = E.freePulses(before) === 0;
   // silences side by side become one stretch of empty time
-  useDocStore.getState().commit(E.joinRests(result.doc), opts.label);
+  const joined = E.joinRests(result.doc);
+  const next =
+    joined !== result.doc && result.doc.chords ? { ...joined, chords: result.doc.chords } : joined;
+  useDocStore.getState().commit(next, opts.label);
   if (opts.select === 'none') setUi({ selection: [], anchor: null });
   else if (opts.select && opts.select !== 'keep')
     setUi({ selection: opts.select, anchor: opts.select[0] ?? null });
@@ -321,7 +324,18 @@ export function duplicateSelection(): void {
     return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
   }
   const { bars, doc: base } = room;
-  const r = E.duplicate(base, sel);
+  const r0 = E.duplicate(base, sel);
+  // the copies carry the chords of what they copy (in the order of the piece, as made)
+  const from = E.selectedIndices(base.items, sel).map((i) => base.items[i]!.id);
+  const copied = Object.fromEntries(
+    r0.report.created.flatMap((id, i) => {
+      const c = E.chordOf(base, from[i] ?? '');
+      return c ? [[id, c]] : [];
+    }),
+  );
+  const r = Object.keys(copied).length
+    ? { ...r0, doc: { ...r0.doc, chords: { ...(base.chords ?? {}), ...copied } } }
+    : r0;
   if (
     run(r, {
       label: `dup ${desc(before, sel)}`,

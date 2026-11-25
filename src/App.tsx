@@ -6,6 +6,7 @@ import { Logo, PieceTitle } from './components/PieceTitle';
 import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
 import { MarkDialog } from './components/MarkDialog';
+import { ChordDialog } from './components/ChordDialog';
 import { ContextMenu } from './components/ContextMenu';
 import { CountInOverlay } from './components/CountIn';
 import { BarsDialog, MeterDialog, RowDialog, StartDialog } from './components/PieceDialogs';
@@ -72,6 +73,7 @@ export function App() {
       <ModulationDialog />
       <VoltaDialog />
       <MarkDialog />
+      <ChordDialog />
       <TempoDialog />
       <MeterDialog />
       <BarsDialog />

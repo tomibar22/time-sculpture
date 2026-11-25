@@ -36,6 +36,45 @@ test('hold Shift and type two digits for a long group', async ({ page }) => {
   await expectSeq(page, '12 3 2 │ ·');
 });
 
+test('the number pad writes two digits with 10+', async ({ page }) => {
+  await clearAll(page);
+  await showPad(page);
+  const s = await score(page);
+  await tap(page, at(s, P(0.2)));
+  await page.getByTestId('key-tens').click();
+  await expect(page.getByTestId('key-1')).toHaveText('1_');
+  await page.getByTestId('key-1').click();
+  await expect(page.getByTestId('key-2')).toHaveText('12');
+  await page.getByTestId('key-2').click();
+  await expectSeq(page, '12 │ ·');
+  await expect(page.getByTestId('key-2')).toHaveText('2'); // back to 1–9
+  await page.getByTestId('key-tens').click();
+  await page.getByTestId('key-1').click();
+  await page.getByTestId('key-tens').click(); // now "10"
+  await expectSeq(page, '12 10 │ ·');
+});
+
+test('chords: written over tiles, one after another', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('c');
+  const field = page.getByRole('textbox', { name: 'Chord' });
+  await expect(field).toBeVisible();
+  await field.fill('C-7(b6)');
+  await page.getByRole('button', { name: 'Next ›' }).click();
+  await expect(field).toHaveValue('');
+  await field.fill('F7');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(field).toBeHidden();
+  // part of the piece: undo takes the last one back
+  await page.keyboard.press('z');
+  await page.keyboard.press('c');
+  await expect(field).toHaveValue('');
+  await page.getByRole('button', { name: '‹ Previous' }).click();
+  await expect(field).toHaveValue('C-7(b6)');
+  await page.keyboard.press('Escape');
+});
+
 test('tap a line to place a caret, then type sizes', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(5)));

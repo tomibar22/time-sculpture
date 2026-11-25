@@ -45,6 +45,7 @@ import {
   playFromCaret,
 } from '../state/editing';
 import { openFill } from '../state/fill';
+import { chordTarget, openChord } from '../state/chords';
 import { cancelSwap, swapNow, swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
 import { CloseIcon, TrashIcon } from './Icons';
@@ -142,6 +143,11 @@ export function SelectionBar() {
         >
           <TrashIcon />
         </button>
+        {sel.some((x) => x.kind === 'sound') && (
+          <button type="button" title="Write a chord over the tile (C)" onClick={() => openChord()}>
+            Chord…
+          </button>
+        )}
         <span className="selbar-sep" aria-hidden="true" />
         {/* its place */}
         <button
@@ -508,6 +514,15 @@ function CaretBar() {
             onClick={addBarAtEnd}
           >
             Bar after
+          </button>
+        )}
+        {chordTarget() && (
+          <button
+            type="button"
+            title="Write a chord over the tile just before the caret (C)"
+            onClick={() => openChord()}
+          >
+            Chord…
           </button>
         )}
         <PlayFromButton caret={caret!} />

@@ -46,6 +46,7 @@ import {
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { swapNow, swapStep } from '../state/swap';
+import { openChord } from '../state/chords';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { fillRegion, openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
@@ -257,6 +258,8 @@ export function useKeyboard() {
         return;
       }
       if (k === 'a' && e.shiftKey) return void (e.preventDefault(), selectAll());
+      if (k === 'c' && !mod && !e.shiftKey && !e.altKey)
+        return void (e.preventDefault(), openChord());
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
       if (e.key === 'Escape') {

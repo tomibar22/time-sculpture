@@ -77,16 +77,19 @@ export function Help() {
             <p>
               The caret sits on any pulse, like a text caret between letters: tap a line or the open
               space to place it, ⌥-click to place it inside a tile, and move it with ← → (one pulse)
-              or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there; hold ⇧ and type two digits for a longer one (⇧ 1 2 = 12). Inside the open
-              space the gap before the caret becomes silence; inside a tile, the tile is split. On a
-              phone, use the number pad (123). Tap the very start or end of the score, or use ⇤ and
-              ⇥ on the pad, to put the caret there. To write an opening before what is already
-              there, put the caret at the very start and tap Bar before (or + Bar at the start in
-              the settings): an open bar is added in front, and what was written moves on with it,
-              still landing on 1. To go on after the end, put the caret at the very end (End) and
-              tap Bar after (or + Bar at the end): what was written stays where it is and the new
-              bar is open to write in. (The Bars stepper adds bars in the middle, in the open
-              space.)
+              or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there; hold ⇧ and type
+              two digits for a longer one (⇧ 1 2 = 12); on the pad, tap 10+, then the ten, then the
+              size (10+ 1 2 = 12). To write a chord over a tile, select it (or put the caret after
+              it) and press C or Chord…; Next goes on to the next tile, so a whole progression is
+              typed in one go. Inside the open space the gap before the caret becomes silence;
+              inside a tile, the tile is split. On a phone, use the number pad (123). Tap the very
+              start or end of the score, or use ⇤ and ⇥ on the pad, to put the caret there. To write
+              an opening before what is already there, put the caret at the very start and tap Bar
+              before (or + Bar at the start in the settings): an open bar is added in front, and
+              what was written moves on with it, still landing on 1. To go on after the end, put the
+              caret at the very end (End) and tap Bar after (or + Bar at the end): what was written
+              stays where it is and the new bar is open to write in. (The Bars stepper adds bars in
+              the middle, in the open space.)
             </p>
           </details>
           <details className="help-topic">
@@ -423,6 +426,10 @@ export function Help() {
                     <kbd>⇧ + 1 2</kbd>
                   </dt>
                   <dd>a group of two digits (12): hold ⇧, type both digits</dd>
+                  <dt>
+                    <kbd>C</kbd>
+                  </dt>
+                  <dd>a chord over the tile (Enter or Tab goes on to the next tile)</dd>
                   <dt>
                     <kbd>+ −</kbd>
                   </dt>

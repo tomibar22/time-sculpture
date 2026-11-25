@@ -136,6 +136,12 @@ export interface Doc {
   readonly items: readonly Item[];
   /** Counter used to mint fresh item ids, so operations stay pure and deterministic. */
   readonly nextId: number;
+  /**
+   * Chord symbols written over sounding groups (free text, "C-7(b6)"), by group id. Ids are
+   * stable, so a chord moves, stretches and splits with its group (a split keeps it on the head,
+   * a merge keeps the first). Ops do not carry it: the store's commit does (`carryChords`).
+   */
+  readonly chords?: Readonly<Record<ItemId, string>>;
 }
 
 export type FailReason =

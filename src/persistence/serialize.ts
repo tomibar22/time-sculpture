@@ -1,5 +1,6 @@
 import {
   buildGrid,
+  MAX_CHORD,
   MAX_MARK_NAME,
   nearestPulse,
   checkInvariants,
@@ -33,6 +34,8 @@ export interface PieceSettings {
 export interface FileGroup {
   pulses: number;
   rest?: true;
+  /** A chord symbol written over the group (free text). */
+  chord?: string;
 }
 
 /** A sounding group in time, derived for other programs (ignored when reading). */
@@ -122,7 +125,11 @@ export function toSaved(
 ): SavedPiece {
   const si = spaceIndex(doc.items);
   const fg = (x: Item): FileGroup =>
-    x.kind === 'rest' ? { pulses: x.n, rest: true } : { pulses: x.n };
+    x.kind === 'rest'
+      ? { pulses: x.n, rest: true }
+      : doc.chords?.[x.id]
+        ? { pulses: x.n, chord: doc.chords[x.id] }
+        : { pulses: x.n };
   const piece: SavedPiece = {
     format: 'time-sculpture',
     version: 2,
@@ -273,9 +280,13 @@ export function fromSaved(raw: unknown): Parsed {
       : {}),
   };
   let next = 1;
+  const chords: Record<string, string> = {};
   const toItem = (g: unknown): Item => {
     const x = g as Partial<FileGroup> | null;
-    return group(`g${next++}`, Number(x?.pulses), x?.rest ? 'rest' : 'sound');
+    const id = `g${next++}`;
+    if (!x?.rest && typeof x?.chord === 'string' && x.chord.trim())
+      chords[id] = x.chord.trim().slice(0, MAX_CHORD);
+    return group(id, Number(x?.pulses), x?.rest ? 'rest' : 'sound');
   };
   const start = Array.isArray(p.start) ? p.start.map(toItem) : [];
   const ending = Array.isArray(p.ending) ? p.ending.map(toItem) : [];
@@ -293,7 +304,7 @@ export function fromSaved(raw: unknown): Parsed {
       return { at: Number(x?.fromBeat), per: Number(x?.bars) };
     })
     .filter((r) => Number.isFinite(r.at) && Number.isInteger(r.per) && r.per >= 0);
-  return finish(
+  const parsed = finish(
     rowSizes.length ? withRowSizes(meter, rowSizes) : meter,
     items,
     next,
@@ -304,6 +315,7 @@ export function fromSaved(raw: unknown): Parsed {
     layout.breaks,
     layout.fitRows,
   );
+  return Object.keys(chords).length ? { ...parsed, doc: { ...parsed.doc, chords } } : parsed;
 }
 
 function fromV1(p: Record<string, unknown>): Parsed {

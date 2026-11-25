@@ -12,6 +12,7 @@ import {
   toggleRepeatEnd,
   toggleRepeatStart,
   toggleDoubleBar,
+  setChord,
 } from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
@@ -181,5 +182,16 @@ describe('the Time Sculpture file (v2)', () => {
     const lean = { ...saved };
     delete lean.sounds;
     expect(await decodeShare(code)).toEqual(lean);
+  });
+});
+
+describe('chords', () => {
+  it('are saved on their groups and come back', () => {
+    const d = setChord(doc, doc.items[1]!.id, 'Dbmaj7(#5)');
+    const saved = toSaved(d, 'With chords', settings);
+    expect(saved.start[1]).toEqual({ pulses: 3, chord: 'Dbmaj7(#5)' });
+    const back = fromSaved(JSON.parse(JSON.stringify(saved)));
+    expect(Object.values(back.doc.chords ?? {})).toEqual(['Dbmaj7(#5)']);
+    expect(back.doc.chords?.[back.doc.items[1]!.id]).toBe('Dbmaj7(#5)');
   });
 });

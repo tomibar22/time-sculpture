@@ -341,3 +341,51 @@ export function joinRests(doc: Doc): Doc {
   );
   return withItems(doc, kept);
 }
+
+/* ------------------------------------------------------------------ chords */
+
+/** Longest chord symbol kept. */
+export const MAX_CHORD = 24;
+
+/** The chord over a group, or '' when it has none. */
+export function chordOf(doc: Doc, id: ItemId): string {
+  return doc.chords?.[id] ?? '';
+}
+
+/** Chords of the sounding groups that are still there (others are dropped). */
+function prunedChords(
+  chords: Readonly<Record<ItemId, string>>,
+  items: readonly Item[],
+): Record<ItemId, string> {
+  const out: Record<ItemId, string> = {};
+  for (const x of items) {
+    const c = x.kind === 'sound' ? chords[x.id] : undefined;
+    if (c) out[x.id] = c;
+  }
+  return out;
+}
+
+/** Write (or with '' remove) the chord over a sounding group. */
+export function setChord(doc: Doc, id: ItemId, text: string): Doc {
+  const t = text.replace(/\s+/g, ' ').trim().slice(0, MAX_CHORD);
+  const x = doc.items.find((i) => i.id === id);
+  if (!x || x.kind !== 'sound' || t === chordOf(doc, id)) return doc;
+  const chords = { ...(doc.chords ?? {}) };
+  if (t) chords[id] = t;
+  else delete chords[id];
+  return { ...doc, chords };
+}
+
+/**
+ * The document after an edit keeps the chords: ops build new documents without them, so they
+ * are taken from the one before (a document that has its own `chords` keeps those), and only the
+ * sounding groups still there keep theirs.
+ */
+export function carryChords(prev: Doc, next: Doc): Doc {
+  const src = next.chords ?? prev.chords;
+  if (!src) return next;
+  const chords = prunedChords(src, next.items);
+  const same = next.chords && Object.keys(chords).length === Object.keys(next.chords).length;
+  if (same) return next;
+  return { ...next, chords };
+}

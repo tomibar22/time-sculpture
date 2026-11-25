@@ -2529,7 +2529,21 @@ dialog.tempo-dialog {
 }
 /* the pad: the digits, delete and the caret keys in one block (no row of their own) */
 .keypad-keys {
-  grid-template-columns: repeat(14, minmax(0, 1fr));
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+}
+/* two digits: 10+ (pressed while the keys give tens or two-digit sizes) */
+.key.tens {
+  font-size: 0.95rem;
+}
+.key.tens.on {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--accent);
+}
+.key.tens.on[style] {
+  color: var(--fg);
+}
+.key.two {
+  font-size: 1.05rem;
 }
 .key.nav {
   color: var(--muted);
@@ -2537,25 +2551,33 @@ dialog.tempo-dialog {
   font-size: 1.05rem;
 }
 @media (min-width: 561px) {
-  .key.del {
+  .key.tens {
     order: 1;
   }
-  .key.nav-home {
+  .key.del {
     order: 2;
   }
-  .key.nav-left {
+  .key.nav-home {
     order: 3;
   }
-  .key.nav-right {
+  .key.nav-left {
     order: 4;
   }
-  .key.nav-end {
+  .key.nav-right {
     order: 5;
+  }
+  .key.nav-end {
+    order: 6;
   }
 }
 @media (max-width: 560px) {
+  /* 1–5 10+ ⇤ ⇥ / 6–9 ⌫⌫ ← → */
   .keypad-keys {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .key.del {
+    grid-column: span 2;
   }
   .key {
     min-height: 44px;

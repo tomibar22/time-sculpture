@@ -461,8 +461,13 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.stroke();
           c.globalAlpha = 1;
         }
+        let numRight = X;
         const showRestNumber = selected || lifted || s.focusedId === x.id;
-        if (W > 15 && (x.kind !== 'rest' || showRestNumber)) {
+        const chord = seg.first && x.kind === 'sound' ? doc.chords?.[x.id] : undefined;
+        // a chord that does not fit beside the size number takes the whole tile (the colour and
+        // the width still tell the size)
+        const chordAlone = !!chord && !chordFits(c, chord, W - (W > 26 ? 8 : 4) - 22);
+        if (W > 15 && (x.kind !== 'rest' || showRestNumber) && !chordAlone) {
           c.fillStyle = x.kind === 'rest' ? P.muted : inkFor(sizeColor(x.n));
           c.globalAlpha = seg.first ? 1 : 0.6;
           c.font = `600 ${W > 26 ? 16 : 12}px ${MONO}`;
@@ -483,7 +488,9 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           const lx = X + (signHere ? (W > 26 ? 12 : 9) : endHere ? 2 : W > 26 ? 8 : 4);
           c.fillText(seg.first ? String(x.n) : `…${x.n}`, lx, ty + L.tileH / 2);
           c.globalAlpha = 1;
+          numRight = lx + c.measureText(seg.first ? String(x.n) : `…${x.n}`).width;
         }
+        if (chord) drawChord(c, chord, chordAlone ? X + 3 : numRight + 6, X + W - 3, X + W / 2, ty);
         if (s.grips === x.id) {
           const drawGrip = (gx: number, on: boolean) => {
             c.fillStyle = P.sel;
@@ -1037,4 +1044,47 @@ function drawForm(c: CanvasRenderingContext2D, g: Geo, doc: Doc, P: Palette): vo
       if (r === rb && closes(v.b)) c.fillRect(x1 - 1.5, top, 1.5, bottom - top);
     }
   }
+}
+
+/**
+ * A chord symbol over a tile: light text on a dark pill, centred on the tile when there is room,
+ * else pushed right of the size number; cut with "…" when the tile is too narrow for all of it
+ * (and left out when not even a letter fits).
+ */
+/** Does the chord, in full, fit in this many pixels (its pill included)? */
+function chordFits(c: CanvasRenderingContext2D, text: string, room: number): boolean {
+  c.font = `600 ${room > 90 ? 15 : 13}px ${MONO}`;
+  return c.measureText(text).width + 16 <= room;
+}
+
+function drawChord(
+  c: CanvasRenderingContext2D,
+  text: string,
+  left: number,
+  right: number,
+  centre: number,
+  ty: number,
+): void {
+  const room = right - left;
+  if (room < 14) return;
+  c.font = `600 13px ${MONO}`;
+  const pad = c.measureText(text).width + 16 <= room ? 8 : 4;
+  const size = room > 90 ? 15 : pad === 8 ? 13 : 12;
+  c.font = `600 ${size}px ${MONO}`;
+  let t = text;
+  if (c.measureText(t).width + pad * 2 > room) {
+    while (t.length > 1 && c.measureText(`${t}…`).width + pad * 2 > room) t = t.slice(0, -1);
+    t = `${t}…`;
+  }
+  const w = Math.min(room, c.measureText(t).width + pad * 2);
+  const h = 26;
+  const x = Math.min(Math.max(centre - w / 2, left), right - w);
+  const y = ty + (L.tileH - h) / 2;
+  c.fillStyle = 'rgba(16, 18, 22, 0.86)'; // the same dark pill in every theme and in print
+  rr(c, x, y, w, h, 8);
+  c.fill();
+  c.fillStyle = '#f4f5f7';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(t, x + w / 2, y + h / 2 + 0.5);
 }

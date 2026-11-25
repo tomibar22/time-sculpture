@@ -420,7 +420,7 @@ names = meter.markNames)` carries each name with its mark (callers that move mar
   `formErrors` checks them); `toggleDoubleBar` / `doubleBarAt`. Drawn as an end sign without
   dots (thin + thick; skipped where a `:|` stands). They never change playing. UI: "‖ Section
   end" in the caret bar (at the caret) and in the tile / range bars (where the selection ends),
-  every menu ("Section end after it ‖" also on the bar page), key **\** (`toggleDoubleBarAt`).
+  every menu ("Section end after it ‖" also on the bar page), key *_\*_ (`toggleDoubleBarAt`).
   File `sectionEnds`; MusicXML writes a light-heavy barline when it sits on a bar line.
 - UI: caret bar `|: Start repeat` / `:| End repeat` / ×N stepper, `Ending…` in the range and
   tile bars (`VoltaDialog`, default passes from `defaultPasses`). Keys `[` `]` (physical
@@ -587,7 +587,21 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   field (`isTextEntry`) keeps its own.
 - **Two-digit sizes** (user request): hold ⇧ and type two digits (⇧1 2 = 12, `typeSize`); the
   number is written on the second digit, or when ⇧ is let go after one (`shiftDigits` in
-  useKeyboard). A toast shows the first digit while it waits.
+  useKeyboard). A toast shows the first digit while it waits. **On the pad**: a **10+** key
+  (Keypad.tsx local `tens`: null / 0 / the ten): 10+ turns the digit keys into tens ("1_"…"9_"),
+  a ten turns them into its sizes (11…19) and 10+ itself into the round ten (10); one tap
+  writes, ⌫ steps back. Phones: 8 columns, 1–5 10+ ⇤ ⇥ / 6–9 ⌫⌫ ← → (⌫ spans two).
+- **Chords** (user request; free text for now): `doc.chords` {groupId: text} (engine/doc.ts:
+  `setChord`, `chordOf`, `MAX_CHORD` 24). Ops never copy it; **the store's `commit` carries
+  it** (`carryChords`: the new doc's own `chords`, else the old one's, pruned to sounding
+  groups still there), so a chord moves / stretches with its group, a split keeps it on the
+  head, a merge on the first; `run()` keeps `result.doc.chords` past `joinRests`; Duplicate
+  copies them. Drawn as a dark pill centred on the tile (`drawChord`; beside the size number,
+  or alone over the whole tile when it does not fit beside it, cut with "…" last). UI:
+  `ChordDialog` (`ui.chordDialog {id}`, state/chords.ts `chordTarget` = first selected sound
+  group / first in the range / the one ending at the caret / the one holding it): Next / Enter /
+  Tab save and go to the next tile, Previous / ⇧Tab back; key **C**, "Chord…" in the tile and
+  caret bars and the tile menu. File: `FileGroup.chord`.
 - Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
@@ -990,7 +1004,7 @@ gaps?, name?, note?, on1?, key}`, listed under headings by `kind`: `repeat` (×k
   open space wholly between them stays open (`reopen`). Fails on overlap (`'overlap'`). After it,
   the first stretch is selected at its new place. Any document change or Esc clears `swapA`.
 - **Long and short** (engine/longshort.ts): `LS = 'L' | 'S'`. `realizeLS(p, total, {near,
-  evenOnly, limit})` = every sizing (1–16) with every long > every short (DFS with bounds, capped);
+evenOnly, limit})` = every sizing (1–16) with every long > every short (DFS with bounds, capped);
   even ones (one size per kind, "4 : 2") first, ratio nearest 2:1 first; `near` sorts by
   distance to given sizes. `longShortOf(sizes)` splits at the widest ratio step (null if all
   equal). `parseLS` reads L/S, long/short, — ·, א/ק.
