@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { zoomLabel, zoomLevels } from '../score/rows';
 import { useDocStore, useUiStore } from '../state/store';
 import { toggleOverview, zoomStep } from '../state/zoom';
-import { FitIcon } from './Icons';
+import { toggleOutline } from '../state/outline';
+import { FitIcon, OutlineIcon } from './Icons';
 
 /** − level + and ⤢ (everything): how much a score row holds. Pinch and ⌥ − = 0 do the same. */
 export function ZoomControl() {
@@ -46,7 +47,26 @@ export function ZoomControl() {
       >
         <FitIcon />
       </button>
+      <OutlineButton />
     </div>
+  );
+}
+
+/** The outline under the score: the statements of what is written, and where each lands (O). */
+function OutlineButton() {
+  const on = useUiStore((s) => s.outline);
+  return (
+    <button
+      type="button"
+      className="icon ghost"
+      aria-pressed={on}
+      aria-label="Outline"
+      data-testid="outline"
+      title="Outline (O): brackets under the score for the statements of a tihai, a yati or a korvai, and where each lands (2 before 1, on 1). Of the selection, or of everything written."
+      onClick={toggleOutline}
+    >
+      <OutlineIcon />
+    </button>
   );
 }
 

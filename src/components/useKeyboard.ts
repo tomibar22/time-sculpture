@@ -1,3 +1,4 @@
+import { toggleOutline } from '../state/outline';
 import { useEffect } from 'react';
 import * as E from '../engine';
 import { togglePlayback } from '../audio/player';
@@ -277,6 +278,11 @@ export function useKeyboard() {
       if (k === 'g' && !e.shiftKey) {
         e.preventDefault();
         return toggleTotalOver(selectedRegion());
+      }
+      if (k === 'o' && !e.shiftKey) {
+        // the outline: statements, and where each lands
+        e.preventDefault();
+        return toggleOutline();
       }
       if (k === 'u' && !e.shiftKey) {
         e.preventDefault();

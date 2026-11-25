@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shapeFills, shapeOf } from '../shapes';
+import { shapeFills, shapeOf, wovenLabel } from '../shapes';
 
 const fam = (t: number[]) => shapeOf(t)?.family;
 
@@ -55,5 +55,14 @@ describe('shapes', () => {
     expect(turns.map((f) => f.sizes.join(' '))).toContain('4 3 2 3 2 4 2 4 3');
     for (const f of fills) expect(f.sizes.reduce((a, b) => a + b, 0)).toBe(32);
     for (const f of turns) expect(f.sizes.reduce((a, b) => a + b, 0)).toBe(27);
+  });
+});
+
+describe('woven yatis (prastara)', () => {
+  it('names 1 6 2 5 3 4 4 3 and builds it', () => {
+    expect(wovenLabel([1, 6, 2, 5, 3, 4, 4, 3])).toBe('Woven 1→4 with 6→3, every pair 7');
+    expect(wovenLabel([3, 3, 3, 3, 3, 3])).toBeNull();
+    const all = shapeFills(28, [1, 2, 3, 4, 5, 6]).filter((f) => f.shape.family === 'woven');
+    expect(all.map((f) => f.sizes.join(' '))).toContain('1 6 2 5 3 4 4 3');
   });
 });

@@ -78,7 +78,23 @@ export interface DevicePrefs {
   clickPat: ClickPattern;
   /** Practice: the tempo climbs while it plays (see SpeedUp). */
   speedUp: SpeedUp;
+  /** The score shows the outline of what is written: statements, and where each lands. */
+  outline: boolean;
+  /**
+   * Practice: a hidden beat, a click every `every` pulses counted from where playing begins (a
+   * new, larger pulse over the written one, as a tihai built in units of 3 pulses is felt).
+   */
+  hiddenBeat: HiddenBeat;
+  /** Practice: the piece's 1 (the landing) is not heard at all: felt, not heard. */
+  silentOne: boolean;
 }
+
+export interface HiddenBeat {
+  on: boolean;
+  every: number;
+}
+export const HIDDEN_MIN = 2;
+export const HIDDEN_MAX = 16;
 
 /** The tempo climbs by itself: `step` faster every `every` times round, until it is `to`. */
 export interface SpeedUp {
@@ -128,6 +144,15 @@ function loadPrefs(): Partial<DevicePrefs> {
       out.turns = { on: n(p.turns.on), off: n(p.turns.off) };
     if (typeof p.countSub === 'boolean') out.countSub = p.countSub;
     if (typeof p.landDrum === 'boolean') out.landDrum = p.landDrum;
+    if (typeof p.outline === 'boolean') out.outline = p.outline;
+    if (typeof p.silentOne === 'boolean') out.silentOne = p.silentOne;
+    if (p.hiddenBeat && typeof p.hiddenBeat === 'object') {
+      const e = p.hiddenBeat.every;
+      out.hiddenBeat = {
+        on: p.hiddenBeat.on === true,
+        every: Number.isInteger(e) ? Math.max(HIDDEN_MIN, Math.min(HIDDEN_MAX, e)) : 3,
+      };
+    }
     if (p.mix && typeof p.mix === 'object') {
       const m = { ...MIX_DEFAULT };
       for (const k of Object.keys(m) as MixChannel[]) {
@@ -299,6 +324,11 @@ export interface UiState {
   landOn1: boolean;
   /** Land: only the ways that begin anywhere / on a beat / on a 1. */
   landFrom: 'any' | 'beat' | 'one';
+  /**
+   * Land: where it lands against the end of the stretch, in pulses: negative = that much early
+   * (anagat: air after it), positive = late (atit: it runs on past the end). 0 = on the end.
+   */
+  landShift: number;
   /** Land: the pattern is built of sizes, or of long and short tiles ("L S S"). */
   landMode: 'sizes' | 'ls';
   /** Land: the long–short pattern being tried. */
@@ -319,6 +349,9 @@ export interface UiState {
   tiles: TilesMode;
   turns: { on: number; off: number };
   countSub: boolean;
+  outline: boolean;
+  hiddenBeat: HiddenBeat;
+  silentOne: boolean;
   landDrum: boolean;
   mix: Mix;
   clickPat: ClickPattern;
@@ -439,6 +472,7 @@ export const useUiStore = create<UiState>((set) => ({
   landPattern: [],
   landOn1: false,
   landFrom: 'any',
+  landShift: 0,
   landMode: 'sizes',
   landLS: [],
   fillSort: 'onbeat',
@@ -452,6 +486,9 @@ export const useUiStore = create<UiState>((set) => ({
   turns: { on: 1, off: 1 },
   countSub: false,
   landDrum: true,
+  outline: false,
+  hiddenBeat: { on: false, every: 3 },
+  silentOne: false,
   mix: { ...MIX_DEFAULT },
   clickPat: CLICK_PATTERN,
   speedUp: { on: false, step: 4, every: 2, to: 120 },
@@ -516,7 +553,10 @@ useUiStore.subscribe((s, p) => {
     s.landDrum !== p.landDrum ||
     s.mix !== p.mix ||
     s.clickPat !== p.clickPat ||
-    s.speedUp !== p.speedUp
+    s.speedUp !== p.speedUp ||
+    s.outline !== p.outline ||
+    s.hiddenBeat !== p.hiddenBeat ||
+    s.silentOne !== p.silentOne
   )
     savePrefs({
       theme: s.theme,
@@ -533,5 +573,8 @@ useUiStore.subscribe((s, p) => {
       mix: s.mix,
       clickPat: s.clickPat,
       speedUp: s.speedUp,
+      outline: s.outline,
+      hiddenBeat: s.hiddenBeat,
+      silentOne: s.silentOne,
     });
 });

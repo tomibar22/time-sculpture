@@ -3661,6 +3661,35 @@ canvas.score-paint.hushed {
   text-transform: none;
   white-space: nowrap;
 }
+.land-shift {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.land-shift .segs {
+  flex-wrap: nowrap;
+}
+.land-shift .segs button {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.land-shift .segs button.land-shift-now {
+  min-width: 7.5em;
+  font-variant-numeric: tabular-nums;
+}
+.land-lands {
+  font-variant-numeric: tabular-nums;
+}
 .land-group-note {
   font-size: 0.78rem;
   color: var(--faint);
@@ -3850,6 +3879,13 @@ canvas.score-paint.hushed {
   }
   .land-from > span {
     display: none;
+  }
+  /* the shift goes on a line of its own under the switch and Begins */
+  .land-opts {
+    flex-wrap: wrap;
+  }
+  .land-shift {
+    flex: 1 0 100%;
   }
   /* still read out: the short names are only a picture of the long ones */
   .land-wide {

@@ -53,6 +53,13 @@ export const FitIcon = () => (
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
 );
+/** Three brackets under a line: the outline of the statements. */
+export const OutlineIcon = () => (
+  <svg {...base}>
+    <path d="M3 7h18" />
+    <path d="M3 12v4h5v-4M10 12v4h5v-4M17 12v4h4v-4" />
+  </svg>
+);
 /** A screen on a stand: the stage (a clean view for filming). */
 export const StageIcon = () => (
   <svg {...base}>

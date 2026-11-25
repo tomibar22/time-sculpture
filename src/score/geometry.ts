@@ -84,7 +84,14 @@ export const needsLane = (doc: Doc) =>
   !!doc.meter.bars?.length;
 
 /** Rows wrap every `perRow` bars and at the document's manual line breaks (see rows.ts). */
-export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo {
+export function geometry(
+  width: number,
+  doc: Doc,
+  perRow = 1,
+  fit = false,
+  /** More brackets to hang under the band with the totals (the outline: beats). */
+  extra: readonly { a: number; b: number }[] = [],
+): Geo {
   const B = doc.meter.beatsPerCycle;
   const rows: Row[] = rowLayout(doc.meter, perRow).map((r) => ({
     b0: r.t0,
@@ -99,7 +106,8 @@ export function geometry(width: number, doc: Doc, perRow = 1, fit = false): Geo 
   // fitted rows stretch to the full width; otherwise every row shares one beat width
   for (const row of rows) row.bw = fit ? (width - 2 * L.margin) / row.nb : bw;
   const lane = needsLane(doc) ? LANE_H : 0;
-  const totalLv = totalLevels(doc.meter.totals ?? []);
+  // totals first, then the extra brackets (their levels follow, index by index)
+  const totalLv = totalLevels([...(doc.meter.totals ?? []), ...extra]);
   const under = totalLv.length ? (Math.max(...totalLv) + 1) * TOTAL_H + 2 : 0;
   const stride = lane + L.numH + L.gap1 + L.tileH + L.bandGap + L.bandH + under + L.gapR;
   // the rows that hold a named phrase mark get a line for the name above their numbers

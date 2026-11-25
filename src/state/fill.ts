@@ -159,38 +159,55 @@ export function fillWith(o: FillOption): void {
   if (apply(E.fillGroups(o), `fill ${o.key}`)) announce(`Filled with ${o.key}`);
 }
 
+/**
+ * What a landing writes, and where: from its first tile to the point it lands on, which is the
+ * end of the region moved by `landShift` (early: the pulses after it are left as air, or the
+ * last tile, falling on the 1 early, rings to the end; late: it runs on past the region). A gati
+ * way also sets the subdivision of its beats.
+ */
+function landingResult(l: E.PatternLanding): { r: E.OpResult; b: number } | null {
+  const region = fillRegion();
+  if (!region) return null;
+  const d = doc();
+  const start = region.a + l.lead;
+  if (l.gati) {
+    const grid = E.buildGrid(d.meter);
+    const b0 = E.beatOfPulse(grid, Math.min(start, grid.TS - 1));
+    const endBeat = E.beatOfPulse(grid, Math.min(region.b, grid.TS - 1));
+    const r = E.writeGati(d, b0, l.gati);
+    const g2 = E.buildGrid(r.doc.meter);
+    return { r, b: region.b >= grid.TS ? g2.TS : g2.pre[endBeat]! };
+  }
+  const shift = ui().landShift;
+  const sounds: E.GroupSpec[] = l.sizes.map((n) => ({ n, kind: 'sound' }));
+  if (shift < 0) {
+    const k = -shift;
+    sounds.push({ n: k, kind: l.on1 ? 'sound' : 'rest' });
+    return { r: E.fillRange(d, start, region.b, sounds), b: region.b };
+  }
+  return { r: E.fillRange(d, start, region.b + shift, sounds), b: region.b };
+}
+
 /** Land a pattern: show it in the score, ending where the region ends (not written). */
 export function previewLanding(l: E.PatternLanding | null): void {
-  const region = fillRegion();
-  if (!l || !region) return ui().set({ preview: null });
-  const r = E.fillRange(
-    doc(),
-    region.a + l.lead,
-    region.b,
-    l.sizes.map((n) => ({ n, kind: 'sound' as const })),
-  );
-  ui().set({ preview: r.report.ok ? r.doc : null });
+  const x = l && landingResult(l);
+  ui().set({ preview: x?.r.report.ok ? x.r.doc : null });
 }
 
 /** Land a pattern: write it. What is before its first tile stays as it is. */
 export function writeLanding(l: E.PatternLanding): void {
   const region = fillRegion();
-  if (!region) return;
-  const r = E.fillRange(
-    doc(),
-    region.a + l.lead,
-    region.b,
-    l.sizes.map((n) => ({ n, kind: 'sound' as const })),
-  );
+  const x = landingResult(l);
   ui().set({ preview: null });
-  if (!run(r, { label: `land ${l.sizes.join(' ')}`, select: 'none' })) return;
+  if (!region || !x) return;
+  if (!run(x.r, { label: `land ${l.sizes.join(' ')}`, select: 'none' })) return;
   // the stretch stays the region while the panel is open, so another way can be tried
-  if (region.kind === 'space') filledSpace = { a: region.a, b: region.b };
+  if (region.kind === 'space') filledSpace = { a: region.a, b: x.b };
   ui().set({
     selection: [],
-    range: { a: region.a, b: region.b },
+    range: { a: region.a, b: x.b },
     rangeAnchor: region.a,
-    caret: region.b,
+    caret: x.b,
   });
   announce(`Written: ${l.sizes.join(' ')}`);
 }

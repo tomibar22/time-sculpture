@@ -32,8 +32,21 @@ import {
 } from './geometry';
 import type { Geo } from './geometry';
 
+/** A bracket of the outline under the band (beats), with where it lands, if said. */
+export interface OutlineMark {
+  a: number;
+  b: number;
+  label: string | null;
+  /** The yati leading into a korvai's mora: drawn lighter. */
+  yati?: boolean;
+  /** The last statement: it lands on the end. */
+  home?: boolean;
+}
+
 export interface DrawState {
   doc: Doc;
+  /** The outline of what is written (statements and where they land); levels follow the totals'. */
+  outline?: readonly OutlineMark[] | null;
   /**
    * Only this stretch of the score (CSS px from its top) is on the canvas: rows outside it are
    * skipped (a long piece is painted a screenful at a time). Absent = everything (print).
@@ -850,6 +863,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
   });
 
   drawTotals(c, g, doc, P, s.reveal ?? null);
+  if (s.outline?.length) drawOutline(c, g, s.outline, (doc.meter.totals ?? []).length, P);
 
   drawForm(c, g, doc, P);
 
@@ -941,6 +955,69 @@ function drawTotals(
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText(label, cx, y + 0.5);
+  });
+}
+
+/**
+ * The outline: a dashed bracket under the band for every statement (lighter for a korvai's yati),
+ * and at its end, where it lands ("2 before 1"; the accent when it lands on a 1).
+ */
+function drawOutline(
+  c: CanvasRenderingContext2D,
+  g: Geo,
+  marks: readonly OutlineMark[],
+  first: number,
+  P: Palette,
+): void {
+  marks.forEach((m, i) => {
+    const lv = g.totalLevels[first + i] ?? 0;
+    const ra = rowOf(g, m.a);
+    const rb = rowOf(g, m.b - 1e-6);
+    c.save();
+    c.strokeStyle = P.sel;
+    c.lineWidth = 1.5;
+    c.globalAlpha = m.yati ? 0.45 : 0.85;
+    for (let r = ra; r <= rb; r++) {
+      const row = g.rows[r]!;
+      const t0 = Math.max(m.a, row.b0);
+      const t1 = Math.min(m.b, row.b0 + row.nb);
+      const x0 = L.margin + (t0 - row.b0) * row.bw + (r === ra ? 2 : 0);
+      const x1 = L.margin + (t1 - row.b0) * row.bw - (r === rb ? 2 : 0);
+      const y = totalsY(g, r) + lv * TOTAL_H;
+      const mid = y + 9;
+      c.setLineDash(m.yati ? [2, 3] : [5, 3]);
+      c.beginPath();
+      c.moveTo(x0, mid);
+      c.lineTo(x1, mid);
+      c.stroke();
+      c.setLineDash([]);
+      c.beginPath();
+      if (r === ra) {
+        c.moveTo(x0, y + 2);
+        c.lineTo(x0, mid);
+      }
+      if (r === rb) {
+        c.moveTo(x1, y + 2);
+        c.lineTo(x1, mid + 4);
+      }
+      c.stroke();
+    }
+    c.restore();
+    if (!m.label) return;
+    // where it lands, at its end: a pill in the card's colour over the line
+    const row = g.rows[rb]!;
+    const xe = L.margin + (m.b - row.b0) * row.bw - 2;
+    const y = totalsY(g, rb) + lv * TOTAL_H + 9;
+    c.font = `700 10px ${MONO}`;
+    const w = c.measureText(m.label).width + 8;
+    const x = Math.max(L.margin, xe - w - 3);
+    c.fillStyle = P.card;
+    rr(c, x, y - 7, w, 14, 5);
+    c.fill();
+    c.fillStyle = m.label === 'on 1' ? P.land : P.sel;
+    c.textAlign = 'left';
+    c.textBaseline = 'middle';
+    c.fillText(m.label, x + 4, y + 0.5);
   });
 }
 

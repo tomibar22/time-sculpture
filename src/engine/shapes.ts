@@ -12,6 +12,7 @@ export type ShapeFamily =
   | 'chakradhar'
   | 'yati'
   | 'speeds'
+  | 'woven'
   | 'world'
   | 'repeat'
   | 'turn'
@@ -50,6 +51,11 @@ export const SHAPE_FAMILIES: { id: ShapeFamily; label: string; hint: string }[] 
     id: 'speeds',
     label: 'Speeds',
     hint: 'One phrase at several speeds, the same strokes shorter each time: 3 3 3 3 3 · 2 2 2 2 2 · 1 1 1 1 1',
+  },
+  {
+    id: 'woven',
+    label: 'Woven',
+    hint: 'Two yatis woven together, one growing while the other shrinks, every pair the same: 1 6 · 2 5 · 3 4 · 4 3 (a hidden beat of 7)',
   },
   {
     id: 'world',
@@ -325,10 +331,29 @@ function goldenLabel(t: number[]): string | null {
   return null;
 }
 
+/**
+ * Woven (yatis prastara): pairs a b whose sum stays the same while a grows by a step and b shrinks
+ * by as much (or the other way): 1 6 2 5 3 4 4 3 is a beat of 7 hidden under sizes that never
+ * repeat. At least three pairs, the two sizes of a pair different at least once.
+ */
+export function wovenLabel(t: number[]): string | null {
+  const n = t.length;
+  if (n < 6 || n % 2) return null;
+  const a = t.filter((_, i) => i % 2 === 0);
+  const b = t.filter((_, i) => i % 2 === 1);
+  const c = a[0]! + b[0]!;
+  if (a.some((x, i) => x + b[i]! !== c)) return null;
+  const step = a[1]! - a[0]!;
+  if (!step || Math.abs(step) > 2 || a.some((x, i) => i && x - a[i - 1]! !== step)) return null;
+  const run = (v: number[]) => `${v[0]}→${v[v.length - 1]}`;
+  return `Woven ${run(a)} with ${run(b)}, every pair ${c}`;
+}
+
 const LABELS: [ShapeFamily, (t: number[]) => string | null][] = [
   ['world', worldLabel],
   ['speeds', speedsLabel],
   ['speeds', speedsAcrossLabel],
+  ['woven', wovenLabel],
   ['repeat', repeatLabel],
   ['yati', yatiLabel],
   ['yati', innerAcrossLabel],
@@ -476,6 +501,18 @@ export function shapeFills(
   for (const t of yatiFills(R, S)) put(t);
   // one phrase at several speeds (engine/speeds.ts)
   for (const t of speedFills(R, S)) put(t);
+  // woven: two yatis in pairs of the same sum, one growing as the other shrinks
+  for (let c = 3; c <= 32; c++) {
+    if (R % c) continue;
+    const pairs = R / c;
+    if (pairs < 3 || pairs > 16) continue;
+    for (let a1 = 1; a1 < c; a1++)
+      for (const step of [1, -1, 2, -2]) {
+        const t: number[] = [];
+        for (let i = 0; i < pairs; i++) t.push(a1 + i * step, c - a1 - i * step);
+        if (t.every((v) => v >= 1)) put(t);
+      }
+  }
   // rhythms with a name, at any scale that fits, as many times as the region holds
   for (const w of WORLD_RHYTHMS)
     for (const scale of [1, 2, 3, 4]) {

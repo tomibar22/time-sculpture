@@ -19,12 +19,48 @@ const HEADS: Record<E.LandingKind, [string, string]> = {
   tihai: ['Tihai', 'three times, a gap between'],
   yati: ['Yati', 'three times, the main size changing, the landing kept'],
   speeds: ['Speeds', 'the same strokes faster and faster (or slower)'],
+  korvai: ['Korvai', 'a yati of strokes drawn into a mora'],
+  nested: ['Tihai of tihais', 'nine statements: the inner tihais land first'],
+  chain: ['Chain of tihais', 'statements shrink as the gaps grow: one begins every so many pulses'],
+  tail: ['Tail', 'abcd ×3, bcd ×2, cd, c: the phrases sized so it lands'],
+  halving: ['Halving', 'kuraippu: the last half each time (8 → 4 → 2 → 1)'],
+  gati: ['Gati', 'the same strokes at three speeds of the beat'],
   gapped: ['With a gap', 'any number of times'],
   shape: ['Shaped', 'the pattern, transformed'],
   even: ['Even', 'one size for the longs, one for the shorts'],
   free: ['Free', 'longs (or shorts) of different sizes, once'],
 };
 const LS_WORD = { L: 'Long', S: 'Short' } as const;
+/** The order of the kinds in the list (gati ways are made here, not in the engine's list). */
+const ORDER: E.LandingKind[] = [
+  'repeat',
+  'tihai',
+  'yati',
+  'speeds',
+  'gati',
+  'korvai',
+  'nested',
+  'chain',
+  'tail',
+  'halving',
+  'gapped',
+  'shape',
+  'even',
+  'free',
+];
+const rankOf = (k: E.LandingKind) => ORDER.indexOf(k);
+/** The kinds whose note is shown under their name. */
+const NOTED = new Set<E.LandingKind>([
+  'shape',
+  'yati',
+  'speeds',
+  'gati',
+  'korvai',
+  'nested',
+  'chain',
+  'tail',
+  'halving',
+]);
 
 /**
  * Land a pattern (third tab of the fill panel): build a pattern of tiles, and see every way it
@@ -51,10 +87,20 @@ export function LandPanel() {
   const [why, setWhy] = useState<string | null>(null);
   const on1 = useUiStore((s) => s.landOn1);
   const from = useUiStore((s) => s.landFrom);
+  const wantShift = useUiStore((s) => s.landShift);
   const R = region ? region.b - region.a : 0;
   const a = region?.a ?? 0;
-  const p = ls ? 0 : sizesPattern.reduce((x, n) => x + n, 0);
   const version = useDocStore((s) => s.version);
+  /** Pulses after the stretch, which a late landing may run on into. */
+  const after = useMemo(
+    () => (region ? Math.max(0, E.buildGrid(useDocStore.getState().doc.meter).TS - region.b) : 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [region?.b, version],
+  );
+  /** Where it lands against the end of the stretch (pulses; < 0 early, > 0 late), as it fits. */
+  const shift = Math.max(-(R - 1), Math.min(after, wantShift));
+  const RL = R + shift;
+  const p = ls ? 0 : sizesPattern.reduce((x, n) => x + n, 0);
   /** Pulses in a beat when every beat of the region has the same number (yati gaps of beats). */
   const beat = useMemo(() => {
     if (!region) return 0;
@@ -67,11 +113,34 @@ export function LandPanel() {
     return d;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [region?.a, region?.b, version]);
-  const all = useMemo(
-    () =>
-      ls ? E.lsLandings(R, lsPattern, { on1 }) : E.patternLandings(R, sizesPattern, { on1, beat }),
-    [R, ls, lsPattern, sizesPattern, on1, beat],
-  );
+  /** The same strokes at three speeds of the beat: only for a stretch of whole beats. */
+  const gati = useMemo((): E.PatternLanding[] => {
+    if (ls || shift || !region || !sizesPattern.length) return [];
+    const grid = E.buildGrid(useDocStore.getState().doc.meter);
+    const b0 = E.beatOfPulse(grid, Math.min(region.a, grid.TS - 1));
+    if (grid.pre[b0] !== region.a) return [];
+    const b1 = region.b >= grid.TS ? grid.NB : E.beatOfPulse(grid, region.b);
+    if (grid.pre[b1] !== region.b) return [];
+    return E.gatiWays(b1 - b0, sizesPattern, on1).map((w) => ({
+      kind: 'gati' as const,
+      sizes: w.sizes,
+      lead: grid.pre[b0 + w.leadBeats]! - region.a,
+      times: 3,
+      gaps: w.gaps.length ? w.gaps : undefined,
+      name: w.name,
+      note: w.note,
+      on1: w.on1,
+      key: w.key,
+      gati: w,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region?.a, region?.b, version, ls, shift, sizesPattern, on1]);
+  const all = useMemo(() => {
+    const ways = ls
+      ? E.lsLandings(RL, lsPattern, { on1 })
+      : E.patternLandings(RL, sizesPattern, { on1, beat });
+    return [...ways, ...gati].sort((x, y) => rankOf(x.kind) - rankOf(y.kind));
+  }, [RL, ls, lsPattern, sizesPattern, on1, beat, gati]);
   /** Where each way begins, and whether that is a strong place. */
   const places = useMemo(() => {
     const d = useDocStore.getState().doc;
@@ -82,6 +151,8 @@ export function LandPanel() {
         const b = E.beatOfPulse(grid, Math.min(k, grid.TS - 1));
         const onBeat = grid.pre[b] === k;
         const on = onBeat && E.barBeat(d.meter, b).beat === 1;
+        const at = (x: number) => a + l.lead + x;
+        const back = l.on1 ?? 0;
         return [
           l.key,
           {
@@ -89,6 +160,13 @@ export function LandPanel() {
             beat: onBeat,
             one: on,
             mark: on ? 'on 1' : onBeat ? 'on the beat' : '',
+            lands: l.landings?.map((x) => E.whereWords(d.meter, at(x), grid)).join(' · '),
+            // farmaishi: inner tihai j has its statement j on a 1 (its start, or where it lands)
+            farmaishi:
+              !!l.inner &&
+              l.inner.every(
+                (st, j) => E.isOnOne(d.meter, grid, at(st[j]![0])) || E.isOnOne(d.meter, grid, at(st[j]![1] - back)),
+              ),
           },
         ];
       }),
@@ -97,10 +175,15 @@ export function LandPanel() {
   }, [all, a, version]);
   const rows = useMemo(
     () =>
-      all.filter((l) => {
-        const w = places.get(l.key);
-        return from === 'any' || (from === 'beat' ? w?.beat : w?.one);
-      }),
+      all
+        .filter((l) => {
+          const w = places.get(l.key);
+          return from === 'any' || (from === 'beat' ? w?.beat : w?.one);
+        })
+        // within a kind, the farmaishi ways (landing on the 1 along the diagonal) first
+        .map((l, i) => ({ l, i, f: places.get(l.key)?.farmaishi ? 0 : 1 }))
+        .sort((x, y) => rankOf(x.l.kind) - rankOf(y.l.kind) || x.f - y.f || x.i - y.i)
+        .map((x) => x.l),
     [all, places, from],
   );
   // the ways under their kind's heading, a few of each ("all N" opens a kind in full)
@@ -113,13 +196,13 @@ export function LandPanel() {
     }
     return out;
   }, [rows]);
-  const groups = useOpenGroups(`${R} ${a} ${pattern.join(' ')} ${on1} ${from}`);
+  const groups = useOpenGroups(`${R} ${a} ${pattern.join(' ')} ${on1} ${from} ${shift}`);
   // another pattern or region: nothing is on trial any more
   useEffect(() => {
     setTrying(null);
     setWhy(null);
     previewLanding(null);
-  }, [R, a, pattern, on1, ls]);
+  }, [R, a, pattern, on1, ls, shift]);
   if (!region) return <p className="lib-note">Select a stretch, or leave open space, first.</p>;
 
   const put = (next: number[]) => set({ landPattern: next });
@@ -165,23 +248,38 @@ export function LandPanel() {
   const end = (() => {
     const d = useDocStore.getState().doc;
     const grid = E.buildGrid(d.meter);
-    if (region.b >= grid.TS) return 'on the 1';
-    const b = E.beatOfPulse(grid, region.b);
-    if (grid.pre[b] !== region.b) return 'after the stretch';
+    const k = region.b + shift;
+    if (k >= grid.TS) return 'on the 1';
+    const b = E.beatOfPulse(grid, k);
+    if (grid.pre[b] !== k)
+      return shift ? `${Math.abs(shift)} ${shift < 0 ? 'early' : 'late'}` : 'after the stretch';
     const at = E.barBeat(d.meter, b);
     return at.beat === 1 ? 'on the 1' : `on beat ${at.beat}`;
   })();
-  const shown = (l: E.PatternLanding) => ({
-    sizes: l.lead ? [l.lead, ...l.sizes] : l.sizes,
-    rests: l.lead ? [0] : undefined,
-    gaps: l.gaps?.map((i) => i + (l.lead ? 1 : 0)),
-  });
+  /** "2 beats early", "3 late", "on the end". */
+  const shiftWords =
+    shift === 0
+      ? 'on the end'
+      : `${beat && shift % beat === 0 ? `${Math.abs(shift / beat)} beat${Math.abs(shift / beat) > 1 ? 's' : ''}` : `${Math.abs(shift)}`} ${shift < 0 ? 'early' : 'late'}`;
+  const setShift = (v: number) => set({ landShift: Math.max(-(R - 1), Math.min(after, v)) });
+  const shown = (l: E.PatternLanding) =>
+    l.gati
+      ? {
+          sizes: l.gati.strip,
+          rests: l.gati.leadBeats ? [0] : undefined,
+          gaps: l.gati.stripGaps,
+        }
+      : {
+          sizes: l.lead ? [l.lead, ...l.sizes] : l.sizes,
+          rests: l.lead ? [0] : undefined,
+          gaps: l.gaps?.map((i) => i + (l.lead ? 1 : 0)),
+        };
   const title = (l: E.PatternLanding) =>
     l.kind === 'tihai'
       ? `Tihai · gap ${l.gap}`
       : l.kind === 'gapped'
         ? `×${l.times} · gap ${l.gap}`
-        : l.kind === 'shape' || l.kind === 'free' || l.kind === 'yati' || l.kind === 'speeds'
+        : l.name && l.kind !== 'even'
           ? l.name
           : l.kind === 'even'
             ? `${l.name}${l.times > 1 ? ` ×${l.times}` : ''}`
@@ -351,8 +449,72 @@ export function LandPanel() {
             ))}
           </div>
         </div>
+        <div className="land-shift">
+          <span id="land-shift">Lands</span>
+          <div className="segs text" role="group" aria-labelledby="land-shift">
+            {beat > 1 && (
+              <button
+                type="button"
+                title="A beat earlier"
+                aria-label="A beat earlier"
+                disabled={shift - beat < -(R - 1)}
+                onClick={() => setShift(shift - beat)}
+              >
+                «
+              </button>
+            )}
+            <button
+              type="button"
+              title="A pulse earlier (anagat: it lands before the end, air after it)"
+              aria-label="A pulse earlier"
+              disabled={shift <= -(R - 1)}
+              onClick={() => setShift(shift - 1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="land-shift-now"
+              data-testid="land-shift"
+              aria-pressed={shift !== 0}
+              title={
+                shift
+                  ? 'Back to landing on the end'
+                  : 'Where it lands: early (anagat: before the 1, or on the 1 of an imagined bar) or late (atit: after the 1). ‹ › move it by a pulse, « » by a beat.'
+              }
+              onClick={() => setShift(0)}
+            >
+              {shiftWords}
+            </button>
+            <button
+              type="button"
+              title="A pulse later (atit: it runs on past the end)"
+              aria-label="A pulse later"
+              disabled={shift >= after}
+              onClick={() => setShift(shift + 1)}
+            >
+              ›
+            </button>
+            {beat > 1 && (
+              <button
+                type="button"
+                title="A beat later"
+                aria-label="A beat later"
+                disabled={shift + beat > after}
+                onClick={() => setShift(shift + beat)}
+              >
+                »
+              </button>
+            )}
+          </div>
+        </div>
       </div>
       <p className="lib-note land-hint" role="status">
+        {shift && !(ls && why)
+          ? shift < 0
+            ? `Lands ${shiftWords}: ${-shift} pulse${shift < -1 ? 's' : ''} of air after it${on1 ? ' (the last tile rings on into them)' : ''}. `
+            : `Lands ${shiftWords}: it runs ${shift} pulse${shift > 1 ? 's' : ''} past the end. `
+          : ''}
         {ls && why
           ? why
           : ls
@@ -408,8 +570,15 @@ export function LandPanel() {
                         <Strip {...shown(l)} beats={beats} />
                         <span className="fill-cap land-cap">
                           <span className="land-times">{title(l)}</span>
-                          {(l.kind === 'shape' || l.kind === 'yati' || l.kind === 'speeds') &&
-                            l.note && <span className="land-what">{l.note}</span>}
+                          {NOTED.has(l.kind) && l.note && (
+                            <span className="land-what">
+                              {w.farmaishi ? <b className="land-mark">Farmaishi · </b> : null}
+                              {l.note}
+                            </span>
+                          )}
+                          {w.lands ? (
+                            <span className="land-what land-lands">lands {w.lands}</span>
+                          ) : null}
                           <span className="fill-meta land-where">
                             {l.lead ? `from ${w.text}` : 'fills it exactly'}
                             {w.mark && l.lead ? <b className="land-mark"> · {w.mark}</b> : null}
@@ -450,3 +619,4 @@ export function LandPanel() {
     </div>
   );
 }
+

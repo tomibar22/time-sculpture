@@ -19,6 +19,8 @@ export * from './ops/bars';
 export * from './form';
 export * from './vary';
 export * from './land';
+export * from './longforms';
+export * from './outline';
 export * from './yati';
 export * from './speeds';
 export * from './click';

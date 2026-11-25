@@ -80,7 +80,8 @@ describe('landing a pattern: every way, for any pattern and stretch', () => {
             expect(l.lead).toBeGreaterThanOrEqual(0);
             expect(l.lead + l.sizes.reduce((a, n) => a + n, 0)).toBe(R);
             expect(!!l.on1).toBe(on1);
-            for (const i of l.gaps ?? []) expect(l.sizes[i]).toBe(l.gap);
+            if (l.gap !== undefined) for (const i of l.gaps ?? []) expect(l.sizes[i]).toBe(l.gap);
+            for (const i of l.gaps ?? []) expect(i).toBeLessThan(l.sizes.length);
             expect(seen.has(l.key)).toBe(false);
             seen.add(l.key);
             const same = `${l.lead}:${l.sizes.join(' ')}`;

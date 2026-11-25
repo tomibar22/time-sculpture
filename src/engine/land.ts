@@ -3,12 +3,27 @@
  * stretch of R pulses ends (a calculator for tihais and for patterns that cross the beat).
  * Everything is counted back from the end: the answer is where to begin.
  */
+import { chainWays, halvingWays, korvaiWays, nestedWays, tailWays } from './longforms';
+import type { GatiWay, LongWay } from './longforms';
 import { speedsName } from './speeds';
 import { YATI_SHAPES, acrossPaths, realize, templateOf, templateText } from './yati';
 
 /** `even` and `free` are long–short ways (engine/longshort.ts); `yati` see engine/yati.ts. */
 export type LandingKind =
-  'repeat' | 'tihai' | 'yati' | 'speeds' | 'gapped' | 'shape' | 'even' | 'free';
+  | 'repeat'
+  | 'tihai'
+  | 'yati'
+  | 'speeds'
+  | 'korvai'
+  | 'nested'
+  | 'chain'
+  | 'tail'
+  | 'halving'
+  | 'gati'
+  | 'gapped'
+  | 'shape'
+  | 'even'
+  | 'free';
 
 export interface PatternLanding {
   kind: LandingKind;
@@ -30,6 +45,15 @@ export interface PatternLanding {
    * last stroke of a tihai does). Its size.
    */
   on1?: number;
+  /**
+   * Where parts of it land by themselves before the end (pulses from its first written tile):
+   * the inner tihais of a tihai of tihais, the first two korvais of three.
+   */
+  landings?: number[];
+  /** A tihai of tihais: the [start, end] of each inner tihai's statements (from its first tile). */
+  inner?: [number, number][][];
+  /** A gati way (engine/longforms.ts): it also changes the subdivision of its beats. */
+  gati?: GatiWay;
   key: string;
 }
 
@@ -68,7 +92,10 @@ export function patternLandings(
   const out: PatternLanding[] = [];
   const seen = new Set<string>();
   /** Take a way if it fits; false when it is too long. */
-  const take = (full: number[], more: Omit<PatternLanding, 'sizes' | 'lead' | 'on1'>): boolean => {
+  const take = (
+    full: number[],
+    more: Omit<PatternLanding, 'sizes' | 'lead' | 'on1'> & { ends?: [number, number][] },
+  ): boolean => {
     const sizes = opts.on1 ? full.slice(0, -1) : full;
     const len = sum(sizes);
     if (len > R) return false;
@@ -76,7 +103,9 @@ export function patternLandings(
     const id = `${R - len}:${sizes.join(' ')}`;
     if (seen.has(id)) return true;
     seen.add(id);
-    const l: PatternLanding = { ...more, sizes, lead: R - len };
+    const { ends, ...rest } = more;
+    const l: PatternLanding = { ...rest, sizes, lead: R - len };
+    if (ends) l.landings = ends.map(([e, last]) => e - (opts.on1 ? last : 0));
     if (l.gaps) l.gaps = l.gaps.filter((i) => i < sizes.length);
     if (opts.on1) l.on1 = full[full.length - 1]!;
     out.push(l);
@@ -131,6 +160,17 @@ export function patternLandings(
   const across = (l: PatternLanding) => (l.name?.includes('|') ? 1 : 0);
   speeds.sort((x, y) => x.lead - y.lead || across(x) - across(y) || y.times - x.times);
   out.push(...speeds.slice(0, limit));
+
+  // the long forms (engine/longforms.ts): korvai, tihai of tihais, chain, tail, halving
+  const on1 = !!opts.on1;
+  const long = (ways: LongWay[]) => {
+    for (const { full, ...w } of ways) take(full, w);
+  };
+  long(korvaiWays(R, pattern, on1, limit));
+  long(nestedWays(R, pattern, on1, limit));
+  long(chainWays(R, pattern, on1, Math.min(limit, 8)));
+  long(tailWays(R, pattern, on1, Math.min(limit, 8)));
+  long(halvingWays(R, pattern, on1));
 
   // any other number of times with a gap: those that begin soonest first
   const gapped: PatternLanding[] = [];

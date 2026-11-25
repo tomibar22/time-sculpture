@@ -4,7 +4,15 @@ import type { Doc, ItemId, OpResult } from '../engine';
 import { startPlayback, stopPlayback } from '../audio/player';
 import { ui as sfx } from '../audio/voices';
 import { announce, reportSlide, run, select, splitSelection, toast } from '../state/actions';
-import { setCaret, setRange, closeSubdivision, pickBeats, escape } from '../state/editing';
+import {
+  setCaret,
+  setRange,
+  closeSubdivision,
+  pickBeats,
+  escape,
+  selectedRegion,
+} from '../state/editing';
+import { outlineMarks } from '../state/outline';
 import { diveAt, zoomStep } from '../state/zoom';
 import { OVERVIEW_LEVELS, zoomLevels } from './rows';
 import { anchorAtPoint, restoreAnchor, view } from './view';
@@ -184,7 +192,8 @@ export function Score() {
     // the overview fits everything above the dock; otherwise the zoom (bars per row)
     const per = s.overview ? overviewPer(width.current, doc, s.perRow, s.fitRows) : s.perRow;
     view.overviewPer = s.overview ? per : null;
-    const g = geometry(width.current, doc, per, s.fitRows);
+    const outline = s.outline && !s.stage ? outlineMarks(doc, selectedRegion()) : null;
+    const g = geometry(width.current, doc, per, s.fitRows, outline ?? []);
     geo.current = g;
     view.geo = g;
     view.canvas = cv;
@@ -227,6 +236,7 @@ export function Score() {
       g,
       {
         doc,
+        outline,
         view: painted.current,
         stage,
         selection: new Set(stage ? [] : s.selection),
