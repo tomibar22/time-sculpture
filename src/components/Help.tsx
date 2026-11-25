@@ -370,8 +370,10 @@ export function Help() {
             <summary>Copy &amp; paste</summary>
             <p>
               ⌘C / ⌘X copy or cut the selection, ⌘V pastes at the caret or over a selection. Copies
-              are also plain text such as “3 (2) 4”, so you can paste a phrase typed in Notes. Copy
-              as text (in the Library) copies the whole phrase that way.
+              are also plain text such as “3 (2) 4”, so you can paste a phrase typed in Notes.
+              Chords come along: in the text each one stands in brackets after its size, “3[C-7(b6)]
+              4[F7]”, so you can type a progression in Notes too. Copy as text (in the Library)
+              copies the whole phrase that way.
             </p>
           </details>
           <details className="help-topic">

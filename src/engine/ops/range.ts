@@ -177,8 +177,9 @@ export function sliceRange(doc: Doc, a: number, b: number): GroupSpec[] {
     if (e <= s) continue;
     const kind: GroupKind = isSpace(g.item) || g.item.kind === 'rest' || g.s < a ? 'rest' : 'sound';
     const last = out[out.length - 1];
+    const chord = kind === 'sound' && !isSpace(g.item) ? doc.chords?.[g.item.id] : undefined;
     if (kind === 'rest' && last?.kind === 'rest') out[out.length - 1] = { n: last.n + e - s, kind };
-    else out.push({ n: e - s, kind });
+    else out.push(chord ? { n: e - s, kind, chord } : { n: e - s, kind });
   }
   return out;
 }

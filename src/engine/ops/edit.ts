@@ -12,6 +12,8 @@ import type { Doc, GroupKind, Item, ItemId, OpResult } from '../types';
 export interface GroupSpec {
   readonly n: number;
   readonly kind: GroupKind;
+  /** The chord written over it (sounding groups only), carried by copy and paste. */
+  readonly chord?: string;
 }
 
 const sumOf = (gs: readonly GroupSpec[]) => gs.reduce((a, g) => a + g.n, 0);
@@ -96,7 +98,10 @@ export function reverseGroups(doc: Doc, ids: Iterable<ItemId>): OpResult {
 export function copyGroups(doc: Doc, ids: Iterable<ItemId>): GroupSpec[] {
   return selectedIndices(doc.items, ids).map((i) => {
     const x = doc.items[i]!;
-    return { n: x.n, kind: x.kind === 'rest' ? 'rest' : 'sound' };
+    const chord = x.kind === 'sound' ? doc.chords?.[x.id] : undefined;
+    return chord
+      ? { n: x.n, kind: 'sound', chord }
+      : { n: x.n, kind: x.kind === 'rest' ? 'rest' : 'sound' };
   });
 }
 
@@ -106,25 +111,75 @@ export function formatGroups(groups: readonly GroupSpec[]): string {
 }
 
 /**
- * Parse clipboard text such as "3 (2) 4", "3, r2, 4" or "3+2+4". Returns null if the text is not
- * a phrase (any other characters, sizes outside 1..999).
+ * The clipboard's text: "3 (2) 4", with each chord in brackets after its size
+ * ("3[C-7(b6)] 3[Dbmaj7(#5)] 2"), so chords come along through the system clipboard too.
+ */
+export function formatClip(groups: readonly GroupSpec[]): string {
+  return groups
+    .map((g) =>
+      g.kind === 'rest'
+        ? `(${g.n})`
+        : g.chord
+          ? `${g.n}[${g.chord.replace(/[[\]]/g, '')}]`
+          : `${g.n}`,
+    )
+    .join(' ');
+}
+
+/**
+ * Parse clipboard text such as "3 (2) 4", "3, r2, 4" or "3+2+4", with chords in brackets after
+ * a size ("3[C-7(b6)] 4"). Returns null if the text is not a phrase (any other characters,
+ * sizes outside 1..999).
  */
 export function parseGroups(text: string): GroupSpec[] | null {
-  const tokens = text
+  // chords first, as placeholders: they may hold spaces, commas, "+" or parentheses
+  const chords: string[] = [];
+  const plain = text.replace(/\[([^\]]*)\]/g, (_, c: string) => `§${chords.push(c) - 1}`);
+  const tokens = plain
     .trim()
     .split(/[\s,+·]+/)
     .filter(Boolean);
   if (!tokens.length || tokens.length > 500) return null;
   const out: GroupSpec[] = [];
   for (const t of tokens) {
-    const m = /^(?:\((\d{1,3})\)|[rR](\d{1,3})|(\d{1,3}))$/.exec(t);
+    const m = /^(?:\((\d{1,3})\)|[rR](\d{1,3})|(\d{1,3})(?:§(\d+))?)$/.exec(t);
     if (!m) return null;
     const rest = m[1] ?? m[2];
     const n = Number(rest ?? m[3]);
     if (n < 1) return null;
-    out.push({ n, kind: rest !== undefined ? 'rest' : 'sound' });
+    const chord = m[4] !== undefined ? chords[Number(m[4])]!.replace(/\s+/g, ' ').trim() : '';
+    out.push(
+      rest !== undefined
+        ? { n, kind: 'rest' }
+        : chord
+          ? { n, kind: 'sound', chord }
+          : { n, kind: 'sound' },
+    );
   }
   return out;
+}
+
+/**
+ * Put the chords of `groups`, written from pulse `at` on, onto the groups now there (each
+ * sounding group that begins where its spec begins). Keeps the chords the piece already had
+ * (`before`), since ops build documents without them.
+ */
+export function placeChords(doc: Doc, at: number, groups: readonly GroupSpec[], before: Doc): Doc {
+  if (!groups.some((g) => g.chord)) return doc;
+  const starts = new Map<number, ItemId>();
+  let p = 0;
+  for (const x of doc.items) {
+    if (x.kind === 'sound') starts.set(p, x.id);
+    p += x.n;
+  }
+  const chords: Record<ItemId, string> = { ...(before.chords ?? {}) };
+  let k = at;
+  for (const g of groups) {
+    const id = g.chord && g.kind === 'sound' ? starts.get(k) : undefined;
+    if (id) chords[id] = g.chord!;
+    k += g.n;
+  }
+  return { ...doc, chords };
 }
 
 /**

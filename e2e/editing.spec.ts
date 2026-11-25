@@ -75,6 +75,35 @@ test('chords: written over tiles, one after another', async ({ page }) => {
   await page.keyboard.press('Escape');
 });
 
+test('copy and paste bring the chords along', async ({ page }) => {
+  const s = await score(page);
+  await tap(page, at(s, P(5)));
+  await page.keyboard.press('c');
+  const field = page.getByRole('textbox', { name: 'Chord' });
+  await field.fill('C-7(b6)');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(field).toBeHidden();
+  await page.keyboard.press('ControlOrMeta+c'); // the tile the chord went on is selected
+  await tap(page, at(s, P(10)));
+  await page.keyboard.press('ControlOrMeta+v');
+  await expectSeq(page, '(2) 3 3 2 3 │ 3 (1) 3 2 4');
+  await page.keyboard.press('c');
+  await expect(field).toHaveValue('C-7(b6)');
+  await page.keyboard.press('Escape');
+  await expect(field).toBeHidden();
+  await page.keyboard.press('Escape'); // the tile the dialog showed lets go: a caret after it
+  // and as text, from anywhere: a size, then its chord in brackets
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.setData('text/plain', '2[F7 alt]');
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
+  });
+  await expectSeq(page, '(2) 3 3 2 3 2 │ 3 (1) 3 2 4');
+  await page.keyboard.press('c');
+  await expect(field).toHaveValue('F7 alt');
+  await page.keyboard.press('Escape');
+});
+
 test('tap a line to place a caret, then type sizes', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(5)));

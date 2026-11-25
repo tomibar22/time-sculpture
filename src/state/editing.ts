@@ -175,6 +175,9 @@ const sum = (gs: readonly GroupSpec[]) => gs.reduce((a, g) => a + g.n, 0);
  */
 function write(groups: GroupSpec[], label: string): boolean {
   const d = doc();
+  // pasted groups bring their chords (written from pulse `at` on)
+  const withChords = <R extends { doc: E.Doc }>(r: R, at: number): R =>
+    r.doc === d ? r : { ...r, doc: E.placeChords(r.doc, at, groups, d) };
   const s = ui();
   const sound = () => (groups[0]?.kind === 'rest' ? sfx.remove() : sfx.add(groups[0]?.n ?? 3));
   const text = E.formatGroups(groups);
@@ -187,7 +190,8 @@ function write(groups: GroupSpec[], label: string): boolean {
       return false;
     }
     const fill = need < b - a ? [...groups, { n: b - a - need, kind: 'rest' as const }] : groups;
-    if (!run(E.fillRange(d, a, b, fill), { label, select: 'none', sound })) return false;
+    if (!run(withChords(E.fillRange(d, a, b, fill), a), { label, select: 'none', sound }))
+      return false;
     setCaret(a + need, { quiet: true });
     return true;
   }
@@ -198,7 +202,8 @@ function write(groups: GroupSpec[], label: string): boolean {
       toast('Select neighbouring groups to type or paste over them');
       return false;
     }
-    if (!run(r, { label, select: 'none', sound })) return false;
+    const at0 = E.spanOf(r.doc, r.report.created)?.a ?? 0;
+    if (!run(withChords(r, at0), { label, select: 'none', sound })) return false;
     const span = E.spanOf(r.doc, r.report.created);
     setCaret(span ? span.b : 0, { quiet: true });
     return true;
@@ -231,7 +236,7 @@ function write(groups: GroupSpec[], label: string): boolean {
     );
     return false;
   }
-  if (!run(r, { label, select: 'none', sound })) return false;
+  if (!run(withChords(r, r.caret - sum(groups)), { label, select: 'none', sound })) return false;
   setCaret(r.caret, { quiet: true });
   if (grown) toast(`${plural(grown, 'bar')} added to go on writing`, { undo: true });
   return true;
@@ -332,11 +337,12 @@ export function copySelection(cut = false): string | null {
   const groups = s.range ? E.sliceRange(d, s.range.a, s.range.b) : E.copyGroups(d, s.selection);
   if (!groups.length) return null;
   const text = E.formatGroups(groups);
+  const clip = E.formatClip(groups); // the system clipboard's text keeps the chords
   setUi({ clipboard: groups });
   if (!cut) {
     sfx.snap();
     toast(`Copied ${text}`);
-    return text;
+    return clip;
   }
   if (s.range) {
     const { a, b } = s.range;
@@ -352,7 +358,7 @@ export function copySelection(cut = false): string | null {
       toast(`Cut ${text}`, { undo: true });
     }
   }
-  return text;
+  return clip;
 }
 
 /** For buttons: also put the text on the system clipboard (allowed inside a user gesture). */

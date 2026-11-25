@@ -602,6 +602,16 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   group / first in the range / the one ending at the caret / the one holding it): Next / Enter /
   Tab save and go to the next tile, Previous / ⇧Tab back; key **C**, "Chord…" in the tile and
   caret bars and the tile menu. File: `FileGroup.chord`.
+- **Chords on the clipboard** (user request): `GroupSpec.chord`; `copyGroups` and `sliceRange`
+  fill it in (a cut head is silence, so no chord). The system clipboard's text is `formatClip`
+  ("3[C-7(b6)] 2 (1)"; `formatGroups` stays chord-free for labels and keys) and `parseGroups`
+  reads brackets (chords may hold spaces, commas, +). `placeChords(doc, at, groups, before)` puts
+  them back on the groups written from pulse `at` (keeping `before`'s chords): used by `write`
+  (paste, all three paths), `duplicateRange` and Swap. Fills / Vary / Land write new groups
+  without chords.
+- `ChordDialog`'s `onClose` ignores a close event that arrives after the dialog was opened
+  again (the event comes a moment late: a quick Esc then C used to shut the new one); `close()`
+  closes the element at once so the next key reaches the score.
 - Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·

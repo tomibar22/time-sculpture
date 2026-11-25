@@ -360,7 +360,8 @@ export function duplicateRange(): void {
     return void toast(`Duplicating needs ${need} pulses, and the piece cannot get longer`);
   }
   const { bars, doc: base } = room;
-  const r = E.insertAtPulse(base, range.b, groups);
+  const r0 = E.insertAtPulse(base, range.b, groups);
+  const r = r0.report.ok ? { ...r0, doc: E.placeChords(r0.doc, range.b, groups, before) } : r0;
   if (!run(r, { label: `dup ${E.formatGroups(groups)}`, select: 'none', sound: () => sfx.add(3) }))
     return;
   setUi({ range: { a: range.b, b: range.b + need }, rangeAnchor: range.b, caret: range.b + need });

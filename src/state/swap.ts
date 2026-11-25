@@ -41,10 +41,18 @@ export function swapNow(): boolean {
     toast('Now select the other stretch: tap a tile or drag across a range');
     return false;
   }
-  const r = E.swapRanges(useDocStore.getState().doc, A, B);
+  const before = useDocStore.getState().doc;
+  const [p, q] = A.a < B.a ? [A, B] : [B, A];
+  const r0 = E.swapRanges(before, A, B);
+  // the chords go with their stretches (written again from the first start on)
+  const passage = [
+    ...E.sliceRange(before, q.a, q.b),
+    ...E.sliceRange(before, p.b, q.a),
+    ...E.sliceRange(before, p.a, p.b),
+  ];
+  const r = r0.report.ok ? { ...r0, doc: E.placeChords(r0.doc, p.a, passage, before) } : r0;
   if (!run(r, { label: 'Swap', select: 'none' })) return false;
   // the first stretch, at its new place, is selected: where it went
-  const [p, q] = A.a < B.a ? [A, B] : [B, A];
   const lenA = A.b - A.a;
   const at = A === p ? q.b - lenA : p.a;
   ui().set({ swapA: null, menu: null });

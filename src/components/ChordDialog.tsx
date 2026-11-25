@@ -31,7 +31,9 @@ export function ChordDialog() {
   }, [state]);
 
   const close = () => {
-    input.current?.blur(); // at once, so the next key (Z to undo) reaches the score
+    // at once, not after the next render: the next key (Z to undo) must reach the score
+    input.current?.blur();
+    if (dialog.current?.open) dialog.current.close();
     set({ chordDialog: null });
   };
   const save = () => {
@@ -55,7 +57,8 @@ export function ChordDialog() {
       ref={dialog}
       className="library chord-dialog"
       aria-labelledby="chord-h"
-      onClose={close}
+      // the close event comes a moment late: if C opened the dialog again since, it stays open
+      onClose={() => !dialog.current?.open && set({ chordDialog: null })}
       onClick={(e) => e.target === dialog.current && close()}
     >
       <form
