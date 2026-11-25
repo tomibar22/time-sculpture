@@ -20,6 +20,22 @@ test.beforeEach(async ({ page }) => {
   await expectSeq(page, DEFAULT_SEQ);
 });
 
+test('hold Shift and type two digits for a long group', async ({ page }) => {
+  await clearAll(page);
+  const s = await score(page);
+  await tap(page, at(s, P(0.2)));
+  await page.keyboard.down('Shift');
+  await page.keyboard.press('Digit1');
+  await page.keyboard.press('Digit2');
+  await page.keyboard.up('Shift');
+  await expectSeq(page, '12 │ ·');
+  await page.keyboard.down('Shift');
+  await page.keyboard.press('Digit3');
+  await page.keyboard.up('Shift');
+  await page.keyboard.press('2');
+  await expectSeq(page, '12 3 2 │ ·');
+});
+
 test('tap a line to place a caret, then type sizes', async ({ page }) => {
   const s = await score(page);
   await tap(page, at(s, P(5)));

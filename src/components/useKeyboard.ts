@@ -42,6 +42,7 @@ import {
   reverseSelection,
   trimSelection,
   typeDigit,
+  typeSize,
 } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { swapNow, swapStep } from '../state/swap';
@@ -76,6 +77,14 @@ export function useKeyboard() {
     let pendingPaste: number | undefined;
     /** Text of the groups just copied or cut by the keyboard, for the copy/cut event. */
     let copiedText: string | null = null;
+    /** Digits typed while ⇧ is held: one number of two digits (⇧1 2 = 12), written on the
+     * second digit or when ⇧ is let go. */
+    let shiftDigits = '';
+    const flushDigits = () => {
+      const n = Number(shiftDigits);
+      shiftDigits = '';
+      if (n > 0) typeSize(n, 'sound');
+    };
 
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
@@ -222,6 +231,15 @@ export function useKeyboard() {
         (/^\d$/.test(e.key) ? e.key : undefined);
       if (digit !== undefined) {
         e.preventDefault();
+        if (e.shiftKey && !mod && !e.altKey) {
+          if (e.repeat) return;
+          if (!shiftDigits && digit === '0') return; // a number does not begin with 0
+          shiftDigits += digit;
+          if (shiftDigits.length >= 2) return flushDigits();
+          toast(`${shiftDigits}… (⇧: type a second digit, or let go)`);
+          return;
+        }
+        if (shiftDigits) flushDigits();
         return typeDigit(Number(digit), 'sound');
       }
       if (e.key === '?') {
@@ -416,10 +434,13 @@ export function useKeyboard() {
 
     // Space played on keydown: the focused button must not be pressed by the same key on keyup
     const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift' && shiftDigits) flushDigits();
       if (e.code !== 'Space' || isTyping(e.target) || inDialog(e.target)) return;
       if (useUiStore.getState().menu) return;
       if (isActivatable(e.target) && !useUiStore.getState().stage) e.preventDefault();
     };
+    const onBlur = () => flushDigits();
+    window.addEventListener('blur', onBlur);
     window.addEventListener('keyup', onKeyUp, true);
     window.addEventListener('keydown', onKey);
     document.addEventListener('copy', onCopy);
@@ -428,6 +449,7 @@ export function useKeyboard() {
     return () => {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKeyUp, true);
+      window.removeEventListener('blur', onBlur);
       document.removeEventListener('copy', onCopy);
       document.removeEventListener('cut', onCopy);
       document.removeEventListener('paste', onPaste);

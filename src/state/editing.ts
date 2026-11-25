@@ -243,6 +243,12 @@ function write(groups: GroupSpec[], label: string): boolean {
  */
 export function typeDigit(digit: number, kind: GroupKind = 'sound'): void {
   if (digit < 1 || digit > 9) return sfx.nope();
+  typeSize(digit, kind);
+}
+
+/** Type a size of any length (⇧ + digits on a keyboard writes 10–99). */
+export function typeSize(digit: number, kind: GroupKind = 'sound'): void {
+  if (!Number.isInteger(digit) || digit < 1) return sfx.nope();
   if (write([{ n: digit, kind }], kind === 'rest' ? `(${digit})` : `+${digit}`))
     announce(`${kind === 'rest' ? 'Silence of ' : ''}${digit} typed, ${E.freePulses(doc())} open`);
 }

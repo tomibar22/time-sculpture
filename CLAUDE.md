@@ -585,6 +585,9 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
 - **Undo / redo keys work whatever has the focus** (⌘Z, ⇧⌘Z, ⌘Y; user request): handled before
   the "typing" guard, so a focused slider, switch or select no longer swallows them; only a text
   field (`isTextEntry`) keeps its own.
+- **Two-digit sizes** (user request): hold ⇧ and type two digits (⇧1 2 = 12, `typeSize`); the
+  number is written on the second digit, or when ⇧ is let go after one (`shiftDigits` in
+  useKeyboard). A toast shows the first digit while it waits.
 - Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·

@@ -77,7 +77,7 @@ export function Help() {
             <p>
               The caret sits on any pulse, like a text caret between letters: tap a line or the open
               space to place it, ⌥-click to place it inside a tile, and move it with ← → (one pulse)
-              or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there. Inside the open
+              or ⌥← ⌥→ (tile to tile). Type a number (1–9) to write a group there; hold ⇧ and type two digits for a longer one (⇧ 1 2 = 12). Inside the open
               space the gap before the caret becomes silence; inside a tile, the tile is split. On a
               phone, use the number pad (123). Tap the very start or end of the score, or use ⇤ and
               ⇥ on the pad, to put the caret there. To write an opening before what is already
@@ -419,6 +419,10 @@ export function Help() {
                     <kbd>1–9</kbd>
                   </dt>
                   <dd>write a group at the caret</dd>
+                  <dt>
+                    <kbd>⇧ + 1 2</kbd>
+                  </dt>
+                  <dd>a group of two digits (12): hold ⇧, type both digits</dd>
                   <dt>
                     <kbd>+ −</kbd>
                   </dt>
