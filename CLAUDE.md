@@ -673,7 +673,7 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   small names under their icons; the idle Use bar is one short line (phones only: elsewhere it
   keeps its height so no row moves under a second tap). The map places dots by a mix of value
   and rank, so bunched families spread. e2e: `fillFold(page, 'Sizes' | 'Shape')`.
-- **No head row in Browse** (user request: no Random tab, no Listen button, no Browse tab to switch): the panel opens straight on sizes / shapes / List|Map|tools, with ✕ (Close) at the end of the tools line. Random is gone from the UI (Surprise, the dice, writes a random fill; `fillRandom` / `toggleListen` stay in state/fill.ts unused; Play loops the region while the panel is open, so every fill tried is heard). `ui.fillPanel` is `'browse' | 'vary'`; only Vary keeps a head (title + ✕).
+- **(Superseded by the panels round below: one head, Fill · Land · Vary.)** **No head row in Browse** (user request: no Random tab, no Listen button, no Browse tab to switch): the panel opens straight on sizes / shapes / List|Map|tools, with ✕ (Close) at the end of the tools line. Random is gone from the UI (Surprise, the dice, writes a random fill; `fillRandom` / `toggleListen` stay in state/fill.ts unused; Play loops the region while the panel is open, so every fill tried is heard). `ui.fillPanel` is `'browse' | 'vary'`; only Vary keeps a head (title + ✕).
 - **Fill panel height** (user request: more of the score in view): `.fillpanel` is a short window (44dvh ≤ 400 px; 40dvh on phones; 48dvh touch-landscape) and is itself the one scroller: its head (Random/Browse/Listen/✕) is sticky, everything else (sizes, shapes, tools, fills) scrolls under it.
 - **Library**: New (one sideways-scrolling line) → "Save and share" folded (`sharing` state;
   e2e `openShare(page)`) → Compositions → rename → files. No emoji (DiceIcon).
@@ -1205,3 +1205,22 @@ Palani Subramania Pillai's tail korvai, Viswanathan's kuraippu, a compound mora.
 - Help topics are grouped under headings (`.help-group`): Write and shape · Fill, vary, land ·
   Listen and practise · Time and form · The page. "Options" is called **Sound** and points to
   the metronome menu. User text fields and names have `dir="auto"` (Hebrew titles read right).
+
+### Pattern panels round (Fill · Land · Vary; see UX-LOG.md)
+
+- **One head** (`PanelHead` in FillPanel.tsx, sticky): tabs **Fill · Land · Vary**
+  (`data-testid="panel-browse|land|vary"`, `ui.fillPanel` stays `'browse' | 'land' | 'vary'`),
+  the stretch ("the open space (9 pulses)"; phones "9 pulses"), Close. A tab switches on the same
+  stretch; Vary is `aria-disabled` while the region is the open space. **Esc closes the panel**
+  (before collapsing the selection). No other Close in the panels.
+- **Land's options fold** into one line (`land-options`, local `optsOpen`): "Landing: on the end,
+  beginning anywhere" or what is set; e2e `landOptions(page)`.
+- **Recent** (`ui.recentFills`, 12, device pref; `noteRecent` in state/fill.ts on every write
+  from Fill, Land, Vary): Fill's chip "Recent" and the first group of All shapes (then **Kept**,
+  the hearts; "Mine" is called Kept now). **Lately** (`ui.landRecent`, 4): patterns landed,
+  offered in Land when the pattern is empty. Land rows have the heart.
+- Fill's groups use `GroupHead` / `useOpenGroups` / `shownRows` like Land and Vary (in place).
+  `listKeys` (fillParts) walks every list; focus previews in all three.
+- Words: the panel is **Fill** ("Fill…" in the bars and menus, "Fill it…" in the state line); the
+  Use bar's in-place button is **Variations**.
+

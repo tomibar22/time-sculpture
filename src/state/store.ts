@@ -91,6 +91,10 @@ export interface DevicePrefs {
   barMore: boolean;
   /** The first-time hint under the score was put away. */
   hintSeen: boolean;
+  /** What was written last from Fill, Land or Vary (sizes, newest first), to go back to. */
+  recentFills: number[][];
+  /** Land: the patterns landed last (newest first), offered when the pattern is empty. */
+  landRecent: number[][];
 }
 
 export interface HiddenBeat {
@@ -133,6 +137,8 @@ const MIX_SCALE = 2;
 export type TilesMode = 'on' | 'off' | 'turns';
 const PREFS_KEY = 'time-sculpture/prefs';
 export const MAX_MOTIFS = 60;
+export const MAX_RECENT = 12;
+export const MAX_LAND_RECENT = 4;
 function loadPrefs(): Partial<DevicePrefs> {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
@@ -152,6 +158,19 @@ function loadPrefs(): Partial<DevicePrefs> {
     if (typeof p.silentOne === 'boolean') out.silentOne = p.silentOne;
     if (typeof p.barMore === 'boolean') out.barMore = p.barMore;
     if (typeof p.hintSeen === 'boolean') out.hintSeen = p.hintSeen;
+    const sizesList = (v: unknown, max: number) =>
+      Array.isArray(v)
+        ? v
+            .filter(
+              (t): t is number[] =>
+                Array.isArray(t) && t.length > 0 && t.every((n) => Number.isInteger(n) && n >= 1),
+            )
+            .slice(0, max)
+        : undefined;
+    const rf = sizesList(p.recentFills, MAX_RECENT);
+    if (rf) out.recentFills = rf;
+    const lr = sizesList(p.landRecent, MAX_LAND_RECENT);
+    if (lr) out.landRecent = lr;
     if (p.hiddenBeat && typeof p.hiddenBeat === 'object') {
       const e = p.hiddenBeat.every;
       out.hiddenBeat = {
@@ -341,7 +360,7 @@ export interface UiState {
   landLS: LS[];
   fillSort: FillSort;
   /** Browse: which shapes to list ('shapes' = all shaped fills, 'any' = every fill, sorted). */
-  fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo';
+  fillShape: ShapeFamily | 'shapes' | 'any' | 'mine' | 'bred' | 'echo' | 'recent';
   /** Browse: only fills with exactly this many tiles (null = any number). */
   fillTiles: number | null;
   /** Browse as a list, or as a map of the fills laid out by two measures. */
@@ -360,6 +379,8 @@ export interface UiState {
   silentOne: boolean;
   barMore: boolean;
   hintSeen: boolean;
+  recentFills: number[][];
+  landRecent: number[][];
   landDrum: boolean;
   mix: Mix;
   clickPat: ClickPattern;
@@ -499,6 +520,8 @@ export const useUiStore = create<UiState>((set) => ({
   silentOne: false,
   barMore: false,
   hintSeen: false,
+  recentFills: [],
+  landRecent: [],
   mix: { ...MIX_DEFAULT },
   clickPat: CLICK_PATTERN,
   speedUp: { on: false, step: 4, every: 2, to: 120 },
@@ -568,7 +591,9 @@ useUiStore.subscribe((s, p) => {
     s.hiddenBeat !== p.hiddenBeat ||
     s.silentOne !== p.silentOne ||
     s.barMore !== p.barMore ||
-    s.hintSeen !== p.hintSeen
+    s.hintSeen !== p.hintSeen ||
+    s.recentFills !== p.recentFills ||
+    s.landRecent !== p.landRecent
   )
     savePrefs({
       theme: s.theme,
@@ -590,5 +615,7 @@ useUiStore.subscribe((s, p) => {
       silentOne: s.silentOne,
       barMore: s.barMore,
       hintSeen: s.hintSeen,
+      recentFills: s.recentFills,
+      landRecent: s.landRecent,
     });
 });

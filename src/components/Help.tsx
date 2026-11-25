@@ -158,11 +158,19 @@ export function Help() {
             </p>
             <p>
               <b>Tiles</b> narrows the fills to those with a set number of tiles. Almost right? Tap
-              a fill to try it, then <b>Vary</b> beside Use: the list becomes that fill said other
-              ways (nudged, swapped, rotated, backwards, regrouped), without anything being written.
-              Tap one to try it, Use to write it, Vary again to go further, ‹ Back to return. In
-              Vary and in Land too, every kind shows its first few; <b>all N</b> beside its name
-              opens the rest.
+              a fill to try it, then <b>Variations</b> beside Use: the list becomes that fill said
+              other ways (nudged, swapped, rotated, backwards, regrouped), without anything being
+              written. Tap one to try it, Use to write it, Variations again to go further, ‹ Back to
+              return. In Fill, Land and Vary alike, every kind shows its first few; <b>all N</b>{' '}
+              beside its name opens the rest.
+            </p>
+            <p>
+              <b>Fill · Land · Vary</b> share one head: Fill proposes ways to fill the stretch, Land
+              makes a pattern of yours arrive exactly at its end, Vary says what is written there
+              another way. Switch between them on the same stretch; Esc closes. <b>Recent</b> holds
+              what you wrote lately from any of the three, <b>Kept</b> what you kept with the heart
+              (in all three), both fitted to the stretch; Land offers the patterns you landed lately
+              when its pattern is empty.
             </p>
           </details>
           <details className="help-topic">

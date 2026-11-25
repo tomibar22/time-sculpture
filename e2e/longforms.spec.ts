@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { clearAll, DEFAULT_SEQ, expectSeq, ready } from './helpers';
+import { clearAll, DEFAULT_SEQ, expectSeq, ready, landOptions } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -41,6 +41,7 @@ test('land: a korvai, a chain of tihais; landing a beat early leaves air', async
   await expect(list).toContainText('Korvai');
   await expect(list).toContainText('Chain of tihais');
   // a beat early: 4 pulses of air after it
+  await landOptions(page);
   await page.getByRole('button', { name: 'A beat earlier' }).click();
   await expect(page.getByTestId('land-shift')).toHaveText('1 beat early');
   await expect(page.locator('.land-hint')).toContainText('4 pulses of air after it');

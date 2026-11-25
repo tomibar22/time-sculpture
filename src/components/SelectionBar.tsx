@@ -192,7 +192,7 @@ export function SelectionBar() {
               title="Fill this stretch again: shapes, or every way to do it"
               onClick={() => openFill('browse')}
             >
-              Refill…
+              Fill…
             </button>
             {(contiguous || (sel.length > 1 && E.isContiguous(idx))) && (
               <button
@@ -419,8 +419,12 @@ function CaretBar() {
             Empty
           </button>
           <RemoveBarsButton />
-          <button type="button" onClick={() => openFill('browse')}>
-            Browse fills
+          <button
+            type="button"
+            title="Ways to fill this stretch: shapes, known rhythms, tihais, every way (⇧F)"
+            onClick={() => openFill('browse')}
+          >
+            Fill…
           </button>
           <button
             type="button"

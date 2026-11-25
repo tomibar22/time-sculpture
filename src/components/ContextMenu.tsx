@@ -277,7 +277,7 @@ function Menu({ menu }: { menu: ContextMenuState }) {
         run: () => openFill('vary'),
       },
       {
-        label: 'Fill again…',
+        label: 'Fill…',
         disabled: !E.isContiguous(idx),
         run: () => openFill('browse'),
       },

@@ -15,6 +15,7 @@ import {
   GroupHead,
   GroupStrip,
   Heart,
+  listKeys,
   Strip,
   UseBar,
   shownRows,
@@ -130,7 +131,6 @@ export function VaryPanel() {
   walk(null);
 
   if (!base.length) return <p className="lib-note">Select the groups (or a range) to vary.</p>;
-  const total = base.reduce((a, g) => a + g.n, 0);
 
   return (
     <div className="fill-browse">
@@ -192,8 +192,8 @@ export function VaryPanel() {
       <div className="fill-sort">
         <span className="lib-note">
           {locked.length
-            ? `${locked.length} locked. The rest moves around ${locked.length > 1 ? 'them' : 'it'}.`
-            : `${total} pulses. Tap a group to lock it in place.`}
+            ? `${locked.length} locked: the rest moves around ${locked.length > 1 ? 'them' : 'it'}`
+            : 'Tap a tile to lock it'}
         </span>
         {base.length >= 3 && (
           <button
@@ -245,7 +245,7 @@ export function VaryPanel() {
           ))}
         </div>
       )}
-      <ul className="fill-list" aria-label="Variations" onMouseLeave={settle}>
+      <ul className="fill-list" aria-label="Variations" onMouseLeave={settle} onKeyDown={listKeys}>
         <li>
           <div className="fill-row">
             <button
@@ -348,6 +348,7 @@ const VaryRow = memo(function VaryRow({
         data-written={written || undefined}
         title={trying ? 'Tap again to use it' : undefined}
         onMouseEnter={() => previewVary(v)}
+        onFocus={(e) => e.currentTarget.matches(':focus-visible') && previewVary(v)}
         onClick={() => onPick(v)}
       >
         <GroupStrip groups={v.groups} beats={beats} />

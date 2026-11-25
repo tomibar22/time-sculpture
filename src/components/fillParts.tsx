@@ -196,7 +196,7 @@ export function UseBar({
           onClick={onVary}
         >
           <BranchIcon />
-          Vary
+          Variations
         </button>
       )}
       <button type="button" className="primary" onClick={onUse}>
@@ -208,6 +208,20 @@ export function UseBar({
       </button>
     </div>
   );
+}
+
+/**
+ * ↑ ↓ Home End walk the rows of a list in Fill, Land and Vary alike (a row focused by the keys
+ * is tried in the score: each list previews on focus).
+ */
+export function listKeys(e: React.KeyboardEvent<HTMLUListElement>): void {
+  const step = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity }[e.key];
+  if (step === undefined) return;
+  const rows = [...e.currentTarget.querySelectorAll<HTMLElement>('.fill-main')];
+  const i = rows.indexOf(document.activeElement as HTMLElement);
+  if (i < 0) return;
+  e.preventDefault();
+  rows[Math.max(0, Math.min(rows.length - 1, i + step))]?.focus();
 }
 
 /** How many rows of a group a list shows before "all N" (the same in Browse, Vary and Land). */

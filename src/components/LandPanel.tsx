@@ -1,11 +1,20 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import * as E from '../engine';
 import { describePulse } from '../state/editing';
-import { closeFill, fillRegion, previewLanding, writeLanding } from '../state/fill';
+import { fillRegion, previewLanding, toggleMotif, writeLanding } from '../state/fill';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { GroupHead, Strip, UseBar, shownRows, useOpenGroups, useRegionBeats } from './fillParts';
-import { CloseIcon } from './Icons';
+import {
+  GroupHead,
+  Heart,
+  listKeys,
+  Strip,
+  UseBar,
+  shownRows,
+  useOpenGroups,
+  useRegionBeats,
+} from './fillParts';
+import { ChevronIcon } from './Icons';
 
 const SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
 /** Where a way may begin: the name, and what phones show of it. */
@@ -85,7 +94,12 @@ export function LandPanel() {
   const [trying, setTrying] = useState<E.PatternLanding | null>(null);
   /** The reason the last Long / Short press was refused, shown in the hint line. */
   const [why, setWhy] = useState<string | null>(null);
+  /** The landing options (last tile, begins, lands) are folded into one line until opened. */
+  const [optsOpen, setOptsOpen] = useState(false);
   const on1 = useUiStore((s) => s.landOn1);
+  const landRecent = useUiStore((s) => s.landRecent);
+  const motifs = useUiStore((s) => s.motifs);
+  const kept = useMemo(() => new Set(motifs.map((m) => m.join(' '))), [motifs]);
   const from = useUiStore((s) => s.landFrom);
   const wantShift = useUiStore((s) => s.landShift);
   const R = region ? region.b - region.a : 0;
@@ -231,6 +245,11 @@ export function LandPanel() {
   const offers: [string, number[]][] = [];
   if (before.length) offers.push(['Before it', before]);
   if (copied.length) offers.push(['Copied', copied]);
+  // the patterns landed lately, to go back to (each once, not what is already offered)
+  for (const t of landRecent) {
+    if (offers.length >= 4) break;
+    if (!offers.some(([, o]) => o.join(' ') === t.join(' '))) offers.push(['Lately', t]);
+  }
   /** The same, as long and short: the shape of what is written before, or of what was copied. */
   const lsOffers = offers.flatMap(([name, sizes]) => {
     const shape = E.longShortOf(sizes);
@@ -263,6 +282,15 @@ export function LandPanel() {
     shift === 0
       ? 'on the end'
       : `${beat && shift % beat === 0 ? `${Math.abs(shift / beat)} beat${Math.abs(shift / beat) > 1 ? 's' : ''}` : `${Math.abs(shift)}`} ${shift < 0 ? 'early' : 'late'}`;
+  /** The landing options as set, in a few words ("last tile on the 1 · from a beat · 2 early"). */
+  const optWords =
+    [
+      on1 ? `last tile ${end}` : '',
+      from === 'beat' ? 'begins on a beat' : from === 'one' ? 'begins on a 1' : '',
+      shift ? shiftWords : '',
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'on the end, beginning anywhere';
   const setShift = (v: number) => set({ landShift: Math.max(-(R - 1), Math.min(after, v)) });
   const shown = (l: E.PatternLanding) =>
     l.gati
@@ -335,13 +363,15 @@ export function LandPanel() {
         {!pattern.length &&
           (ls ? lsOffers : offers).map(([name, shape]) => (
             <button
-              key={name}
+              key={`${name} ${shape.join(' ')}`}
               type="button"
               className="link-btn"
               title={
                 name === 'Copied'
                   ? 'Use what was copied last as the pattern'
-                  : 'Use the strokes written just before this stretch as the pattern'
+                  : name === 'Lately'
+                    ? 'A pattern you landed lately'
+                    : 'Use the strokes written just before this stretch as the pattern'
               }
               onClick={() => (ls ? putLS(shape as E.LS[]) : put(shape as number[]))}
             >
@@ -365,15 +395,6 @@ export function LandPanel() {
           onClick={() => (ls ? putLS([]) : put([]))}
         >
           Clear
-        </button>
-        <button
-          type="button"
-          className="ghost icon"
-          aria-label="Close"
-          title="Close"
-          onClick={closeFill}
-        >
-          <CloseIcon />
         </button>
       </div>
       {ls ? (
@@ -418,7 +439,21 @@ export function LandPanel() {
           ))}
         </div>
       )}
-      <div className="land-opts">
+      {/* how it lands: folded into one line that says what is set (the ways get the room) */}
+      <button
+        type="button"
+        className="land-optsum"
+        aria-expanded={optsOpen}
+        aria-controls="land-opts"
+        data-testid="land-options"
+        title="Where the last tile falls, where a way may begin, and where it lands"
+        onClick={() => setOptsOpen(!optsOpen)}
+      >
+        <span className="fold-lbl">Landing</span>
+        <span className="fold-val">{optWords}</span>
+        <ChevronIcon />
+      </button>
+      <div className="land-opts" id="land-opts" hidden={!optsOpen}>
         <button
           type="button"
           className="switch"
@@ -545,6 +580,7 @@ export function LandPanel() {
         className="fill-list land-list"
         aria-label="Ways it lands"
         onMouseLeave={() => previewLanding(trying)}
+        onKeyDown={listKeys}
       >
         {kinds.map(({ kind, rows: ways }) => {
           const isOpen = groups.open.has(kind);
@@ -568,6 +604,9 @@ export function LandPanel() {
                         aria-pressed={trying?.key === l.key}
                         title={trying?.key === l.key ? 'Tap again to use it' : undefined}
                         onMouseEnter={() => previewLanding(l)}
+                        onFocus={(e) =>
+                          e.currentTarget.matches(':focus-visible') && previewLanding(l)
+                        }
                         onClick={() => tryIt(l)}
                       >
                         <Strip {...shown(l)} beats={beats} />
@@ -602,6 +641,12 @@ export function LandPanel() {
                           </span>
                         </span>
                       </button>
+                      {/* keep what this way writes, as in Fill and Vary: found again under Kept */}
+                      <Heart
+                        on={kept.has(l.sizes.join(' '))}
+                        label={l.sizes.join(' ')}
+                        onClick={() => toggleMotif(l.sizes)}
+                      />
                     </div>
                   </li>
                 );

@@ -187,3 +187,9 @@ export async function more(page: Page) {
   const b = page.getByTestId('bar-more');
   if ((await b.count()) && (await b.getAttribute('aria-expanded')) !== 'true') await b.click();
 }
+
+/** Land: unfold the landing options (last tile on the 1, where it begins, where it lands). */
+export async function landOptions(page: Page) {
+  const b = page.getByTestId('land-options');
+  if ((await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+}

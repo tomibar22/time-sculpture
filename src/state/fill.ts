@@ -4,7 +4,7 @@ import { ui as sfx } from '../audio/voices';
 import { announce, plural, run, toast } from './actions';
 import { selectedRegion } from './editing';
 import { noteMotif } from '../persistence/sync';
-import { MAX_MOTIFS, useDocStore, useUiStore } from './store';
+import { MAX_LAND_RECENT, MAX_MOTIFS, MAX_RECENT, useDocStore, useUiStore } from './store';
 import { startPlayback, stopPlayback } from '../audio/player';
 
 /**
@@ -108,12 +108,28 @@ export function toggleMotif(sizes: readonly number[]): void {
   toast(has ? `Let go of ${k}` : `Kept ${k}`);
 }
 
+/**
+ * Remember what was just written from Fill, Land or Vary (its sounding sizes), newest first, so
+ * it can be found again under Recent in Fill (fitted to any stretch).
+ */
+function noteRecent(sizes: readonly number[]): void {
+  if (sizes.length < 2) return;
+  const k = sizes.join(' ');
+  ui().set({
+    recentFills: [[...sizes], ...ui().recentFills.filter((t) => t.join(' ') !== k)].slice(
+      0,
+      MAX_RECENT,
+    ),
+  });
+}
+
 function apply(groups: E.GroupSpec[], label: string): boolean {
   const region = fillRegion();
   if (!region) return false;
   const r = E.fillRange(doc(), region.a, region.b, groups);
   ui().set({ preview: null });
   if (!run(r, { label, select: [...r.report.created] })) return false;
+  noteRecent(groups.filter((g) => g.kind === 'sound').map((g) => g.n));
   // keep the region selected as a range, so the next roll fills the same place
   if (region.kind === 'selection') {
     useUiStore.getState().set({
@@ -201,6 +217,18 @@ export function writeLanding(l: E.PatternLanding): void {
   ui().set({ preview: null });
   if (!region || !x) return;
   if (!run(x.r, { label: `land ${l.sizes.join(' ')}`, select: 'none' })) return;
+  noteRecent(l.sizes);
+  // the pattern landed goes to the front of the ones offered next time
+  const p = ui().landPattern;
+  if (ui().landMode === 'sizes' && p.length) {
+    const k = p.join(' ');
+    ui().set({
+      landRecent: [[...p], ...ui().landRecent.filter((t) => t.join(' ') !== k)].slice(
+        0,
+        MAX_LAND_RECENT,
+      ),
+    });
+  }
   // the stretch stays the region while the panel is open, so another way can be tried
   if (region.kind === 'space') filledSpace = { a: region.a, b: x.b };
   ui().set({

@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { at, clearAll, DEFAULT_SEQ, expectSeq, fillFold, P, ready, score, tap } from './helpers';
+import {
+  at,
+  clearAll,
+  DEFAULT_SEQ,
+  expectSeq,
+  fillFold,
+  P,
+  ready,
+  score,
+  tap,
+  landOptions,
+} from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -35,7 +46,7 @@ test('browse fills for a selected range, sorted, and pick one', async ({ page })
   // select the two 3s (pulses 2–8) as tiles, then refill them
   await tap(page, at(s, P(3.5)));
   await tap(page, at(s, P(6.5)), ['Shift']);
-  await page.getByRole('button', { name: 'Refill…' }).click();
+  await page.getByRole('button', { name: 'Fill…' }).click();
   await fillFold(page, 'Sizes');
   for (const n of [4, 5, 7]) await page.getByTestId(`fill-${n}`).click(); // 2 and 3 left
   const list = page.getByRole('list', { name: 'Ways to fill' });
@@ -60,7 +71,7 @@ test('fills by kind: a known rhythm by its name, and what the piece already says
   await page.keyboard.press('End');
   for (let i = 0; i < 16; i++) await page.keyboard.press('Shift+ArrowLeft');
   await expect(page.getByTestId('caretname')).toContainText('16 pulses');
-  await page.locator('.selbar-actions').getByRole('button', { name: 'Browse fills' }).click();
+  await page.locator('.selbar-actions').getByRole('button', { name: 'Fill…' }).click();
   const list = page.getByRole('list', { name: 'Ways to fill' });
   // every kind has its name in the list, and the piece's own material comes first
   await expect(list.locator('.fill-group').first()).toContainText('From the piece');
@@ -80,7 +91,7 @@ test('vary a fill straight from the list: try it, Vary, pick a variation, Use', 
   const first = list.locator('.fill-main').first();
   await first.click();
   const key = (await first.locator('.sr-only').first().innerText()).replace(/\.\s*$/, '').trim();
-  await page.getByRole('button', { name: 'Vary', exact: true }).click();
+  await page.getByRole('button', { name: 'Variations', exact: true }).click();
   // the list is now that fill and its variations; nothing is written yet
   const around = page.getByRole('group', { name: 'Variations' });
   await expect(around).toContainText(`Variations of ${key}`);
@@ -146,6 +157,7 @@ test('land a pattern: how many times it goes in, and from where, to end on the e
   await expect(list).toContainText('Running through');
   // only the ways that begin on a beat
   const all = await list.locator('.fill-main').count();
+  await landOptions(page);
   await page.getByRole('button', { name: 'On a beat' }).click();
   await expect(list.locator('.fill-main')).not.toHaveCount(all);
   await expect(list.locator('.fill-main').filter({ hasNotText: /on the beat|on 1/ })).toHaveCount(
@@ -166,6 +178,7 @@ test('land: a tihai shows its gap as a tile; the last tile can fall on the 1', a
   await page.getByTestId('land-2').click();
   await page.getByTestId('land-1').click();
   // 9 pulses, 2 1 with the last tile on the 1: 2 1 2 1 2 [1] takes 8, one pulse stays before it
+  await landOptions(page);
   await page.getByTestId('land-on1').click();
   await expect(page.locator('.land')).toContainText('The last tile (1) falls after the stretch');
   const first = list.locator('.fill-main').first();

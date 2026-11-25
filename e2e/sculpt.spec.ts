@@ -17,7 +17,7 @@ test('keep a fill, breed from it, and fill from the next generation', async ({ p
     .first()
     .click();
   await fillFold(page, 'Shape');
-  await expect(page.getByRole('button', { name: /Mine/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Kept/ })).toBeVisible();
   await page.getByRole('button', { name: /Breed/ }).click();
   // on a phone the Shape fold closes by itself once the shape changes (an effect after the
   // click), so on a slow machine it may still look open for a moment: look again until it is shut

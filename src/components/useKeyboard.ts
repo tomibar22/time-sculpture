@@ -49,7 +49,7 @@ import { useDocStore, useUiStore } from '../state/store';
 import { swapNow, swapStep } from '../state/swap';
 import { openChord } from '../state/chords';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
-import { fillRegion, openFill } from '../state/fill';
+import { closeFill, fillRegion, openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
 import { deleteBarsHere, toggleDoubleBarAt, toggleRepeatOver } from '../state/actions';
 import { toggleOverview, zoomStep } from '../state/zoom';
@@ -266,6 +266,8 @@ export function useKeyboard() {
       if (e.key === 'Escape') {
         // the overview closes first, back to where you were
         if (useUiStore.getState().overview) return toggleOverview();
+        // an open Fill / Land / Vary closes first, the selection stays
+        if (useUiStore.getState().fillPanel) return closeFill();
         return escape();
       }
       if (k === 't' && !e.shiftKey) {

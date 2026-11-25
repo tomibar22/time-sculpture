@@ -14,7 +14,18 @@ import {
 import { describePulse } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
-import { Contour, Heart, Strip, UseBar, useRegionBeats, type StripLine } from './fillParts';
+import {
+  Contour,
+  GroupHead,
+  Heart,
+  listKeys,
+  Strip,
+  UseBar,
+  shownRows,
+  useOpenGroups,
+  useRegionBeats,
+  type StripLine,
+} from './fillParts';
 import { FillMap } from './FillMap';
 import { BreedIcon, ChevronIcon, CloseIcon, DiceIcon, HeartIcon, PinIcon } from './Icons';
 import { VaryPanel } from './VaryPanel';
@@ -26,8 +37,6 @@ const SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
 const LIMIT = 400;
 /** Rows drawn at a time in a long list. */
 const PAGE = 40;
-/** Fills shown of each kind in "All shapes". */
-const GROUP_SHOWN = 3;
 
 /** A fill with a note on where it came from (a kept motif fitted here, a bred child). */
 type Listed = FillOption & { note?: string };
@@ -56,12 +65,14 @@ export function FillPanel() {
       : shape === 'any'
         ? 'Anything'
         : shape === 'mine'
-          ? 'Mine'
+          ? 'Kept'
           : shape === 'echo'
             ? 'From the piece'
-            : shape === 'bred'
-              ? 'Bred'
-              : (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.label ?? 'Shapes');
+            : shape === 'recent'
+              ? 'Recent'
+              : shape === 'bred'
+                ? 'Bred'
+                : (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.label ?? 'Shapes');
 
   const toggle = (n: number) =>
     set({
@@ -78,23 +89,13 @@ export function FillPanel() {
   const total = region && sizes.length ? E.countWays(R, sizes) : 0n;
 
   return (
-    <section className="fillpanel" aria-label="Fill">
-      {tab === 'vary' && (
-        <div className="fill-head">
-          <span className="fill-where fill-title">
-            <b>Vary</b> {where}
-          </span>
-          <button
-            type="button"
-            className="ghost icon"
-            aria-label="Close"
-            title="Close"
-            onClick={closeFill}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-      )}
+    <section className="fillpanel" aria-label={TAB_NAME[tab]}>
+      <PanelHead
+        tab={tab}
+        where={where}
+        short={region ? describeRegion(region.a, region.b) : ''}
+        canVary={region?.kind === 'selection'}
+      />
       {tab === 'vary' ? (
         <VaryPanel />
       ) : tab === 'land' ? (
@@ -184,6 +185,72 @@ export function FillPanel() {
   );
 }
 
+const TAB_NAME = { browse: 'Fill', land: 'Land', vary: 'Vary' } as const;
+/** What each of the three is for, in a few words (the tabs' titles, and read out). */
+const TAB_ROLE = {
+  browse: 'Ways to fill this stretch: shapes, known rhythms, tihais, every way (⇧F)',
+  land: 'A pattern of yours, said again and again so that it ends exactly here (L)',
+  vary: 'What is written here, said another way in the same time (⇧V)',
+} as const;
+
+/**
+ * One head for the three ways of writing a stretch (user review: where am I, and how do I get
+ * from one to the other): Fill · Land · Vary, the stretch they work on, and Close. Switching
+ * keeps the stretch; Vary needs something written there.
+ */
+function PanelHead({
+  tab,
+  where,
+  short,
+  canVary,
+}: {
+  tab: 'browse' | 'land' | 'vary';
+  where: string;
+  /** Phones: just how long it is ("9 pulses"). */
+  short: string;
+  canVary: boolean;
+}) {
+  const set = useUiStore((s) => s.set);
+  return (
+    <div className="fill-head panel-head">
+      <div className="segs text panel-tabs" role="group" aria-label="Write this stretch by">
+        {(['browse', 'land', 'vary'] as const).map((t) => {
+          const off = t === 'vary' && !canVary;
+          return (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={tab === t}
+              data-testid={`panel-${t}`}
+              aria-disabled={off || undefined}
+              title={off ? 'Vary works on what is written: select a passage first' : TAB_ROLE[t]}
+              onClick={() => (off ? undefined : set({ fillPanel: t, preview: null }))}
+            >
+              {TAB_NAME[t]}
+            </button>
+          );
+        })}
+      </div>
+      <span className="panel-where" title={where}>
+        <span className="panel-where-long">{where}</span>
+        <span className="panel-where-short" aria-hidden="true">
+          {short}
+        </span>
+      </span>
+      <span className="sr-only">{TAB_ROLE[tab]}</span>
+      <button
+        type="button"
+        className="ghost icon"
+        aria-label="Close"
+        title="Close (Esc)"
+        onClick={closeFill}
+      >
+        <CloseIcon />
+      </button>
+    </div>
+  );
+}
+
 /** Only fills with a set number of tiles (any = every number that fits). */
 function TilesFilter({ counts, tiles }: { counts: number[]; tiles: number | null }) {
   const set = useUiStore((s) => s.set);
@@ -268,6 +335,21 @@ function Browse({
     }
     return out;
   }, [motifs, R, meter, region.a]);
+  // what was written last (from Fill, Land or Vary), fitted to this region
+  const recentAll = useUiStore((s) => s.recentFills);
+  const recent = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Listed[] = [];
+    for (const m of recentAll) {
+      const t = E.fitMotif(m, R);
+      if (!t || seen.has(t.join(' '))) continue;
+      seen.add(t.join(' '));
+      const o: Listed = E.optionOf(meter, region.a, t);
+      o.note = t.join(' ') === m.join(' ') ? 'Used lately' : `${m.join(' ')}, fitted`;
+      out.push(o);
+    }
+    return out;
+  }, [recentAll, R, meter, region.a]);
   // the piece's own material, said again here: what comes just before the region and the
   // opening of the piece, as they are and reordered (so a fill can grow out of what is written)
   const doc = useDocStore((s) => s.doc);
@@ -358,7 +440,8 @@ function Browse({
     if (shape === 'mine' && !mine.length) set({ fillShape: 'shapes' });
     if (shape === 'bred' && !brood.kids.length) set({ fillShape: 'shapes' });
     if (shape === 'echo' && !echo.length) set({ fillShape: 'shapes' });
-  }, [shape, mine.length, brood.kids.length, echo.length, set]);
+    if (shape === 'recent' && !recent.length) set({ fillShape: 'shapes' });
+  }, [shape, mine.length, brood.kids.length, echo.length, recent.length, set]);
 
   const families = useMemo(() => {
     const n = new Map<string, number>();
@@ -370,6 +453,7 @@ function Browse({
     const few = (xs: Listed[]) => (tiles ? xs.filter((o) => o.sizes.length === tiles) : xs);
     if (shape === 'mine') return few(mine);
     if (shape === 'echo') return few(echo);
+    if (shape === 'recent') return few(recent);
     if (shape === 'bred') return brood.kids;
     if (shape === 'any') return E.sortFills(options, sort);
     return options
@@ -384,7 +468,7 @@ function Browse({
           a.tiles - b.tiles ||
           a.key.localeCompare(b.key),
       );
-  }, [options, sort, shape, mine, echo, brood, around, nearby, tiles]);
+  }, [options, sort, shape, mine, echo, recent, brood, around, nearby, tiles]);
 
   const parents = useMemo(() => {
     const ps = new Map<string, number[]>();
@@ -439,7 +523,18 @@ function Browse({
   const groups = useMemo(() => {
     if (shape !== 'shapes' || around) return null;
     const out: { id: string; label: string; hint: string; items: Listed[] }[] = [];
-    const said = tiles ? echo.filter((o) => o.sizes.length === tiles) : echo;
+    const few = (xs: Listed[]) => (tiles ? xs.filter((o) => o.sizes.length === tiles) : xs);
+    // what you used lately and what you kept come first: the way back to them
+    if (few(recent).length)
+      out.push({
+        id: 'recent',
+        label: 'Recent',
+        hint: 'What you wrote here lately, from Fill, Land or Vary',
+        items: few(recent),
+      });
+    if (few(mine).length)
+      out.push({ id: 'mine', label: 'Kept', hint: 'Fills you kept (the heart)', items: few(mine) });
+    const said = few(echo);
     if (said.length)
       out.push({
         id: 'echo',
@@ -452,33 +547,27 @@ function Browse({
       if (items.length) out.push({ id: f.id, label: f.label, hint: f.hint, items });
     }
     return out;
-  }, [shape, list, echo, around, tiles]);
-  const onListKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
-    const step = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity }[e.key];
-    if (step === undefined) return;
-    const rows = [...e.currentTarget.querySelectorAll<HTMLElement>('.fill-main')];
-    const i = rows.indexOf(document.activeElement as HTMLElement);
-    if (i < 0) return;
-    e.preventDefault();
-    rows[Math.max(0, Math.min(rows.length - 1, i + step))]?.focus();
-  };
+  }, [shape, list, echo, recent, mine, around, tiles]);
+  const openGroups = useOpenGroups(`${region.a} ${R} ${sizes.join(',')} ${tiles} ${shape}`);
   const hint =
     shape === 'mine'
       ? 'Fills you kept, fitted to this length.'
-      : shape === 'echo'
-        ? 'What is already written, said again here: as it is, backwards, turned.'
-        : shape === 'shapes' && list.length
-          ? `${list.length} shaped fills, by kind. ↑ ↓ walk the list.`
-          : shape === 'bred'
-            ? `Children of what you kept. Keep the ones you like, then breed again.`
-            : shape === 'any'
-              ? null
-              : list.length
-                ? (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.hint ??
-                  `${list.length} shaped fills`)
-                : tiles
-                  ? `No shapes with ${tiles} tiles here; try Anything, or another number.`
-                  : 'No shapes fit these sizes; try more sizes or Anything.';
+      : shape === 'recent'
+        ? 'What you wrote lately, fitted to this length.'
+        : shape === 'echo'
+          ? 'What is already written, said again here: as it is, backwards, turned.'
+          : shape === 'shapes' && list.length
+            ? `${list.length} shaped fills, by kind. ↑ ↓ walk the list.`
+            : shape === 'bred'
+              ? `Children of what you kept. Keep the ones you like, then breed again.`
+              : shape === 'any'
+                ? null
+                : list.length
+                  ? (E.SHAPE_FAMILIES.find((f) => f.id === shape)?.hint ??
+                    `${list.length} shaped fills`)
+                  : tiles
+                    ? `No shapes with ${tiles} tiles here; try Anything, or another number.`
+                    : 'No shapes fit these sizes; try more sizes or Anything.';
 
   return (
     <div className="fill-browse">
@@ -490,7 +579,17 @@ function Browse({
             aria-pressed={shape === 'mine'}
             onClick={() => set({ fillShape: 'mine' })}
           >
-            <HeartIcon filled /> Mine <span className="fill-count">{mine.length}</span>
+            <HeartIcon filled /> Kept <span className="fill-count">{mine.length}</span>
+          </button>
+        )}
+        {recent.length > 0 && (
+          <button
+            type="button"
+            title="What you wrote lately from Fill, Land or Vary, fitted here"
+            aria-pressed={shape === 'recent'}
+            onClick={() => set({ fillShape: 'recent' })}
+          >
+            Recent <span className="fill-count">{recent.length}</span>
           </button>
         )}
         {echo.length > 0 && (
@@ -615,15 +714,6 @@ function Browse({
             <span className="tool-lbl">Surprise</span>
           </button>
         </span>
-        <button
-          type="button"
-          className="ghost icon fill-close"
-          aria-label="Close"
-          title="Close"
-          onClick={closeFill}
-        >
-          <CloseIcon />
-        </button>
       </div>
       {around && (
         <div className="fill-around" ref={aroundRef} role="group" aria-label="Variations">
@@ -672,40 +762,33 @@ function Browse({
           className="fill-list"
           aria-label="Ways to fill"
           onMouseLeave={settle}
-          onKeyDown={onListKey}
+          onKeyDown={listKeys}
         >
           {groups
             ? groups.map((g) => (
                 <Fragment key={g.id}>
-                  <li className="fill-group">
-                    <span className="fill-group-name" title={g.hint}>
-                      {g.label}
-                    </span>
-                    {g.items.length > GROUP_SHOWN && (
-                      <button
-                        type="button"
-                        className="link-btn"
-                        title={g.hint}
-                        onClick={() => set({ fillShape: g.id as typeof shape })}
-                      >
-                        all {g.items.length}
-                        <span className="sr-only"> of {g.label}</span>
-                      </button>
-                    )}
-                  </li>
-                  {g.items.slice(0, GROUP_SHOWN).map((o) => (
-                    <Row
-                      key={`${g.id} ${o.key}`}
-                      o={o}
-                      beats={beats}
-                      written={picked === o.key}
-                      trying={trying?.key === o.key}
-                      kept={kept.has(o.key)}
-                      named={named}
-                      onChoose={choose}
-                      item
-                    />
-                  ))}
+                  {/* the same heading as in Land and Vary: "all N" opens the kind in place */}
+                  <GroupHead
+                    label={g.label}
+                    count={g.items.length}
+                    open={openGroups.open.has(g.id)}
+                    onToggle={() => openGroups.toggle(g.id)}
+                  />
+                  {shownRows(g.items, openGroups.open.has(g.id), (o) => o.key === trying?.key).map(
+                    (o) => (
+                      <Row
+                        key={`${g.id} ${o.key}`}
+                        o={o}
+                        beats={beats}
+                        written={picked === o.key}
+                        trying={trying?.key === o.key}
+                        kept={kept.has(o.key)}
+                        named={named}
+                        onChoose={choose}
+                        item
+                      />
+                    ),
+                  )}
                 </Fragment>
               ))
             : list
