@@ -83,6 +83,16 @@ describe('MIDI export', () => {
 });
 
 describe('MusicXML export', () => {
+  it('writes chords as harmony before the first note of their group', () => {
+    let doc = docFrom(makeMeter(4, 1, 1), [2, 2]);
+    doc = E.setChord(doc, doc.items[0]!.id, 'Dbmaj7(#5)');
+    const d = parse(musicXml(doc, 'S', 72));
+    const h = d.querySelectorAll('harmony');
+    expect(h.length).toBe(1);
+    expect(h[0]!.querySelector('root-step')?.textContent).toBe('D');
+    expect(h[0]!.querySelector('root-alter')?.textContent).toBe('-1');
+    expect(h[0]!.querySelector('kind')?.getAttribute('text')).toBe('maj7(#5)');
+  });
   it('writes a section end on a bar line as a light-heavy bar', () => {
     const doc = E.toggleDoubleBar(docFrom(makeMeter(4, 3, 1), ['|']), 4).doc;
     const d = parse(musicXml(doc, 'S', 72));

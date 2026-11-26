@@ -1,6 +1,7 @@
 import { blankDoc } from '../state/defaults';
 import { announce, clearSelection, toast } from '../state/actions';
 import { useDocStore, useUiStore } from '../state/store';
+import { chordOf } from '../engine';
 import type { Doc } from '../engine';
 import {
   currentPieceId,
@@ -334,7 +335,13 @@ export function phraseText(): string {
   const doc = useDocStore.getState().doc;
   const si = doc.items.findIndex((x) => x.kind === 'space');
   const side = (xs: typeof doc.items) =>
-    xs.map((x) => (x.kind === 'rest' ? `(${x.n})` : `${x.n}`)).join(' ');
+    xs
+      .map((x) => {
+        if (x.kind === 'rest') return `(${x.n})`;
+        const c = chordOf(doc, x.id);
+        return c ? `${x.n}[${c.replace(/[[\]]/g, '')}]` : `${x.n}`;
+      })
+      .join(' ');
   const open = doc.items[si]!.n;
   return [side(doc.items.slice(0, si)), open ? `[${open} open]` : '', side(doc.items.slice(si + 1))]
     .filter(Boolean)

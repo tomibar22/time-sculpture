@@ -604,6 +604,10 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   group / first in the range / the one ending at the caret / the one holding it): Next / Enter /
   Tab save and go to the next tile, Previous / ⇧Tab back; key **C**, "Chord…" in the tile and
   caret bars and the tile menu. File: `FileGroup.chord`.
+- **Chords in exports**: JSON / share link / backup carry `chord` on each group; "Copy as text"
+  (`phraseText`) writes `3[C-7(b6)] 2` like the clipboard; MusicXML writes a `<harmony>` before
+  the first note of the group (root + `<kind text="…">other</kind>` when the symbol starts with
+  A–G, else a `<words>` direction). MIDI has no chords.
 - **Chords on the clipboard** (user request): `GroupSpec.chord`; `copyGroups` and `sliceRange`
   fill it in (a cut head is silence, so no chord). The system clipboard's text is `formatClip`
   ("3[C-7(b6)] 2 (1)"; `formatGroups` stays chord-free for labels and keys) and `parseGroups`

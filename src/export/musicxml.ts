@@ -1,4 +1,4 @@
-import { barMap, buildGrid, EPS, isSpace, repeatsOf, voltaRepeat } from '../engine';
+import { barMap, buildGrid, chordOf, EPS, isSpace, repeatsOf, voltaRepeat } from '../engine';
 import type { Doc } from '../engine';
 
 /**
@@ -47,6 +47,22 @@ interface Piece {
   /** Tied from the note before / to the note after (the same sounding group). */
   tieIn: boolean;
   tieOut: boolean;
+  /** The chord symbol written over the group, on its first note only. */
+  chord?: string;
+}
+
+/** A chord symbol as MusicXML: root + free text when it starts with a note name, else words. */
+function harmony(chord: string): string {
+  const m = /^([A-G])([#b♯♭]?)(.*)$/.exec(chord);
+  if (!m)
+    return `      <direction placement="above"><direction-type><words>${esc(chord)}</words></direction-type></direction>`;
+  const alter = m[2] === '#' || m[2] === '♯' ? 1 : m[2] ? -1 : 0;
+  return [
+    '      <harmony>',
+    `        <root><root-step>${m[1]}</root-step>${alter ? `<root-alter>${alter}</root-alter>` : ''}</root>`,
+    `        <kind text="${esc(m[3]!)}">other</kind>`,
+    '      </harmony>',
+  ].join('\n');
 }
 
 export function musicXml(doc: Doc, title: string, tempo: number): string {
@@ -96,6 +112,7 @@ export function musicXml(doc: Doc, title: string, tempo: number): string {
           sound: snd,
           tieIn: snd && (pi > 0 || !first),
           tieOut: snd && (pi < parts.length - 1 || !last),
+          chord: snd && first && pi === 0 ? chordOf(doc, doc.items[it]!.id) : undefined,
         }),
       );
       j0 = j1;
@@ -121,6 +138,7 @@ export function musicXml(doc: Doc, title: string, tempo: number): string {
     if (tuplet === 'start' || tuplet === 'both') notations.push('<tuplet type="start"/>');
     if (tuplet === 'stop' || tuplet === 'both') notations.push('<tuplet type="stop"/>');
     return [
+      p.chord ? harmony(p.chord) : '',
       '      <note>',
       p.sound ? '        <pitch><step>B</step><octave>4</octave></pitch>' : '        <rest/>',
       `        <duration>${(DIV / p.d) * p.j}</duration>`,
