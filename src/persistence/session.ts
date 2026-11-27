@@ -8,10 +8,14 @@ import {
   deletePiece,
   listPieces,
   loadPiece,
+  loadShelf,
   newId,
   savePiece,
   setCurrentPieceId,
+  writeShelf,
 } from './library';
+import { newer, readFolder } from './shelf';
+import type { Folder, Place } from './shelf';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 import type { SavedPiece } from './serialize';
 import { startSync } from './sync';
@@ -355,6 +359,9 @@ export interface Backup {
   version: 1;
   saved: string;
   pieces: { id: string; updated: number; piece: SavedPiece }[];
+  /** The folders, and the folder each piece is in (optional: older backups have none). */
+  folders?: Record<string, { name: string; parent: string | null; updated: number }>;
+  places?: Record<string, { folder: string | null; updated: number }>;
 }
 
 /** Every composition in one file, to keep somewhere safe or move to another device. */
@@ -366,11 +373,21 @@ export async function exportBackup(): Promise<void> {
     const piece = await loadPiece(e.id);
     if (piece) pieces.push({ id: e.id, updated: e.updated, piece });
   }
+  const shelf = await loadShelf();
+  const folders: NonNullable<Backup['folders']> = {};
+  for (const [id, f] of Object.entries(shelf.folders))
+    if (!f.deleted) folders[id] = { name: f.name, parent: f.parent, updated: f.updated };
+  const places: NonNullable<Backup['places']> = {};
+  for (const e of entries) {
+    const p = shelf.places[e.id];
+    if (p?.folder && folders[p.folder]) places[e.id] = p;
+  }
   const backup: Backup = {
     format: 'time-sculpture-library',
     version: 1,
     saved: new Date().toISOString(),
     pieces,
+    ...(Object.keys(folders).length ? { folders, places } : {}),
   };
   const day = backup.saved.slice(0, 10);
   await deliverFile(
@@ -386,6 +403,21 @@ export async function exportBackup(): Promise<void> {
  */
 async function restoreBackup(raw: Backup): Promise<number> {
   const have = new Map((await listPieces()).map((e) => [e.id, e]));
+  const shelf = await loadShelf();
+  // folders come back where they are missing or older here; a piece goes into its folder
+  const folders: Record<string, Folder> = {};
+  for (const [id, rf] of Object.entries(raw.folders ?? {})) {
+    if (!/^[\w-]{1,80}$/.test(id)) continue;
+    const f = readFolder(rf, Number(rf?.updated) || Date.now());
+    if (f && newer(shelf.folders[id], f)) folders[id] = f;
+  }
+  const places: Record<string, Place> = {};
+  const placeOf = (from: string, to: string) => {
+    const p = raw.places?.[from];
+    if (typeof p?.folder !== 'string' || !(p.folder in (raw.folders ?? {}))) return;
+    if (to === from && shelf.places[to]) return; // placed here already: that stays
+    places[to] = { folder: p.folder, updated: Date.now() };
+  };
   let added = 0;
   for (const entry of raw.pieces ?? []) {
     try {
@@ -398,12 +430,16 @@ async function restoreBackup(raw: Backup): Promise<number> {
     const piece = here
       ? { ...entry.piece, title: `${entry.piece.title} (from backup)` }
       : entry.piece;
-    await savePiece(here ? newId() : entry.id, piece, {
+    const id = here ? newId() : entry.id;
+    await savePiece(id, piece, {
       current: false,
       updated: Number(entry.updated) || Date.now(),
     });
+    placeOf(entry.id, id);
     added++;
   }
+  if (Object.keys(folders).length || Object.keys(places).length)
+    await writeShelf({ folders, places });
   return added;
 }
 

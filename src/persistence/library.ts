@@ -1,5 +1,9 @@
 import { createStore, del, get, set } from 'idb-keyval';
 import type { SavedPiece } from './serialize';
+import { FACTS_V, factsOf } from './facts';
+import type { PieceFacts } from './facts';
+import { emptyShelf } from './shelf';
+import type { Folder, Place, Shelf } from './shelf';
 
 export interface LibraryEntry {
   id: string;
@@ -9,6 +13,8 @@ export interface LibraryEntry {
   strip?: number[];
   /** "4 × 2 · ♩72". */
   meta?: string;
+  /** What it is made of, for sorting and filtering (see facts.ts). */
+  facts?: PieceFacts;
 }
 
 /** The most groups a list picture shows. */
@@ -18,7 +24,11 @@ const STRIP_MAX = 40;
  * A piece as a row of numbers for its picture in the library: sounds as their size, silences
  * negative, the open space as 0.5 + its size (so it is never mistaken for a group).
  */
-export function stripOf(piece: SavedPiece): { strip: number[]; meta: string } {
+export function stripOf(piece: SavedPiece): {
+  strip: number[];
+  meta: string;
+  facts: PieceFacts;
+} {
   const v2 = piece as Partial<SavedPiece>;
   const side = (gs: SavedPiece['start'] | undefined) =>
     (gs ?? []).map((g) => (g.rest ? -g.pulses : g.pulses));
@@ -30,13 +40,14 @@ export function stripOf(piece: SavedPiece): { strip: number[]; meta: string } {
   const meta = v2.beatsPerCycle
     ? `${v2.modulations?.length ? `${v2.cycles} bars` : `${v2.beatsPerCycle} × ${v2.cycles}`} · ♩${v2.tempo}`
     : '';
-  return { strip, meta };
+  return { strip, meta, facts: factsOf(piece) };
 }
 
 const store =
   typeof indexedDB !== 'undefined' ? createStore('time-sculpture', 'library') : undefined;
 const INDEX = 'index';
 const CURRENT = 'current';
+const SHELF = 'shelf';
 
 /**
  * Every change to the library waits for the one before it. The list is read, changed and written
@@ -69,7 +80,7 @@ async function listNow(): Promise<LibraryEntry[]> {
   // pieces saved before the list had pictures get theirs now
   let changed = false;
   for (const e of idx) {
-    if (e.strip) continue;
+    if (e.strip && e.facts?.v === FACTS_V) continue;
     const piece = await get<SavedPiece>(`piece:${e.id}`, store);
     Object.assign(e, piece ? stripOf(piece) : { strip: [] });
     changed = true;
@@ -114,6 +125,12 @@ export const deletePiece = (id: string, opts: { remote?: boolean } = {}): Promis
     await del(`piece:${id}`, store);
     const idx = ((await get<LibraryEntry[]>(INDEX, store)) ?? []).filter((e) => e.id !== id);
     await set(INDEX, idx, store);
+    // its place in a folder goes with it (here only: the other devices delete the piece too)
+    const shelf = await get<Shelf>(SHELF, store);
+    if (shelf?.places[id]) {
+      delete shelf.places[id];
+      await set(SHELF, shelf, store);
+    }
     if (!opts.remote) onChange?.({ id, updated: Date.now(), deleted: true });
   });
 
@@ -126,3 +143,35 @@ export const currentPieceId = (): Promise<string | undefined> =>
 
 export const setCurrentPieceId = (id: string): Promise<void> =>
   serial(() => set(CURRENT, id, store));
+
+/* ------------------------------------------------------------------ folders (see shelf.ts) */
+
+/** Folder records are sent as "f-<id>", a piece's place as "p-<piece id>". */
+export const folderKey = (id: string) => `f-${id}`;
+export const placeKey = (pieceId: string) => `p-${pieceId}`;
+export const isShelfKey = (key: string) => key.startsWith('f-') || key.startsWith('p-');
+
+export const loadShelf = (): Promise<Shelf> =>
+  serial(async () => (await get<Shelf>(SHELF, store)) ?? emptyShelf());
+
+/**
+ * Write folder and place records. Each one is told to the sync (unless it came from another
+ * device), so it goes to the other devices with its date.
+ */
+export const writeShelf = (
+  change: { folders?: Record<string, Folder>; places?: Record<string, Place> },
+  opts: { remote?: boolean } = {},
+): Promise<Shelf> =>
+  serial(async () => {
+    const shelf = (await get<Shelf>(SHELF, store)) ?? emptyShelf();
+    for (const [id, f] of Object.entries(change.folders ?? {})) shelf.folders[id] = f;
+    for (const [id, p] of Object.entries(change.places ?? {})) shelf.places[id] = p;
+    await set(SHELF, shelf, store);
+    if (!opts.remote) {
+      for (const [id, f] of Object.entries(change.folders ?? {}))
+        onChange?.({ id: folderKey(id), updated: f.updated, deleted: !!f.deleted });
+      for (const [id, p] of Object.entries(change.places ?? {}))
+        onChange?.({ id: placeKey(id), updated: p.updated, deleted: false });
+    }
+    return shelf;
+  });

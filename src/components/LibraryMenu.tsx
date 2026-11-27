@@ -21,48 +21,16 @@ import {
 import { clearAll, toast } from '../state/actions';
 import { sameGridDoc, surpriseDoc } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
-import { inkFor, sizeColor } from '../score/colors';
 import { SyncSection } from './SyncSection';
 import { SYNCED } from '../persistence/sync';
 import { MenuIcon, ChevronIcon, DiceIcon, ShareIcon } from './Icons';
-
-const when = (t: number) =>
-  new Date(t).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-/** A piece at a glance: its groups as coloured bars, silences and the open space as gaps. */
-function Mini({ strip }: { strip: number[] }) {
-  if (!strip.length) return null;
-  return (
-    <span className="mini" aria-hidden="true">
-      {strip.map((n, i) => {
-        const open = !Number.isInteger(n);
-        const size = Math.abs(open ? n - 0.5 : n);
-        return (
-          <span
-            key={i}
-            className={open ? 'open' : n < 0 ? 'rest' : ''}
-            style={{
-              flexGrow: size,
-              ...(n > 0 && !open ? { background: sizeColor(n), color: inkFor(sizeColor(n)) } : {}),
-            }}
-          />
-        );
-      })}
-    </span>
-  );
-}
+import { LibraryList, placeInOpenFolder } from './LibraryList';
 
 export function LibraryMenu() {
   const dialog = useRef<HTMLDialogElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
-  const [confirm, setConfirm] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [opened, setOpened] = useState(0);
   const [sharing, setSharing] = useState(false);
   const currentId = useUiStore((s) => s.currentId);
   const currentName = useUiStore((s) => s.currentName);
@@ -79,8 +47,7 @@ export function LibraryMenu() {
   const open = async () => {
     await saveNow();
     await refresh();
-    setConfirm(null);
-    setQuery('');
+    setOpened((n) => n + 1);
     dialog.current?.showModal();
   };
   const close = () => dialog.current?.close();
@@ -122,8 +89,12 @@ export function LibraryMenu() {
     }
   };
 
-  const q = query.trim().toLowerCase();
-  const shown = q ? entries.filter((e) => e.name.toLowerCase().includes(q)) : entries;
+  /** A new piece made here goes into the folder the list shows. */
+  const make = (fn: () => Promise<void>) =>
+    after(async () => {
+      await fn();
+      await placeInOpenFolder(useUiStore.getState().currentId);
+    });
 
   return (
     <>
@@ -157,7 +128,7 @@ export function LibraryMenu() {
                 type="button"
                 className="primary"
                 title="An empty piece: 4 beats × 2 bars"
-                onClick={() => void after(() => createPiece())}
+                onClick={() => void make(() => createPiece())}
               >
                 Blank
               </button>
@@ -165,7 +136,7 @@ export function LibraryMenu() {
                 type="button"
                 title="The same beats, bars and subdivisions as this piece, with nothing written"
                 onClick={() =>
-                  void after(() => createPiece(sameGridDoc(useDocStore.getState().doc), 'Untitled'))
+                  void make(() => createPiece(sameGridDoc(useDocStore.getState().doc), 'Untitled'))
                 }
               >
                 Same grid
@@ -173,7 +144,7 @@ export function LibraryMenu() {
               <button
                 type="button"
                 title="A copy of this piece to take somewhere else"
-                onClick={() => void after(duplicatePiece)}
+                onClick={() => void make(duplicatePiece)}
               >
                 Duplicate
               </button>
@@ -181,7 +152,7 @@ export function LibraryMenu() {
                 type="button"
                 title="A meter and a phrase with a shape that already lands on 1, to answer or bend"
                 onClick={() =>
-                  void after(() => {
+                  void make(() => {
                     const s = surpriseDoc();
                     return createPiece(s.doc, s.name);
                   })
@@ -262,66 +233,15 @@ export function LibraryMenu() {
 
           <SyncSection />
 
-          <section className="lib-sec" aria-labelledby="lib-all">
-            <div className="lib-list-head">
-              <h3 id="lib-all">
-                Compositions <span className="dim">{entries.length}</span>
-              </h3>
-              {entries.length > 6 && (
-                <input
-                  type="search"
-                  dir="auto"
-                  className="lib-search"
-                  placeholder="Search"
-                  aria-label="Search compositions"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              )}
-            </div>
-            <ul className="lib-list" aria-label="Saved compositions">
-              {shown.map((e) => (
-                <li key={e.id} className={e.id === currentId ? 'current' : ''}>
-                  <button
-                    type="button"
-                    className="lib-open"
-                    aria-current={e.id === currentId}
-                    onClick={() => void after(() => openPiece(e.id))}
-                  >
-                    <span className="lib-line">
-                      <span className="t" dir="auto">
-                        {e.name}
-                      </span>
-                      <span className="d">
-                        {e.meta ? `${e.meta} · ` : ''}
-                        {e.id === currentId ? 'open now' : when(e.updated)}
-                      </span>
-                    </span>
-                    <Mini strip={e.strip ?? []} />
-                  </button>
-                  {confirm === e.id ? (
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => void after(() => removePiece(e.id), false)}
-                    >
-                      Delete?
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="ghost"
-                      aria-label={`Delete ${e.name}`}
-                      onClick={() => setConfirm(e.id)}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {q && !shown.length && <p className="lib-note">Nothing called “{query.trim()}”.</p>}
-          </section>
+          <LibraryList
+            entries={entries}
+            currentId={currentId}
+            opened={opened}
+            onOpen={(id) => void after(() => openPiece(id))}
+            onDelete={async (ids) => {
+              for (const id of ids) await after(() => removePiece(id), false);
+            }}
+          />
 
           <form
             className="lib-rename"

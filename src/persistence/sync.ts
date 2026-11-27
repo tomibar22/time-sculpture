@@ -1,4 +1,16 @@
-import { libraryIndex, loadPiece, savePiece, setChangeListener } from './library';
+import {
+  folderKey,
+  isShelfKey,
+  libraryIndex,
+  loadPiece,
+  loadShelf,
+  placeKey,
+  savePiece,
+  setChangeListener,
+  writeShelf,
+} from './library';
+import { newer, readFolder } from './shelf';
+import type { Shelf } from './shelf';
 import { reloadOpen, removePiece, saveNow } from './session';
 import { fromSaved } from './serialize';
 import type { SavedPiece } from './serialize';
@@ -151,6 +163,49 @@ function queue(id: string, updated: number, deleted: boolean) {
   later(1500);
 }
 
+/* ------------------------------------------------------------------ folders */
+/**
+ * A folder is a row "f-<id>" (the piece is {folder: {name, parent}}), a piece's place a row
+ * "p-<piece id>" ({place: folder id | null}). Both follow the newest-change-wins rule on their
+ * own, so moving a piece never touches the piece (or its date).
+ */
+function shelfRow(shelf: Shelf, key: string, deleted: boolean) {
+  const id = key.slice(2);
+  if (key.startsWith('f-')) {
+    const f = shelf.folders[id];
+    if (!f) return undefined;
+    const gone = deleted || !!f.deleted;
+    return {
+      name: gone ? '' : f.name,
+      deleted: gone,
+      piece: gone ? null : { folder: { name: f.name, parent: f.parent } },
+    };
+  }
+  const p = shelf.places[id];
+  if (!p) return undefined;
+  return { name: '', deleted: false, piece: { place: p.folder } };
+}
+
+/** A folder or a place from the server, if it is newer than the one here. */
+async function takeShelf(row: Row): Promise<boolean> {
+  const shelf = await loadShelf();
+  const id = row.id.slice(2);
+  if (row.id.startsWith('f-')) {
+    const raw = (row.piece as { folder?: unknown } | null)?.folder;
+    const f = readFolder(raw, row.updated, row.deleted);
+    if (!f || !newer(shelf.folders[id], f)) return false;
+    await writeShelf({ folders: { [id]: f } }, { remote: true });
+    return true;
+  }
+  if (row.deleted) return false;
+  const raw = (row.piece as { place?: unknown } | null)?.place;
+  const folder = typeof raw === 'string' && /^[\w-]{1,80}$/.test(raw) ? raw : null;
+  const p = { folder, updated: row.updated };
+  if (!newer(shelf.places[id], p)) return false;
+  await writeShelf({ places: { [id]: p } }, { remote: true });
+  return true;
+}
+
 /* ------------------------------------------------------------------ one round */
 
 let running: Promise<void> | undefined;
@@ -204,10 +259,16 @@ async function round(): Promise<void> {
 async function push(code: string): Promise<void> {
   const out = outbox();
   const ids = Object.keys(out);
+  const shelf = ids.some(isShelfKey) ? await loadShelf() : undefined;
   for (let i = 0; i < ids.length; i += 50) {
     const pieces = [];
     for (const id of ids.slice(i, i + 50)) {
       const o = out[id]!;
+      if (shelf && isShelfKey(id)) {
+        const r = shelfRow(shelf, id, o.deleted);
+        if (r) pieces.push({ id, updated: o.updated, ...r });
+        continue;
+      }
       if (isMotifId(id)) {
         const sizes = motifSizes(id);
         pieces.push({
@@ -256,6 +317,7 @@ async function take(row: Row, here: number | undefined): Promise<boolean> {
   if (isMotifId(row.id)) return takeMotif(row);
   const waiting = outbox()[row.id];
   if (waiting && waiting.updated >= row.updated) return false; // ours is newer: it goes up next
+  if (isShelfKey(row.id)) return takeShelf(row);
   if (row.deleted) {
     if (here === undefined || here > row.updated) return false;
     await removePiece(row.id, { remote: true });
@@ -296,6 +358,12 @@ export async function connect(code: string): Promise<'ok' | 'bad-code' | 'not-se
     meta[id] = { updated: now, deleted: false };
   }
   write(MOTIF_META, meta);
+  // and the folders, and where each piece is
+  const shelf = await loadShelf();
+  for (const [id, f] of Object.entries(shelf.folders))
+    out[folderKey(id)] = { updated: f.updated, deleted: !!f.deleted };
+  for (const [id, p] of Object.entries(shelf.places))
+    out[placeKey(id)] = { updated: p.updated, deleted: false };
   write(OUT, { ...outbox(), ...out });
   setState({ on: true, status: 'idle' });
   await syncNow();

@@ -4711,3 +4711,448 @@ button.pat-cell.one[aria-pressed='true'] {
     padding: 0 12px;
   }
 }
+
+/* ---------------------------------------------------------------- library: folders, sort, filter
+   (user request: order and calm. One line of tools, filters folded away, each row's own actions
+   behind its ⋯, nothing shouts) */
+.lib-browse {
+  gap: 12px;
+}
+.lib-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+button.lib-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-weight: 600;
+}
+button.lib-tool[aria-pressed='true'] {
+  color: var(--accent);
+}
+.lib-browse .lib-search {
+  width: 100%;
+  min-height: 44px;
+  font-size: 16px; /* iOS zooms into anything smaller */
+  padding: 0 14px;
+}
+.lib-view {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.lib-gap {
+  flex: 1 1 auto;
+}
+.lib-sort {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--touch);
+  padding: 0 10px;
+  border-radius: var(--r-control);
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+.lib-sort select {
+  field-sizing: content;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 18px 0 0;
+  min-height: var(--touch);
+  cursor: pointer;
+}
+.lib-sort svg:last-child {
+  position: absolute;
+  right: 8px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.lib-reverse {
+  min-width: var(--touch);
+  justify-content: center;
+  font-size: 1.05rem;
+}
+.lib-filter-btn[data-on] {
+  color: var(--accent);
+}
+.lib-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  line-height: 20px;
+  text-align: center;
+}
+.lib-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--soft);
+}
+.lib-filters[hidden] {
+  display: none;
+}
+.lib-fgroup {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  align-items: start;
+  gap: 4px 12px;
+}
+.lib-flabel {
+  padding-top: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.lib-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+button.lib-chip {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 600;
+  font-size: 0.86rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+button.lib-chip .n {
+  font-family: var(--f-mono);
+  font-weight: 400;
+  font-size: 0.74rem;
+  color: var(--faint);
+}
+button.lib-chip[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+button.lib-chip[aria-pressed='true'] .n {
+  color: inherit;
+  opacity: 0.7;
+}
+@media (max-width: 560px) {
+  .lib-fgroup {
+    grid-template-columns: 1fr;
+  }
+  .lib-flabel {
+    padding-top: 0;
+  }
+  .lib-browse .tool-lbl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+/* where you are: Library / Etudes / Tihais */
+.lib-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
+  font-size: 0.95rem;
+}
+.lib-path button.ghost {
+  padding: 0 8px;
+  min-height: 36px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.lib-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.lib-path .sep {
+  color: var(--faint);
+}
+.lib-path .here {
+  padding: 0 8px;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.lib-scope,
+.lib-done {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.lib-done {
+  color: var(--fg);
+}
+.lib-empty {
+  margin: 0;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border-radius: 16px;
+  border: 1.5px dashed var(--line);
+}
+/* rows: a folder is quiet (no picture), a piece has its picture; actions open under the row */
+.lib-browse .lib-list {
+  gap: 8px;
+}
+.lib-browse .lib-list li {
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-radius: 14px;
+}
+.lib-browse .lib-list li > .lib-open {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.lib-dir {
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 52px;
+}
+.lib-dir svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.lib-browse .lib-dir .t {
+  flex: 1 1 auto;
+  max-width: none;
+  min-width: 0;
+  white-space: nowrap;
+}
+.lib-dir .n {
+  margin-left: auto;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  color: var(--faint);
+}
+.lib-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-where svg {
+  width: 13px;
+  height: 13px;
+}
+.lib-browse .lib-open .d {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.lib-browse .lib-open .t {
+  flex-shrink: 0;
+  max-width: 70%;
+}
+button.lib-more {
+  color: var(--faint);
+  min-width: 40px;
+  padding: 0 6px;
+}
+.lib-list li.open button.lib-more {
+  color: var(--fg);
+}
+.lib-acts {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 4px 0 6px;
+}
+.lib-acts > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lib-acts-note {
+  flex: 1 1 12rem;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.lib-rename-folder {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 6px;
+}
+.lib-rename-folder input,
+.lib-move-new input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--touch);
+  border-radius: var(--r-control);
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--fg);
+  font: inherit;
+  font-size: 16px;
+  padding: 0 12px;
+}
+.lib-check {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 0 2px;
+}
+.lib-check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+.lib-list li.picked .lib-open {
+  box-shadow: inset 0 0 0 2px var(--sel);
+}
+/* a drop onto a folder (mouse, trackpad) */
+.lib-list li[data-drop] .lib-open,
+.lib-path button[data-drop] {
+  background: color-mix(in srgb, var(--accent) 14%, var(--soft));
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.lib-list li[draggable='true'] .lib-open {
+  cursor: pointer;
+}
+/* several selected: what can be done with them, kept at the foot while the list scrolls */
+.lib-selbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 -20px;
+  padding: 12px 20px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+.lib-selcount {
+  flex: 1 1 auto;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+/* Move to: the folders as a tree */
+dialog.lib-move {
+  border: 0;
+  padding: 0;
+  border-radius: var(--r-panel);
+  background: var(--card);
+  color: var(--fg);
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 64px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+dialog.lib-move::backdrop {
+  background: rgba(10, 12, 15, 0.35);
+}
+.lib-move-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+.lib-sec .lib-move-inner h3 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+.lib-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 50dvh;
+  overflow-y: auto;
+}
+.lib-tree button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font-weight: 600;
+  background: transparent;
+  padding-left: calc(12px + var(--depth, 0) * 22px);
+}
+.lib-tree button svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.lib-tree button .t {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-tree .here {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.lib-tree button:disabled {
+  opacity: 1;
+  color: var(--faint);
+}
+@media (hover: hover) {
+  .lib-tree button:hover:not(:disabled) {
+    background: var(--soft);
+  }
+}
+.lib-move-new {
+  display: flex;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.lib-move-foot {
+  display: flex;
+  justify-content: flex-end;
+}

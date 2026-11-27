@@ -99,6 +99,7 @@ test('a composition saved on one device appears, changes and goes away on the ot
 
   // B deletes it; A lets it go too
   await library(b);
+  await b.getByRole('button', { name: 'More for From the iPhone' }).click();
   await b.getByRole('button', { name: 'Delete From the iPhone' }).click();
   await b.getByRole('button', { name: 'Delete?' }).click();
   await syncNow(b);
@@ -157,6 +158,38 @@ test('a fill kept with the heart on one device is kept on the other, and let go 
   await syncNow(b);
   await syncNow(a);
   await expect.poll(() => kept(a)).toHaveLength(0);
+  await ctxA.close();
+  await ctxB.close();
+});
+
+test('folders, and the folder a piece is in, go to the other device', async ({ browser }) => {
+  const serve = fakeServer();
+  const ctxA = await browser.newContext();
+  const ctxB = await browser.newContext();
+  await serve(ctxA);
+  await serve(ctxB);
+  const a = await device(ctxA);
+  const b = await device(ctxB);
+  await join(a);
+  await join(b);
+
+  // A makes a folder and moves its piece in
+  await library(a);
+  await a.getByRole('button', { name: 'New folder' }).click();
+  await a.getByLabel('Name of the folder').fill('Etudes');
+  await a.getByLabel('Name of the folder').press('Enter');
+  await a.getByRole('button', { name: 'More for First phrase' }).first().click();
+  await a.getByRole('button', { name: 'Move to…' }).click();
+  await a.getByRole('dialog', { name: /^Move/ }).getByRole('button', { name: 'Etudes' }).click();
+  await syncNow(a);
+  await syncNow(b);
+
+  // B sees the folder with A's piece in it
+  const folder = list(b).getByRole('button', { name: /^Etudes/ });
+  await expect(folder).toBeVisible();
+  await expect(folder).toContainText('1');
+  await folder.click();
+  await expect(list(b).getByRole('listitem')).toHaveCount(1);
   await ctxA.close();
   await ctxB.close();
 });

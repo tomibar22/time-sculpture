@@ -102,6 +102,7 @@ test('back up the whole library and bring it back', async ({ page }) => {
   await expect(list.getByRole('listitem')).toHaveCount(2);
 
   // delete one, restore: it comes back
+  await page.getByRole('button', { name: 'More for First phrase' }).click();
   await page.getByRole('button', { name: 'Delete First phrase' }).click();
   await page.getByRole('button', { name: 'Delete?' }).click();
   await expect(list.getByRole('listitem')).toHaveCount(1);
