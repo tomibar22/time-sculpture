@@ -80,7 +80,13 @@ export function run(result: OpResult, opts: RunOpts): boolean {
   // silences side by side become one stretch of empty time
   const joined = E.joinRests(result.doc);
   const next =
-    joined !== result.doc && result.doc.chords ? { ...joined, chords: result.doc.chords } : joined;
+    joined !== result.doc && (result.doc.chords || result.doc.colors)
+      ? {
+          ...joined,
+          ...(result.doc.chords ? { chords: result.doc.chords } : {}),
+          ...(result.doc.colors ? { colors: result.doc.colors } : {}),
+        }
+      : joined;
   useDocStore.getState().commit(next, opts.label);
   if (opts.select === 'none') setUi({ selection: [], anchor: null });
   else if (opts.select && opts.select !== 'keep')
@@ -333,9 +339,20 @@ export function duplicateSelection(): void {
       return c ? [[id, c]] : [];
     }),
   );
-  const r = Object.keys(copied).length
-    ? { ...r0, doc: { ...r0.doc, chords: { ...(base.chords ?? {}), ...copied } } }
-    : r0;
+  const paints = Object.fromEntries(
+    r0.report.created.flatMap((id, i) => {
+      const c = base.colors?.[from[i] ?? ''];
+      return c ? [[id, c]] : [];
+    }),
+  );
+  const r = {
+    ...r0,
+    doc: {
+      ...r0.doc,
+      ...(Object.keys(copied).length ? { chords: { ...(base.chords ?? {}), ...copied } } : {}),
+      ...(Object.keys(paints).length ? { colors: { ...(base.colors ?? {}), ...paints } } : {}),
+    },
+  };
   if (
     run(r, {
       label: `dup ${desc(before, sel)}`,

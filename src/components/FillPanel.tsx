@@ -14,6 +14,7 @@ import {
 import { describePulse } from '../state/editing';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { usePalette } from './usePalette';
 import {
   Contour,
   GroupHead,
@@ -43,6 +44,7 @@ type Listed = FillOption & { note?: string };
 
 /** Docked panel for filling the selected region (or the open space) randomly or by browsing. */
 export function FillPanel() {
+  usePalette();
   const tab = useUiStore((s) => s.fillPanel);
   const sizes = useUiStore((s) => s.fillSizes);
   const set = useUiStore((s) => s.set);

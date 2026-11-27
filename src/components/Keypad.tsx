@@ -5,6 +5,7 @@ import { caretHome, deleteAtCaret, moveCaret, typeDigit, typeSize } from '../sta
 import * as E from '../engine';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { usePalette } from './usePalette';
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -13,6 +14,7 @@ const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
  * caret (or replaces the selection).
  */
 export function Keypad() {
+  usePalette();
   // how many pulses a typed group may have right now: the range, or the selected tiles plus the
   // open space, or the open space; longer keys are dimmed (they still say why when tapped)
   const doc = useDocStore((s) => s.doc);

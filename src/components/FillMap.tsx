@@ -4,6 +4,7 @@ import type { FillOption } from '../engine';
 import { previewFill } from '../state/fill';
 import { useUiStore } from '../state/store';
 import { sizeColor } from '../score/colors';
+import { usePalette } from './usePalette';
 
 /** The size heard most often in a fill (its colour on the map). */
 function mainSize(sizes: number[]): number {
@@ -35,6 +36,7 @@ export function FillMap({
   onCand: (o: FillOption | null) => void;
   onUse: (o: FillOption) => void;
 }) {
+  usePalette();
   const axes = useUiStore((s) => s.fillAxes);
   const set = useUiStore((s) => s.set);
   const box = useRef<HTMLDivElement>(null);

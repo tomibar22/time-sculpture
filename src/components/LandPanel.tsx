@@ -4,6 +4,7 @@ import { describePulse } from '../state/editing';
 import { fillRegion, previewLanding, toggleMotif, writeLanding } from '../state/fill';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { usePalette } from './usePalette';
 import {
   GroupHead,
   Heart,
@@ -82,6 +83,7 @@ const NOTED = new Set<E.LandingKind>([
  * what is before its first tile stays as it is.
  */
 export function LandPanel() {
+  usePalette();
   const sizesPattern = useUiStore((s) => s.landPattern);
   const lsPattern = useUiStore((s) => s.landLS);
   const mode = useUiStore((s) => s.landMode);

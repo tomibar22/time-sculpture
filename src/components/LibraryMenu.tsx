@@ -22,6 +22,7 @@ import { clearAll, toast } from '../state/actions';
 import { sameGridDoc, surpriseDoc } from '../state/defaults';
 import { useDocStore, useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { usePalette } from './usePalette';
 import { SyncSection } from './SyncSection';
 import { SYNCED } from '../persistence/sync';
 import { MenuIcon, ChevronIcon, DiceIcon, ShareIcon } from './Icons';
@@ -36,6 +37,7 @@ const when = (t: number) =>
 
 /** A piece at a glance: its groups as coloured bars, silences and the open space as gaps. */
 function Mini({ strip }: { strip: number[] }) {
+  usePalette();
   if (!strip.length) return null;
   return (
     <span className="mini" aria-hidden="true">

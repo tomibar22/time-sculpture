@@ -13,6 +13,7 @@ import {
   toggleRepeatStart,
   toggleDoubleBar,
   setChord,
+  setColors,
 } from '../engine';
 import { decodeShare, encodeShare, fromSaved, toSaved } from './serialize';
 
@@ -193,5 +194,12 @@ describe('chords', () => {
     const back = fromSaved(JSON.parse(JSON.stringify(saved)));
     expect(Object.values(back.doc.chords ?? {})).toEqual(['Dbmaj7(#5)']);
     expect(back.doc.chords?.[back.doc.items[1]!.id]).toBe('Dbmaj7(#5)');
+  });
+  it('tile colours are saved on their groups and come back', () => {
+    const d = setColors(doc, [doc.items[1]!.id], () => '#a1b2c3');
+    const saved = toSaved(d, 'With colours', settings);
+    expect(saved.start[1]).toEqual({ pulses: 3, color: '#a1b2c3' });
+    const back = fromSaved(JSON.parse(JSON.stringify(saved)));
+    expect(back.doc.colors?.[back.doc.items[1]!.id]).toBe('#a1b2c3');
   });
 });

@@ -46,6 +46,7 @@ import {
 } from '../state/editing';
 import { openFill } from '../state/fill';
 import { chordTarget, openChord } from '../state/chords';
+import { hasOwnColor, randomColor, resetColor } from '../state/tileColors';
 import { cancelSwap, swapNow, swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
 import { ChevronIcon, CloseIcon, TrashIcon } from './Icons';
@@ -184,6 +185,24 @@ export function SelectionBar() {
                 onClick={() => openChord()}
               >
                 Chord…
+              </button>
+            )}
+            {sel.some((x) => x.kind === 'sound') && (
+              <button
+                type="button"
+                title="Give the tile a new random colour (H)"
+                onClick={randomColor}
+              >
+                Random colour
+              </button>
+            )}
+            {hasOwnColor(sel.map((x) => x.id)) && (
+              <button
+                type="button"
+                title="Back to the colour of its size (⇧H)"
+                onClick={resetColor}
+              >
+                Size colour
               </button>
             )}
             <button

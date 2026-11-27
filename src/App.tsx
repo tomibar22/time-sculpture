@@ -14,6 +14,7 @@ import { useTouchUndo } from './components/useTouchUndo';
 import { TempoDialog } from './components/TempoDialog';
 import { ZoomHud } from './components/ZoomControl';
 import { Options } from './components/Options';
+import { Colours } from './components/Colours';
 import { SelectionBar } from './components/SelectionBar';
 import { Status } from './components/Status';
 import { DOCKED, useMedia } from './components/useMedia';
@@ -65,6 +66,7 @@ export function App() {
         </section>
 
         <Options />
+        <Colours />
         <Help />
       </main>
       <Dock />

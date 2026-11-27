@@ -4711,3 +4711,22 @@ button.pat-cell.one[aria-pressed='true'] {
     padding: 0 12px;
   }
 }
+.palettes {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.palette-name {
+  min-width: 4.5em;
+}
+.palette-swatches {
+  display: flex;
+  gap: 2px;
+}
+.palette-swatches i {
+  width: 14px;
+  height: 18px;
+  border-radius: 4px;
+}

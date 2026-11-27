@@ -623,7 +623,8 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
 - Keys: Space play/stop · ⇧Space loop the selection / play from the caret · ⇧V vary · ? help · ←/→ move · Delete remove · M merge · S split ·
   D duplicate · Z undo · Y or ⇧⌘Z redo · ⌘A / ⇧A select all · Esc clear · 1–9 type · ⌘C/X/V ·
   ⌥←/→ trim end · ⌥⇧←/→ trim start · B brush · Enter line break · P phrase mark · T modulate ·
-  [ ] repeat signs · V ending · +/− on an end sign: times · F stage · G total · ⇧P name mark.
+  [ ] repeat signs · V ending · +/− on an end sign: times · F stage · G total · ⇧P name mark ·
+  H random tile colour · ⇧H its size's colour.
 - Toasts for anything non-obvious, with Undo: a small pill (0.8rem), 1.5 s, or 3 s with a button
   (user request: they were too big and stayed too long); the button keeps a ≥ 44 px hit area. aria-live announcements. Touch targets ≥ 44 px.
 - Pointer Events; `touch-action: pan-y` on the canvas (a vertical swipe scrolls the page and
@@ -802,6 +803,16 @@ startDialog`. Settings: "Add or remove bars…", "Metre…"; caret bar: Row…, 
 
 Size colours (index = size, cycling 1–12): 1 #7d8794, 2 #159a90, 3 #4b5fd3, 4 #d4961c,
 5 #c43a5c, 6 #3c9550, 7 #8657d3, 8 #d97424, 9 #2399bd, 10 #a8448a, 11 #66792a, 12 #bf432a.
+**Tile palettes** (user request; `TILE_PALETTES` in score/colors.ts): Classic (the colours above,
+the default), Pastel, Ocean, Earth, Jewel, Sunset. `ui.palette` (device pref) → `setTilePalette`
+(store subscription); `sizeColor(n)` reads the active palette, so components drawing with it call
+`usePalette()` to re-render. Chosen in the **Colours** section under Sound (radios with swatches).
+**A tile's own colour** (user request): `doc.colors {groupId: '#rrggbb'}` (engine/doc.ts
+`setColors`, carried by the store's commit like chords: `carryColors`; removing all leaves `{}`
+so the commit does not bring them back); `tileColor(n, own)` in draw.ts. H = a random colour
+(`randomTileColor`, mid lightness) for the selection / range / tile at the caret, ⇧H = back to
+its size's colour (state/tileColors.ts); "Random colour" / "Size colour" in the tile bar's More
+and the tile menu. Duplicate copies it; file `FileGroup.color`.
 Fonts: Bricolage Grotesque (display), Atkinson Hyperlegible (body), IBM Plex Mono (numbers).
 Tile text colour is picked per size colour by contrast (`inkFor`). Light --land/--warn and size 5
 were darkened from the prototype to meet WCAG AA for text.

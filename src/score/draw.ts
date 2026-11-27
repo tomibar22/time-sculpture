@@ -11,7 +11,7 @@ import {
   startOf,
 } from '../engine';
 import type { ClickPattern, Doc, ItemId } from '../engine';
-import { inkFor, sizeColor } from './colors';
+import { inkFor, tileColor } from './colors';
 import type { Palette } from './colors';
 import {
   blockTop,
@@ -393,7 +393,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
           c.shadowColor = 'rgba(0,0,0,.28)';
           c.shadowBlur = 14;
           c.shadowOffsetY = 6;
-          c.fillStyle = isSpace(x) ? P.card : sizeColor(x.n);
+          c.fillStyle = isSpace(x) ? P.card : tileColor(x.n, doc.colors?.[x.id]);
           rr(c, X, ty + 2, W, L.tileH - 4, 9);
           c.fill();
           c.restore();
@@ -426,7 +426,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
             c.globalAlpha = 1;
           }
         } else {
-          const col = sizeColor(x.n);
+          const col = tileColor(x.n, doc.colors?.[x.id]);
           c.fillStyle = col;
           rr(c, X, ty + 2, W, L.tileH - 4, 9);
           c.fill();
@@ -481,7 +481,7 @@ export function drawScore(c: CanvasRenderingContext2D, g: Geo, s: DrawState, P: 
         // the width still tell the size)
         const chordAlone = !!chord && !chordFits(c, chord, W - (W > 26 ? 8 : 4) - 22);
         if (W > 15 && (x.kind !== 'rest' || showRestNumber) && !chordAlone) {
-          c.fillStyle = x.kind === 'rest' ? P.muted : inkFor(sizeColor(x.n));
+          c.fillStyle = x.kind === 'rest' ? P.muted : inkFor(tileColor(x.n, doc.colors?.[x.id]));
           c.globalAlpha = seg.first ? 1 : 0.6;
           c.font = `600 ${W > 26 ? 16 : 12}px ${MONO}`;
           c.textAlign = 'left';

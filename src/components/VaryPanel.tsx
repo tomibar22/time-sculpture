@@ -10,6 +10,7 @@ import {
 } from '../state/fill';
 import { useUiStore } from '../state/store';
 import { inkFor, sizeColor } from '../score/colors';
+import { usePalette } from './usePalette';
 import {
   Contour,
   GroupHead,
@@ -40,6 +41,7 @@ interface Node {
  * and the trail above takes you back to any earlier one.
  */
 export function VaryPanel() {
+  usePalette();
   const region = fillRegion();
   const beats = useRegionBeats();
   const [tree, setTree] = useState<Node[]>([]);

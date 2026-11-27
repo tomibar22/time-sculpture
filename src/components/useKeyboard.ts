@@ -48,6 +48,7 @@ import {
 import { useDocStore, useUiStore } from '../state/store';
 import { swapNow, swapStep } from '../state/swap';
 import { openChord } from '../state/chords';
+import { randomColor, resetColor } from '../state/tileColors';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { closeFill, fillRegion, openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
@@ -261,6 +262,8 @@ export function useKeyboard() {
       if (k === 'a' && e.shiftKey) return void (e.preventDefault(), selectAll());
       if (k === 'c' && !mod && !e.shiftKey && !e.altKey)
         return void (e.preventDefault(), openChord());
+      if (k === 'h' && !mod && !e.altKey)
+        return void (e.preventDefault(), e.shiftKey ? resetColor() : randomColor());
       if (k === 'z') return void (e.preventDefault(), undo());
       if (k === 'y') return void (e.preventDefault(), redo());
       if (e.key === 'Escape') {

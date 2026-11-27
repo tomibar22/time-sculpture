@@ -1,6 +1,7 @@
 import {
   buildGrid,
   MAX_CHORD,
+  isTileColor,
   MAX_MARK_NAME,
   nearestPulse,
   checkInvariants,
@@ -36,6 +37,8 @@ export interface FileGroup {
   rest?: true;
   /** A chord symbol written over the group (free text). */
   chord?: string;
+  /** A colour of the tile's own ("#rrggbb"), over its size's colour. */
+  color?: string;
 }
 
 /** A sounding group in time, derived for other programs (ignored when reading). */
@@ -127,9 +130,11 @@ export function toSaved(
   const fg = (x: Item): FileGroup =>
     x.kind === 'rest'
       ? { pulses: x.n, rest: true }
-      : doc.chords?.[x.id]
-        ? { pulses: x.n, chord: doc.chords[x.id] }
-        : { pulses: x.n };
+      : {
+          pulses: x.n,
+          ...(doc.chords?.[x.id] ? { chord: doc.chords[x.id] } : {}),
+          ...(doc.colors?.[x.id] ? { color: doc.colors[x.id] } : {}),
+        };
   const piece: SavedPiece = {
     format: 'time-sculpture',
     version: 2,
@@ -281,11 +286,13 @@ export function fromSaved(raw: unknown): Parsed {
   };
   let next = 1;
   const chords: Record<string, string> = {};
+  const colors: Record<string, string> = {};
   const toItem = (g: unknown): Item => {
     const x = g as Partial<FileGroup> | null;
     const id = `g${next++}`;
     if (!x?.rest && typeof x?.chord === 'string' && x.chord.trim())
       chords[id] = x.chord.trim().slice(0, MAX_CHORD);
+    if (!x?.rest && isTileColor(x?.color)) colors[id] = x.color.toLowerCase();
     return group(id, Number(x?.pulses), x?.rest ? 'rest' : 'sound');
   };
   const start = Array.isArray(p.start) ? p.start.map(toItem) : [];
@@ -315,7 +322,18 @@ export function fromSaved(raw: unknown): Parsed {
     layout.breaks,
     layout.fitRows,
   );
-  return Object.keys(chords).length ? { ...parsed, doc: { ...parsed.doc, chords } } : parsed;
+  const hasChords = Object.keys(chords).length > 0;
+  const hasColors = Object.keys(colors).length > 0;
+  return hasChords || hasColors
+    ? {
+        ...parsed,
+        doc: {
+          ...parsed.doc,
+          ...(hasChords ? { chords } : {}),
+          ...(hasColors ? { colors } : {}),
+        },
+      }
+    : parsed;
 }
 
 function fromV1(p: Record<string, unknown>): Parsed {

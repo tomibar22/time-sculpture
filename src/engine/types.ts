@@ -142,6 +142,11 @@ export interface Doc {
    * a merge keeps the first). Ops do not carry it: the store's commit does (`carryChords`).
    */
   readonly chords?: Readonly<Record<ItemId, string>>;
+  /**
+   * Colours given to single sounding groups ("#rrggbb", by group id), over their size's colour.
+   * Carried like chords by the store's commit (`carryColors`).
+   */
+  readonly colors?: Readonly<Record<ItemId, string>>;
 }
 
 export type FailReason =

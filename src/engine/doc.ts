@@ -389,3 +389,52 @@ export function carryChords(prev: Doc, next: Doc): Doc {
   if (same) return next;
   return { ...next, chords };
 }
+
+/* ------------------------------------------------------------------ tile colours */
+
+export const isTileColor = (v: unknown): v is string =>
+  typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+
+/** The document with these tile colours (an empty map, not none, so a commit carries nothing). */
+function withColors(doc: Doc, colors: Record<ItemId, string>): Doc {
+  return { ...doc, colors };
+}
+
+/** Give sounding groups their own colours (`colorFor(id)`; null = back to the size's colour). */
+export function setColors(
+  doc: Doc,
+  ids: readonly ItemId[],
+  colorFor: (id: ItemId) => string | null,
+): Doc {
+  const colors: Record<ItemId, string> = { ...(doc.colors ?? {}) };
+  let changed = false;
+  for (const id of ids) {
+    const x = doc.items.find((i) => i.id === id);
+    if (!x || x.kind !== 'sound') continue;
+    const c = colorFor(id);
+    if (c && isTileColor(c)) {
+      if (colors[id] !== c) {
+        colors[id] = c;
+        changed = true;
+      }
+    } else if (colors[id]) {
+      delete colors[id];
+      changed = true;
+    }
+  }
+  return changed ? withColors(doc, colors) : doc;
+}
+
+/** Tile colours are carried over an edit like chords (`carryChords`). */
+export function carryColors(prev: Doc, next: Doc): Doc {
+  const src = next.colors ?? prev.colors;
+  if (!src) return next;
+  const colors: Record<ItemId, string> = {};
+  for (const x of next.items) {
+    const c = x.kind === 'sound' ? src[x.id] : undefined;
+    if (c) colors[x.id] = c;
+  }
+  const n = Object.keys(colors).length;
+  if (next.colors && n === Object.keys(next.colors).length) return next;
+  return withColors(next, colors);
+}

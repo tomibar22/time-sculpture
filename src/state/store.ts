@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { CLICK_PATTERN, carryChords, cleanClickPattern } from '../engine';
+import { CLICK_PATTERN, carryChords, carryColors, cleanClickPattern } from '../engine';
+import { DEFAULT_PALETTE, isPaletteId, setTilePalette } from '../score/colors';
 import type {
   ClickPattern,
   Doc,
@@ -56,6 +57,8 @@ export function saveStage(p: StagePrefs): void {
 /** Choices remembered on this device between sessions (not part of any piece). */
 export interface DevicePrefs {
   theme: Theme;
+  /** The tile palette (`TILE_PALETTES` id; 'classic' by default). */
+  palette: string;
   ticks: boolean;
   click: boolean;
   moveMode: MoveMode;
@@ -145,6 +148,7 @@ function loadPrefs(): Partial<DevicePrefs> {
     const p = raw ? (JSON.parse(raw) as Partial<DevicePrefs>) : {};
     const out: Partial<DevicePrefs> = {};
     if (p.theme === 'system' || p.theme === 'light' || p.theme === 'dark') out.theme = p.theme;
+    if (isPaletteId(p.palette)) out.palette = p.palette;
     if (typeof p.ticks === 'boolean') out.ticks = p.ticks;
     if (typeof p.click === 'boolean') out.click = p.click;
     if (p.countIn === 0 || p.countIn === 1 || p.countIn === 2) out.countIn = p.countIn;
@@ -253,7 +257,7 @@ export const useDocStore = create<DocState>((set, get) => ({
   commit: (doc0, label) => {
     const s = get();
     if (doc0 === s.doc) return;
-    const doc = carryChords(s.doc, doc0);
+    const doc = carryColors(s.doc, carryChords(s.doc, doc0));
     set({
       doc,
       past: [...s.past.slice(-(HISTORY_LIMIT - 1)), s.doc],
@@ -453,6 +457,8 @@ export interface UiState {
   /** Count-in: beat (1-based) of `of` in the bar, and the bar (1-based) of `bars`. */
   countdown: { beat: number; of: number; bar?: number; bars?: number } | null;
   theme: Theme;
+  /** The tile palette (device pref). */
+  palette: string;
   /** Live preview during a drag (rendered instead of the document). */
   preview: Doc | null;
   /** Ids of the lifted block during a move drag. */
@@ -554,6 +560,7 @@ export const useUiStore = create<UiState>((set) => ({
   buildPop: null,
   countdown: null,
   theme: 'system',
+  palette: DEFAULT_PALETTE,
   preview: null,
   lifted: [],
   caret: null,
@@ -574,6 +581,7 @@ export const useUiStore = create<UiState>((set) => ({
 useUiStore.subscribe((s, p) => {
   if (
     s.theme !== p.theme ||
+    s.palette !== p.palette ||
     s.ticks !== p.ticks ||
     s.click !== p.click ||
     s.moveMode !== p.moveMode ||
@@ -597,6 +605,7 @@ useUiStore.subscribe((s, p) => {
   )
     savePrefs({
       theme: s.theme,
+      palette: s.palette,
       ticks: s.ticks,
       click: s.click,
       moveMode: s.moveMode,
@@ -618,4 +627,10 @@ useUiStore.subscribe((s, p) => {
       recentFills: s.recentFills,
       landRecent: s.landRecent,
     });
+});
+
+// the tile colours follow the chosen palette
+setTilePalette(useUiStore.getState().palette);
+useUiStore.subscribe((s, p) => {
+  if (s.palette !== p.palette) setTilePalette(s.palette);
 });
