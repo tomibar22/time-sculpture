@@ -513,6 +513,25 @@ pieces: [{id, updated, piece}]}`; "Open a file" restores it additively (unchange
   tombstone). `noteMotif` (called by `toggleMotif`) queues it; `takeMotif` applies a row when it
   is newer than the last local change (`time-sculpture/sync-motifs`); joining sends the hearts
   already kept. Other device prefs (theme, count-in, tiles, sizes) stay per device.
+- **Folders, sorting, filtering** (user request: order and calm; `components/LibraryList.tsx`):
+  folders in folders (`MAX_DEPTH` 8) live in IndexedDB key `shelf` (`persistence/shelf.ts`, pure:
+  `Shelf {folders, places}`; `loadShelf` / `writeShelf` in library.ts). A folder record
+  `{name, parent, updated, deleted?}`, a piece's place `{folder, updated}`: both newest-wins and
+  synced as rows `f-<id>` / `p-<piece id>` (moving never touches the piece or its date). A folder
+  whose parent is gone, or a loop, reads as the top. Deleting a folder moves what is in it one
+  level up (`deleteChanges`). Backups carry `folders` / `places`.
+  Index entries carry `facts` (`persistence/facts.ts`, `FACTS_V`: bars, beats, pulses, tiles,
+  tempo, bar sizes, ratios, modulation, metre change, finished, repeats, chords, named); the
+  created date is read from the id (`createdOf`). Sorts `SORTS` (edited, created, name, length,
+  tempo, beats in a bar, tiles) + "the other way round"; filter chips (`filterGroups`: only values
+  that tell the pieces apart; or within a group, and across groups). Search and filters look in
+  the open folder and everything inside it ("Everywhere" widens), rows say where a piece is.
+  UI: one line of tools (sort, ↓, Filter folded), a path "All / Etudes", folders first, each
+  row's own actions behind ⋯ (Move to… / Delete; folders: Rename, Move to…, Delete), "Select" for
+  several (sticky bar), `MoveDialog` (the tree, plus "Or a new folder" → Move there), drag and
+  drop with a mouse. New pieces made in the library go into the open folder. View (folder, sort)
+  is a device pref (`time-sculpture/library-view`); search and filters start afresh on open.
+  e2e `folders.spec.ts`; deleting a piece is ⋯ "More for X" → "Delete X" → "Delete?".
 - IndexedDB store `time-sculpture/library`: `index` (entries), `piece:<id>` (SavedPiece v1),
   `current`. Autosave 400 ms after any change, and on `pagehide`.
 - File format **v2** (`src/persistence/serialize.ts`, documented in `docs/file-format.md`):

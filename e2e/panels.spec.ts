@@ -42,7 +42,10 @@ test('Land: keep a way with the heart; a pattern landed comes back as "Lately"',
   await page.getByRole('button', { name: 'Land…' }).first().click();
   await page.getByTestId('land-2').click();
   const ways = page.getByRole('list', { name: 'Ways it lands' });
-  await ways.getByRole('button', { name: /^Keep / }).first().click();
+  await ways
+    .getByRole('button', { name: /^Keep / })
+    .first()
+    .click();
   await expect(ways.locator('.fill-heart[aria-pressed="true"]')).toHaveCount(1);
   await ways.locator('.fill-main').first().click();
   await ways.locator('.fill-main').first().click();

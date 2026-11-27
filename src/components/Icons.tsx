@@ -175,3 +175,34 @@ export const MetronomeIcon = () => (
     <path d="M8 16h8" />
   </svg>
 );
+export const FolderIcon = () => (
+  <svg {...base}>
+    <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z" />
+  </svg>
+);
+export const FolderPlusIcon = () => (
+  <svg {...base}>
+    <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z" />
+    <path d="M12 11v5M9.5 13.5h5" />
+  </svg>
+);
+export const MoreIcon = () => (
+  <svg {...base} fill="currentColor" stroke="none">
+    <circle cx="6" cy="12" r="1.6" />
+    <circle cx="12" cy="12" r="1.6" />
+    <circle cx="18" cy="12" r="1.6" />
+  </svg>
+);
+/** Lines that get shorter: an order. */
+export const SortIcon = () => (
+  <svg {...base}>
+    <path d="M4 6h11M4 12h8M4 18h5" />
+    <path d="M18 8v10m0 0-3-3m3 3 3-3" />
+  </svg>
+);
+/** Fewer lines under more: narrowing the list. */
+export const FilterIcon = () => (
+  <svg {...base}>
+    <path d="M4 7h16M7 12h10M10 17h4" />
+  </svg>
+);

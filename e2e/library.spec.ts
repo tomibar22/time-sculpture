@@ -56,6 +56,7 @@ test('deleting the open composition really removes it', async ({ page }) => {
   await page.getByRole('button', { name: 'Library' }).click();
   const list = page.getByRole('list', { name: 'Saved compositions' });
   await expect(list.getByRole('listitem')).toHaveCount(2);
+  await page.getByRole('button', { name: 'More for Untitled' }).click();
   await page.getByRole('button', { name: 'Delete Untitled' }).click();
   await page.getByRole('button', { name: 'Delete?' }).click();
   // the other piece opens, and the deleted one stays gone (also after a reload)
