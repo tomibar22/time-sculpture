@@ -60,7 +60,7 @@ test('folders in folders: make, move into, go in and out, delete keeps what is i
     .getByRole('button', { name: 'All' })
     .click();
   await page.getByRole('button', { name: 'More for the folder Etudes' }).click();
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await list(page).getByRole('button', { name: 'Delete', exact: true }).click();
   await page.getByRole('button', { name: 'Delete the folder' }).click();
   await expect(list(page).getByRole('button', { name: /^Tihais/ })).toBeVisible();
   await expect(list(page).getByRole('button', { name: /^First phrase/ })).toBeVisible();
@@ -79,6 +79,8 @@ test('sort and filter by what the pieces are; select several and move them', asy
   await ready(page);
   await library(page);
   await page.getByRole('button', { name: 'Blank', exact: true }).click();
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  await expect(page.getByLabel('Name of the composition')).toHaveValue('Untitled');
   await page.getByLabel('Name of the composition').fill('Alpha');
   await page.getByLabel('Name of the composition').press('Enter');
   await page.waitForTimeout(600);
