@@ -1,4 +1,5 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from '../state/actions';
 import * as E from '../engine';
 import type { FillOption } from '../engine';
 import {
@@ -138,7 +139,8 @@ export function FillPanel() {
               </button>
               {region && (
                 <TilesFilter
-                  counts={E.tileCounts(region.b - region.a, sizes)}
+                  R={region.b - region.a}
+                  sizes={sizes}
                   tiles={
                     wantedTiles !== null &&
                     E.tileCounts(region.b - region.a, sizes).includes(wantedTiles)
@@ -253,10 +255,24 @@ function PanelHead({
   );
 }
 
-/** Only fills with a set number of tiles (any = every number that fits). */
-function TilesFilter({ counts, tiles }: { counts: number[]; tiles: number | null }) {
+/**
+ * Only fills with a set number of tiles (any = every number that fits). Every number sizes of
+ * 1–16 allow is offered (user request: fewer tiles than the chosen sizes allow); one the chosen
+ * sizes cannot make says which sizes it adds, and picking it adds them.
+ */
+function TilesFilter({ R, sizes, tiles }: { R: number; sizes: number[]; tiles: number | null }) {
   const set = useUiStore((s) => s.set);
-  if (counts.length < 2) return null;
+  const [counts, all] = useMemo(
+    () => [E.tileCounts(R, sizes), E.tileCounts(R, E.FILL_SIZES).filter((n) => n <= 64)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [R, sizes.join(',')],
+  );
+  if (all.length < 2) return null;
+  const adds = (n: number) => {
+    if (counts.includes(n)) return null;
+    const next = E.sizesForTiles(R, sizes, n);
+    return next ? next.filter((v) => !sizes.includes(v)) : null;
+  };
   return (
     <label className="fill-tiles" title="Only fills with this many tiles">
       <span className="fill-tiles-lbl">Tiles</span>
@@ -264,14 +280,24 @@ function TilesFilter({ counts, tiles }: { counts: number[]; tiles: number | null
         aria-label="Number of tiles"
         data-testid="fill-tiles"
         value={tiles ?? ''}
-        onChange={(e) => set({ fillTiles: e.target.value ? +e.target.value : null })}
+        onChange={(e) => {
+          if (!e.target.value) return set({ fillTiles: null });
+          const n = +e.target.value;
+          const next = counts.includes(n) ? null : E.sizesForTiles(R, sizes, n);
+          set(next ? { fillTiles: n, fillSizes: next } : { fillTiles: n });
+          if (next) toast(`Sizes ${next.filter((v) => !sizes.includes(v)).join(', ')} added`);
+        }}
       >
         <option value="">any</option>
-        {counts.map((n) => (
-          <option key={n} value={n}>
-            {n}
-          </option>
-        ))}
+        {all.map((n) => {
+          const a = adds(n);
+          if (!counts.includes(n) && !a) return null;
+          return (
+            <option key={n} value={n}>
+              {a ? `${n} (adds ${a.join(', ')})` : n}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
@@ -488,12 +514,10 @@ function Browse({
     return [...ps.values()];
   }, [mine, pin]);
   const breedNext = () => {
-    const kids = E.breed(parents, sizes, 30).map(
-      (k): Listed => ({
-        ...E.optionOf(meter, region.a, k.sizes),
-        note: k.how,
-      }),
-    );
+    const kids = E.breed(parents, sizes, 30).map((k): Listed => ({
+      ...E.optionOf(meter, region.a, k.sizes),
+      note: k.how,
+    }));
     setBrood({ gen: brood.gen + 1, kids });
     set({ fillShape: 'bred' });
   };
@@ -668,7 +692,7 @@ function Browse({
             Map
           </button>
         </div>
-        {!around && !tilesInHead && <TilesFilter counts={counts} tiles={tiles} />}
+        {!around && !tilesInHead && <TilesFilter R={R} sizes={sizes} tiles={tiles} />}
         {shape === 'any' && view === 'list' && !around && (
           <>
             <label htmlFor="fill-sort" className="sr-only">

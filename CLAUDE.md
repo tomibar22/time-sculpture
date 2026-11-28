@@ -837,6 +837,12 @@ so the commit does not bring them back); `tileColor(n, own)` in draw.ts. H = a r
 (`randomTileColor`, mid lightness) for the selection / range / tile at the caret, ⇧H = back to
 its size's colour (state/tileColors.ts); "Random colour" / "Size colour" in the tile bar's More
 and the tile menu. Duplicate copies it; file `FileGroup.color`.
+**A colour chosen** (user request: not only random): `ColorDialog` (`ui.colorDialog`,
+`openColor` / `paintColor` / `sharedColor` in state/tileColors.ts): the active palette's 12
+swatches (6 columns, the tiles' current colour pressed), "More colours" (the other palettes),
+"Any colour…" (`<input type="color">`), Random, Size colour; each pick is applied at once (one
+undo step), Done closes. "Colour…" in the tile bar's More and the tile menu, key **⌥H**. Its
+`onClose` ignores a late close event when it is open again (as ChordDialog's).
 Fonts: Bricolage Grotesque (display), Atkinson Hyperlegible (body), IBM Plex Mono (numbers).
 Tile text colour is picked per size colour by contrast (`inkFor`). Light --land/--warn and size 5
 were darkened from the prototype to meet WCAG AA for text.
@@ -894,6 +900,10 @@ overrides.
   `sampleTilingOf` (count.ts) and `fillOptions(…, tiles)`: fills are counted, listed or sampled
   uniformly among those with exactly that many tiles (not filtered after the fact); built shapes,
   tihais, Mine and From the piece are filtered by length. Variations (Vary) are not filtered.
+  **Fewer (or more) tiles than the chosen sizes allow** (user request): the select lists every
+  count sizes 1–16 allow (≤ 64); one the chosen sizes cannot make reads "3 (adds 11)" and picking
+  it adds those sizes (`sizesForTiles` in count.ts: one size if one does, nearest first, then
+  two, then greedily; toast "Sizes 11 added").
 - **Saving on a computer** (`deliverFile`): fine pointer → the browser's "Save as"
   (`showSaveFilePicker`, not under `navigator.webdriver`), else an anchor download appended inside
   the open dialog (the page under a modal dialog is inert) plus a toast "… is in your downloads"

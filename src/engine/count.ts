@@ -154,3 +154,35 @@ export function sampleTilingOf(
   }
   return out;
 }
+
+/** Every size a fill may use (Browse's size buttons). */
+export const FILL_SIZES = Array.from({ length: 16 }, (_, i) => i + 1);
+
+/**
+ * The sizes to fill R with exactly `tiles` tiles: `sizes` when they can, else `sizes` with the
+ * fewest sizes added (larger ones for fewer tiles, smaller ones for more), or null when no sizes
+ * of 1–16 can (user request: ask for fewer tiles than the chosen sizes allow).
+ */
+export function sizesForTiles(R: number, sizes: readonly number[], tiles: number): number[] | null {
+  const S = [...new Set(sizes)].filter((n) => n >= 1 && n <= 16).sort((a, b) => a - b);
+  if (countWaysOf(R, S, tiles) > 0n) return S;
+  if (!S.length || countWaysOf(R, FILL_SIZES, tiles) === 0n) return null;
+  const fewer = !tileCounts(R, S).length || tiles < tileCounts(R, S)[0]!;
+  const rest = FILL_SIZES.filter((n) => !S.includes(n));
+  // nearest first: larger ones for fewer tiles, smaller ones for more
+  const order = fewer
+    ? [...rest.filter((n) => n > S[S.length - 1]!), ...rest.filter((n) => n < S[S.length - 1]!)]
+    : [...rest.filter((n) => n < S[0]!).reverse(), ...rest.filter((n) => n > S[0]!)];
+  const ok = (extra: number[]) => countWaysOf(R, [...S, ...extra], tiles) > 0n;
+  const sorted = (extra: number[]) => [...S, ...extra].sort((x, y) => x - y);
+  for (const n of order) if (ok([n])) return sorted([n]);
+  for (let i = 0; i < order.length; i++)
+    for (let j = i + 1; j < order.length; j++)
+      if (ok([order[i]!, order[j]!])) return sorted([order[i]!, order[j]!]);
+  const out: number[] = [];
+  for (const n of order) {
+    out.push(n);
+    if (ok(out)) return sorted(out);
+  }
+  return null;
+}

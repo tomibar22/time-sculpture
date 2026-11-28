@@ -7,6 +7,7 @@ import { ModulationDialog } from './components/ModulationDialog';
 import { VoltaDialog } from './components/VoltaDialog';
 import { MarkDialog } from './components/MarkDialog';
 import { ChordDialog } from './components/ChordDialog';
+import { ColorDialog } from './components/ColorDialog';
 import { ContextMenu } from './components/ContextMenu';
 import { CountInOverlay } from './components/CountIn';
 import { BarsDialog, MeterDialog, RowDialog, StartDialog } from './components/PieceDialogs';
@@ -76,6 +77,7 @@ export function App() {
       <VoltaDialog />
       <MarkDialog />
       <ChordDialog />
+      <ColorDialog />
       <TempoDialog />
       <MeterDialog />
       <BarsDialog />

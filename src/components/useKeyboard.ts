@@ -48,7 +48,7 @@ import {
 import { useDocStore, useUiStore } from '../state/store';
 import { swapNow, swapStep } from '../state/swap';
 import { openChord } from '../state/chords';
-import { randomColor, resetColor } from '../state/tileColors';
+import { openColor, randomColor, resetColor } from '../state/tileColors';
 import { MAX_TEMPO, MIN_TEMPO } from '../state/defaults';
 import { closeFill, fillRegion, openFill } from '../state/fill';
 import { openMenuAtSelection } from '../score/menu';
@@ -217,6 +217,8 @@ export function useKeyboard() {
       }
       if (e.altKey) {
         // ⌥←/→ trim the end edge, ⌥⇧←/→ the start edge (preventDefault also stops Alt+← = Back)
+        // ⌥H: choose the tile's colour
+        if (e.code === 'KeyH' && !mod && !e.shiftKey) return void (e.preventDefault(), openColor());
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           e.preventDefault();
           const dir = e.key === 'ArrowLeft' ? -1 : 1;

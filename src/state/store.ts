@@ -438,6 +438,8 @@ export interface UiState {
   markDialog: { k: number } | null;
   /** The chord dialog, for the sounding group with this id. */
   chordDialog: { id: ItemId } | null;
+  /** The colour dialog: pick a colour for the tiles here (user request: not only random). */
+  colorDialog: boolean;
   /** Playhead in beats while playing. */
   playhead: number | null;
   /**
@@ -543,6 +545,7 @@ export const useUiStore = create<UiState>((set) => ({
   voltaDialog: null,
   markDialog: null,
   chordDialog: null,
+  colorDialog: false,
   meterDialog: null,
   barsDialog: false,
   menu: null,

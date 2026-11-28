@@ -249,3 +249,14 @@ test('land: speeds that turn round from one time to the next, the landing kept',
   await page.getByRole('button', { name: 'Use', exact: true }).click();
   await expect(page.getByTestId('sequence')).toContainText('3 2 1 3 2 2 2 3 1 2 3 3');
 });
+
+test('fewer tiles than the chosen sizes allow: the sizes it needs are added', async ({ page }) => {
+  await page.getByRole('button', { name: 'Fill it…' }).click();
+  // 9 open pulses with sizes 2 3 4 5 7: at least 2 tiles; 1 tile needs a 9
+  const sel = page.getByTestId('fill-tiles');
+  await expect(sel.locator('option', { hasText: '1 (adds 9)' })).toHaveCount(1);
+  await sel.selectOption('1');
+  await expect(sel).toHaveValue('1');
+  await fillFold(page, 'Sizes');
+  await expect(page.getByTestId('fill-9')).toHaveAttribute('aria-pressed', 'true');
+});

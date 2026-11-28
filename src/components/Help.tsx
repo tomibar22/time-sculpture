@@ -478,10 +478,11 @@ export function Help() {
                   </dt>
                   <dd>a chord over the tile (Enter or Tab goes on to the next tile)</dd>
                   <dt>
-                    <kbd>H</kbd> · <kbd>⇧H</kbd>
+                    <kbd>⌥H</kbd> · <kbd>H</kbd> · <kbd>⇧H</kbd>
                   </dt>
                   <dd>
-                    a random colour for the tile · back to its size’s colour (palettes: Colours)
+                    choose the tile’s colour · a random one · back to its size’s colour (palettes:
+                    Colours)
                   </dd>
                   <dt>
                     <kbd>+ −</kbd>

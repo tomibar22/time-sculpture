@@ -1,7 +1,7 @@
 import * as E from '../engine';
 import type { ItemId } from '../engine';
 import { ui as sfx } from '../audio/voices';
-import { randomTileColor } from '../score/colors';
+import { randomTileColor, sizeColor } from '../score/colors';
 import { toast } from './actions';
 import { useDocStore, useUiStore } from './store';
 
@@ -54,6 +54,38 @@ export function randomColor(): void {
   const d = doc();
   const next = E.setColors(d, ids, () => randomTileColor());
   if (next !== d) useDocStore.getState().commit(next, 'colour');
+}
+
+/** Open the colour dialog for the tiles here. */
+export function openColor(): void {
+  if (!colorTargets().length) {
+    sfx.nope();
+    return toast('Select a tile (or put the caret after one) to choose its colour');
+  }
+  useUiStore.getState().set({ colorDialog: true });
+}
+
+/** Give every tile here this colour (one undo step). */
+export function paintColor(hex: string): void {
+  const ids = colorTargets();
+  const d = doc();
+  const next = E.setColors(d, ids, () => hex.toLowerCase());
+  if (next !== d) useDocStore.getState().commit(next, 'colour');
+}
+
+/** The colour the tiles here share (their own, or their size's), else null. */
+export function sharedColor(): string | null {
+  const d = doc();
+  const ids = colorTargets();
+  let out: string | null = null;
+  for (const id of ids) {
+    const x = d.items.find((i) => i.id === id);
+    if (!x) continue;
+    const c = (d.colors?.[id] ?? sizeColor(x.n)).toLowerCase();
+    if (out && out !== c) return null;
+    out = c;
+  }
+  return out;
 }
 
 /** Back to the colour of the tile's size. */

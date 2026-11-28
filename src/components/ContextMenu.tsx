@@ -43,7 +43,7 @@ import {
 } from '../state/editing';
 import { openFill } from '../state/fill';
 import { chordTarget, openChord } from '../state/chords';
-import { hasOwnColor, randomColor, resetColor } from '../state/tileColors';
+import { hasOwnColor, openColor, randomColor, resetColor } from '../state/tileColors';
 import { swapStep } from '../state/swap';
 import { useDocStore, useUiStore } from '../state/store';
 import type { ContextMenuState } from '../state/store';
@@ -254,6 +254,7 @@ function Menu({ menu }: { menu: ContextMenuState }) {
               hint: 'C',
               run: () => openChord(),
             },
+            { label: 'Colour…', hint: '⌥H', run: openColor },
             { label: 'Random colour', hint: 'H', run: randomColor },
             ...(hasOwnColor()
               ? [{ label: 'Back to its size’s colour', hint: '⇧H', run: resetColor }]

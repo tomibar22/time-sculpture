@@ -64,3 +64,16 @@ describe('fills with a set number of tiles', () => {
     expect(sampleTilingOf(20, sizes, 4)).toEqual([5, 5, 5, 5]);
   });
 });
+
+describe('fewer tiles than the chosen sizes allow (user request)', () => {
+  it('sizesForTiles adds the fewest larger sizes', async () => {
+    const { sizesForTiles, tileCounts } = await import('../count');
+    expect(tileCounts(32, [2, 3, 4, 5, 7])[0]).toBe(5);
+    expect(sizesForTiles(32, [2, 3, 4, 5, 7], 5)).toEqual([2, 3, 4, 5, 7]);
+    const s = sizesForTiles(32, [2, 3, 4, 5, 7], 3)!;
+    expect(tileCounts(32, s)).toContain(3);
+    expect(s.slice(0, 5)).toEqual([2, 3, 4, 5, 7]);
+    expect(sizesForTiles(32, [2, 3], 1)).toBeNull(); // nothing of 1–16 makes 32 in one
+    expect(tileCounts(9, sizesForTiles(9, [2, 4], 9)!)).toContain(9); // more: adds 1
+  });
+});

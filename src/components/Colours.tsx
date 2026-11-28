@@ -30,8 +30,8 @@ export function Colours() {
           ))}
         </fieldset>
         <p className="hist">
-          One tile its own colour: select it, then H or “Random colour” (⇧H gives back its size’s
-          colour).
+          One tile its own colour: select it, then “Colour…” (⌥H) to choose one, or H for a random
+          one (⇧H gives back its size’s colour).
         </p>
       </div>
     </details>
