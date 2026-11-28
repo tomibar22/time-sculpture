@@ -66,3 +66,25 @@ describe('woven yatis (prastara)', () => {
     expect(all.map((f) => f.sizes.join(' '))).toContain('1 6 2 5 3 4 4 3');
   });
 });
+
+describe('the fills of a shape hold still (user report: Mirror showed others each time)', () => {
+  it('shapeFills gives the same list every time', () => {
+    const keys = () => shapeFills(32, [1, 2, 3, 4, 5]).map((o) => o.sizes.join(' '));
+    expect(keys()).toEqual(keys());
+    expect(shapeFills(32, [1, 2, 3, 4, 5]).some((o) => o.shape.family === 'mirror')).toBe(true);
+  });
+  it('fillOptions lists the same fills under each shape, whatever the random draw', async () => {
+    const { fillOptions } = await import('../fills');
+    const { makeMeter } = await import('../doc');
+    const meter = makeMeter(4, 2, 4);
+    const shaped = (seed: number) => {
+      let x = seed;
+      const rng = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+      return fillOptions(meter, 0, 32, [1, 2, 3, 4, 5], 400, rng)
+        .options.filter((o) => o.shape)
+        .map((o) => o.key)
+        .sort();
+    };
+    expect(shaped(1)).toEqual(shaped(2));
+  });
+});

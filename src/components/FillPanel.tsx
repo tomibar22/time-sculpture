@@ -319,7 +319,17 @@ function Browse({
   const counts = useMemo(() => E.tileCounts(R, sizes), [R, sizes.join(',')]);
   const tiles = wanted !== null && counts.includes(wanted) ? wanted : null;
   const { options, total } = useMemo(
-    () => E.fillOptions(meter, region.a, R, sizes, LIMIT, Math.random, tiles ?? undefined),
+    () =>
+      E.fillOptions(
+        meter,
+        region.a,
+        R,
+        sizes,
+        LIMIT,
+        // the same draw for the same stretch, so the list holds still when it is opened again
+        E.fixedRng(E.seedOf(R, region.a, tiles ?? 0, ...sizes)),
+        tiles ?? undefined,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [meter, region.a, R, sizes.join(','), tiles],
   );
@@ -478,10 +488,12 @@ function Browse({
     return [...ps.values()];
   }, [mine, pin]);
   const breedNext = () => {
-    const kids = E.breed(parents, sizes, 30).map((k): Listed => ({
-      ...E.optionOf(meter, region.a, k.sizes),
-      note: k.how,
-    }));
+    const kids = E.breed(parents, sizes, 30).map(
+      (k): Listed => ({
+        ...E.optionOf(meter, region.a, k.sizes),
+        note: k.how,
+      }),
+    );
     setBrood({ gen: brood.gen + 1, kids });
     set({ fillShape: 'bred' });
   };

@@ -215,6 +215,9 @@ export function optionOf(
   return { sizes: t, key: t.join(' '), ...measureFill(meter, start, t), shape };
 }
 
+/** How many fills of each shape Browse lists. */
+export const SHAPES_PER_FAMILY = 120;
+
 export function fillOptions(
   meter: Meter,
   start: number,
@@ -242,12 +245,12 @@ export function fillOptions(
       }
     }
   }
-  // shaped fills are built directly: random sampling almost never finds them
-  // golden fills are built directly too; a random draw that happens to be golden would make the
-  // family's count change on every opening
-  if (total > BigInt(limit)) tilings = tilings.filter((t) => shapeOf(t)?.family !== 'golden');
+  // shaped fills are built directly (random sampling almost never finds them), and only the
+  // built ones are listed under a shape: a random draw that happens to have a shape would make a
+  // family's fills change on every opening (user report: Mirror showed others each time)
+  if (total > BigInt(limit)) tilings = tilings.filter((t) => !shapeOf(t));
   const have = new Set(tilings.map((t) => t.join(' ')));
-  for (const s of shapeFills(R, sizes, 40, rng)) {
+  for (const s of shapeFills(R, sizes, SHAPES_PER_FAMILY)) {
     const k = s.sizes.join(' ');
     if (fits(s.sizes) && !have.has(k)) {
       have.add(k);

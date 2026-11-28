@@ -33,6 +33,28 @@ export function trayStates(R: number, sizes: readonly number[]): Map<number, Tra
   return out;
 }
 
+/**
+ * A fixed random generator (an LCG) from a seed: the same seed gives the same draws, so a list
+ * built from it is the same every time it is opened.
+ */
+export function fixedRng(seed: number): () => number {
+  let x = seed >>> 0;
+  return () => {
+    x = (Math.imul(x, 1664525) + 1013904223) >>> 0;
+    return x / 4294967296;
+  };
+}
+
+/** A seed from numbers (a region's length, the sizes…), for `fixedRng`. */
+export function seedOf(...parts: number[]): number {
+  let h = 2166136261;
+  for (const v of parts) {
+    h ^= v | 0;
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 function pickBig(total: bigint, rng: () => number): bigint {
   const SCALE = 2n ** 53n;
   const r = BigInt(Math.floor(rng() * Number(SCALE)));

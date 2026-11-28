@@ -215,6 +215,11 @@ cycle downbeat, beat click, optional soft ticks, a drum stroke per sounding grou
   (≤ 400) or 400 distinct random ones, measured (tiles, onBeat, offBeat, variety, spread) and
   sorted (`FILL_SORTS`). Hover/focus previews via `ui.preview`; click applies with `fillRange`
   and keeps the region selected as a range.
+- **The lists hold still** (user report: Mirror showed other fills after selecting again): a
+  shape's fills are only the built ones (`shapeFills` has no random draws; mirrors take every
+  half when ≤ 60, else a fixed draw, `halvesOf`), random tilings that happen to have a shape are
+  left out, up to `SHAPES_PER_FAMILY` (120) per shape, and the 400-sample of a big stretch uses
+  `fixedRng(seedOf(R, start, tiles, sizes))`, so the same stretch lists the same fills.
 - **Shapes** (engine/shapes.ts): Browse opens on shaped fills. `shapeOf` names a fill's shape
   (first match in `SHAPE_FAMILIES` order: repeat, growing, pyramid (rise/fall/arch/valley),
   refrain (fixed size between steps), even spread, cadence (repeat + turn), mirror);

@@ -1,4 +1,4 @@
-import { countWays, sampleTiling } from './count';
+import { countWays, fixedRng, sampleTiling, seedOf } from './count';
 import { speedFills, speedsAcrossLabel, speedsLabel } from './speeds';
 import { innerAcrossLabel, yatiFills, yatiLabel } from './yati';
 
@@ -460,15 +460,45 @@ const range = (a: number, b: number, d: number): number[] => {
   return out;
 };
 
+/** How many halves a mirror around one middle offers at most. */
+const MIRROR_HALVES = 60;
+
+/** Every tiling of h (lexicographic) when there are few, else a fixed draw of distinct ones. */
+function halvesOf(h: number, S: number[], ways: bigint, seed: number): number[][] {
+  const out: number[][] = [];
+  if (ways <= BigInt(MIRROR_HALVES)) {
+    const path: number[] = [];
+    const go = (r: number) => {
+      if (r === 0) return void out.push(path.slice());
+      for (const v of S) {
+        if (v > r || countWays(r - v, S) === 0n) continue;
+        path.push(v);
+        go(r - v);
+        path.pop();
+      }
+    };
+    go(h);
+    return out;
+  }
+  const rng = fixedRng(seed);
+  const seen = new Set<string>();
+  for (let i = 0; out.length < MIRROR_HALVES && i < MIRROR_HALVES * 4; i++) {
+    const t = sampleTiling(h, S, rng);
+    if (!t || seen.has(t.join(' '))) continue;
+    seen.add(t.join(' '));
+    out.push(t);
+  }
+  return out;
+}
+
 /**
  * Shaped fills of exactly R pulses using only `sizes`, deduplicated, in family order (then fewer
- * tiles first), at most `perFamily` of each family.
+ * tiles first), at most `perFamily` of each family. The same every time (no random draws).
  */
 export function shapeFills(
   R: number,
   sizes: number[],
   perFamily = 40,
-  rng: () => number = Math.random,
 ): { sizes: number[]; shape: Shape }[] {
   const S = [...new Set(sizes)].filter((n) => n >= 1).sort((a, b) => a - b);
   const ok = new Set(S);
@@ -620,14 +650,15 @@ export function shapeFills(
     if (!base.every((v) => ok.has(v)) || new Set(base).size < 2) continue;
     for (let k = 0; k < n; k++) put([...base.slice(k), ...base.slice(0, k)]);
   }
-  // mirrors: a random half, reflected around an optional middle tile
+  // mirrors: a half, reflected around an optional middle tile. Every half when there are few,
+  // else the same fixed draw each time (a random draw made the list change on every opening)
   for (const m of [0, ...S]) {
     const h = (R - m) / 2;
-    if (!Number.isInteger(h) || h < 1 || countWays(h, S) === 0n) continue;
-    for (let i = 0; i < 8; i++) {
-      const half = sampleTiling(h, S, rng);
-      if (half) put([...half, ...(m ? [m] : []), ...[...half].reverse()]);
-    }
+    if (!Number.isInteger(h) || h < 1) continue;
+    const ways = countWays(h, S);
+    if (ways === 0n) continue;
+    for (const half of halvesOf(h, S, ways, seedOf(R, m, ...S)))
+      put([...half, ...(m ? [m] : []), ...[...half].reverse()]);
   }
 
   const seen = new Set<string>();
